@@ -356,9 +356,3 @@ Roadmap içerisinde:
 * Önerilen geliştirme sırası
 
 yer almaktadır.
-
-## Lisans
-
-Henüz bir lisans belirtilmemiştir.
-
-Lisans eklenene kadar proje **tüm hakları saklıdır** şeklinde değerlendirilmelidir.
