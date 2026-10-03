@@ -1,0 +1,19 @@
+<aside class="sidebar">
+  <a class="brand" href="/">{{ brand.name }} <span class="accent">{{ brand.accent_word }}</span></a>
+
+  <ul class="nav-list">
+    {% for item in nav_items %}
+    <li class="nav-item">
+      {% if item.soon %}
+        <span class="disabled"><i class="bi {{ item.icon }}"></i>{{ item.label }}<span class="soon">yakında</span></span>
+      {% else %}
+        <a href="{{ item.href }}" class="{{ 'active' if request.url.path == item.href else '' }}">
+          <i class="bi {{ item.icon }}"></i>{{ item.label }}
+        </a>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+
+  {% include "partials/theme_picker.html" %}
+</aside>

@@ -1,0 +1,28 @@
+/* name: Neon Cyberpunk | mode: dark */
+[data-theme="neon"] {
+  --bg: #07040f;
+  --surface: #0f0820;
+  --surface-2: #180c32;
+  --border: #2b1560;
+  --text: #e9e6ff;
+  --text-muted: #8f86c9;
+
+  --accent: #00f0ff;
+  --accent-2: #ff2bd6;
+  --accent-hover: #6bf7ff;
+  --accent-contrast: #05010d;
+  --accent-rgb: 0, 240, 255;
+
+  --success: #39ff9c;
+  --warning: #ffe14d;
+  --danger: #ff3b6b;
+
+  --radius: 4px;
+  --radius-sm: 3px;
+  --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+
+  --progress-glow: 0 0 10px rgba(0, 240, 255, .7);
+  --glow-text: 0 0 12px rgba(0, 240, 255, .55);
+  --card-shadow: 0 0 0 1px rgba(0, 240, 255, .06), 0 0 24px rgba(255, 43, 214, .07);
+  --card-hover-shadow: 0 0 0 1px rgba(0, 240, 255, .5), 0 0 28px rgba(0, 240, 255, .25);
+}

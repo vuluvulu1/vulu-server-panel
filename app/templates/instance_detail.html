@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% from "components/ui.html" import page_header, status_badge, progress_panel, stat_tile %}
+{% block title %}{{ inst["name"] }} · {{ brand.name }} {{ brand.accent_word }}{% endblock %}
+
+{% block content %}
+{% call page_header(inst["name"], inst["path"]) %}
+  <div class="d-flex flex-wrap gap-2">
+    <button class="btn btn-primary" data-action="start"><i class="bi bi-play-fill"></i> Başlat</button>
+    <button class="btn btn-outline-secondary" data-action="stop"><i class="bi bi-stop-fill"></i> Durdur</button>
+    <button class="btn btn-outline-secondary" data-action="restart"><i class="bi bi-arrow-repeat"></i> Yeniden başlat</button>
+    <button class="btn btn-outline-danger" data-action="kill"><i class="bi bi-x-octagon"></i> Zorla kapat</button>
+  </div>
+{% endcall %}
+
+<div id="console-root" data-instance-id="{{ inst['id'] }}" data-status="{{ inst['status'] }}">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    {{ status_badge(inst["status"], "instance-status") }}
+    <span class="text-body-secondary small">
+      {% if inst["mc_version"] %}MC {{ inst["mc_version"] }} · {{ inst["loader"] }} · {% endif %}{% if inst["java_major"] %}Java {{ inst["java_major"] }} · {% endif %}Port {{ inst["port"] }} · {{ inst["ram_mb"] // 1024 }} GB · {{ inst["jar_file"] }}
+    </span>
+  </div>
+
+  {% if inst["loader"] == "paper" %}
+  <div class="d-flex justify-content-between align-items-center mb-2 small">
+    <span class="text-body-secondary">
+      {% if jar_info %}Paper {{ jar_info.version }} · build #{{ jar_info.build }} ({{ jar_info.channel }}){% else %}Paper jar'ı henüz indirilmedi (ilk başlatmada otomatik indirilir){% endif %}
+    </span>
+    <button id="paper-update-btn" class="btn btn-sm btn-outline-secondary" type="button"><i class="bi bi-arrow-repeat"></i> Paper'ı güncelle</button>
+  </div>
+  {% endif %}
+
+  {{ progress_panel("prep") }}
+
+  <div class="row g-2 mb-3">
+    <div class="col-6 col-md">{{ stat_tile("cpu", "CPU", "bi-cpu") }}</div>
+    <div class="col-6 col-md">{{ stat_tile("ram", "RAM", "bi-memory") }}</div>
+    <div class="col-6 col-md">{{ stat_tile("players", "Oyuncu", "bi-people") }}</div>
+    <div class="col-6 col-md">{{ stat_tile("tps", "TPS", "bi-speedometer2") }}</div>
+    <div class="col-12 col-md">{{ stat_tile("uptime", "Çalışma süresi", "bi-clock") }}</div>
+  </div>
+  <div class="row g-3 mb-3">
+    <div class="col-lg-6"><div class="card static"><div class="card-body"><div class="chart-box"><canvas id="chart-res"></canvas></div></div></div></div>
+    <div class="col-lg-6"><div class="card static"><div class="card-body"><div class="chart-box"><canvas id="chart-play"></canvas></div></div></div></div>
+  </div>
+
+  <div id="console-output" class="console"></div>
+
+  <div class="input-group mt-2">
+    <span class="input-group-text">&gt;</span>
+    <input id="console-input" class="form-control font-monospace" placeholder="Komut yaz (örn. list, say merhaba)" autocomplete="off" disabled>
+    <button id="console-send" class="btn btn-primary" disabled>Gönder</button>
+  </div>
+</div>
+
+<form method="post" action="/instances/{{ inst['id'] }}/delete" class="mt-5"
+      onsubmit="return confirm('Sunucu panelden kaldırılsın mı? Dosyalar diskte kalır, silinmez.')">
+  <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i> Panelden kaldır</button>
+</form>
+{% endblock %}
+
+{% block scripts %}<script src="/static/js/vendor/chart.umd.js"></script>
+<script src="/static/js/stats.js"></script>
+<script src="/static/js/console.js"></script>{% endblock %}

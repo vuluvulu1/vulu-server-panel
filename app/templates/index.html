@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "components/ui.html" import page_header, instance_card, empty_state %}
+
+{% block content %}
+{% call page_header("Sunucular", "Tüm Minecraft sunucuların burada") %}
+  <a href="/instances/new" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Yeni sunucu</a>
+{% endcall %}
+
+{% if instances %}
+  <div class="row g-3">
+    {% for i in instances %}
+    <div class="col-md-6 col-xl-4">{{ instance_card(i) }}</div>
+    {% endfor %}
+  </div>
+{% else %}
+  {{ empty_state("bi-hdd-rack", "Henüz hiç sunucu yok.", "İlk sunucunu eklemek için \"Yeni sunucu\"ya tıkla.") }}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}<script src="/static/js/dashboard.js"></script>{% endblock %}

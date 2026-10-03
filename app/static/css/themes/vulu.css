@@ -1,0 +1,20 @@
+/* name: vulu Violet | mode: dark */
+[data-theme="vulu"] {
+  --bg: #14151a;
+  --surface: #1c1e26;
+  --surface-2: #252835;
+  --border: #2e3140;
+  --text: #e6e8ef;
+  --text-muted: #8b90a3;
+
+  --accent: #7c5cff;
+  --accent-hover: #957bff;
+  --accent-contrast: #ffffff;
+  --accent-rgb: 124, 92, 255;
+
+  --success: #3ddc97;
+  --warning: #ffb454;
+  --danger: #ff5c6c;
+
+  --card-hover-shadow: 0 6px 24px rgba(124, 92, 255, .15);
+}

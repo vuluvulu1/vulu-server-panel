@@ -1,0 +1,17 @@
+/* Yapısal tasarım değişkenleri (renk DEĞİL). Renkler themes/ altında.
+   Her tema bunlardan istediğini kendi dosyasında ezebilir. */
+:root {
+  --font-body: system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Cascadia Code", Consolas, "JetBrains Mono", monospace;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --sidebar-w: 240px;
+  --transition: .15s ease;
+
+  /* Temalar isterse ezer; varsayılanlar nötr */
+  --accent-2: var(--accent);
+  --glow-text: none;
+  --card-shadow: none;
+  --card-hover-shadow: none;
+}

@@ -1,0 +1,21 @@
+/* name: Açık | mode: light */
+[data-theme="light"] {
+  --bg: #f4f5f9;
+  --surface: #ffffff;
+  --surface-2: #eef0f6;
+  --border: #dcdfea;
+  --text: #1d2030;
+  --text-muted: #6a7088;
+
+  --accent: #5b3df5;
+  --accent-hover: #4a2ed8;
+  --accent-contrast: #ffffff;
+  --accent-rgb: 91, 61, 245;
+
+  --success: #12a66a;
+  --warning: #d98200;
+  --danger: #d6334a;
+
+  --card-shadow: 0 1px 3px rgba(20, 24, 50, .06);
+  --card-hover-shadow: 0 6px 20px rgba(91, 61, 245, .15);
+}

@@ -1,0 +1,5 @@
+/* Kişisel ince ayarların buraya. En son yüklenir, hiçbir şeyi bozmaz.
+   Örnek:
+   :root { --radius: 20px; }
+   [data-theme="vulu"] { --accent: #ff7a59; }
+*/

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% from "components/ui.html" import page_header, progress_panel %}
+
+{% block content %}
+{{ page_header("Yeni sunucu", "Sunucu klasörü instances/ altında oluşturulur") }}
+
+{% if errors %}
+<div class="alert alert-danger"><ul class="mb-0">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
+{% endif %}
+
+<form id="instance-form" method="post" action="/instances" class="card static" style="max-width: 760px">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label" for="name">Sunucu adı</label>
+        <input class="form-control" id="name" name="name" value="{{ values.name }}" placeholder="steampunk" required>
+        <div class="form-text">Klasör adı olarak da kullanılır.</div>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="port">Port</label>
+        <input class="form-control" id="port" name="port" value="{{ values.port }}" inputmode="numeric">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="ram_gb">RAM (GB)</label>
+        <input class="form-control" id="ram_gb" name="ram_gb" value="{{ values.ram_gb }}" inputmode="numeric">
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label" for="mc_version">Minecraft sürümü</label>
+        <select class="form-select" id="mc_version" name="mc_version" data-selected="{{ values.mc_version }}">
+          <option value="">Yükleniyor…</option>
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="loader">Mod yükleyici</label>
+        <select class="form-select" id="loader" name="loader">
+          {% for l in loaders %}
+          <option value="{{ l }}" {{ 'selected' if values.loader == l else '' }}>{{ {'vanilla': 'Vanilla', 'paper': 'Paper', 'fabric': 'Fabric', 'forge': 'Forge', 'neoforge': 'NeoForge'}[l] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-12 d-none" id="paper-section">
+        <div id="paper-status" class="java-status d-none">
+          <div class="d-flex justify-content-between align-items-center gap-2">
+            <div>
+              <div id="paper-status-text"></div>
+              <div id="paper-status-reason" class="small text-body-secondary"></div>
+            </div>
+            <button type="button" id="paper-install-btn" class="btn btn-sm btn-outline-secondary d-none">
+              <i class="bi bi-download"></i> Şimdi indir
+            </button>
+          </div>
+        </div>
+        <div class="mt-2">{{ progress_panel("paper") }}</div>
+        <div class="form-text">Paper jar'ı papermc.io'dan indirilir ve doğrulanır. İndirmezsen sunucuyu ilk başlattığında otomatik indirilir.</div>
+      </div>
+
+      <div class="col-12">
+        <label class="form-label" for="java_mode">Java</label>
+        <select class="form-select" id="java_mode" name="java_mode">
+          <option value="auto"   {{ 'selected' if values.java_mode == 'auto' else '' }}>Otomatik (önerilen) — sürüme göre seçilir ve kurulur</option>
+          {% for v in ['8', '11', '17', '21', '25'] %}
+          <option value="{{ v }}" {{ 'selected' if values.java_mode == v else '' }}>Java {{ v }} (otomatik kurulur)</option>
+          {% endfor %}
+          <option value="custom" {{ 'selected' if values.java_mode == 'custom' else '' }}>Özel yol (gelişmiş)</option>
+        </select>
+
+        <div id="java-custom-box" class="mt-2 d-none">
+          <input class="form-control" id="java_path" name="java_path" value="{{ values.java_path }}">
+          <div class="form-text">PATH'teki <code>java</code> ya da tam yol (örn. <code>C:\Program Files\Java\jdk-21\bin\java.exe</code>).</div>
+        </div>
+
+        <div id="java-status" class="java-status mt-2 d-none">
+          <div class="d-flex justify-content-between align-items-center gap-2">
+            <div>
+              <div id="java-status-text"></div>
+              <div id="java-status-reason" class="small text-body-secondary"></div>
+            </div>
+            <button type="button" id="java-install-btn" class="btn btn-sm btn-outline-secondary d-none">
+              <i class="bi bi-download"></i> Şimdi kur
+            </button>
+          </div>
+        </div>
+        <div class="mt-2">{{ progress_panel("java") }}</div>
+        <div class="form-text">Kurmazsan sunucuyu ilk başlattığında Java otomatik indirilir (hafif Temurin JRE paketi).</div>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label" for="jar_file">Jar dosyası</label>
+        <input class="form-control" id="jar_file" name="jar_file" value="{{ values.jar_file }}">
+        <div class="form-text">Sunucu klasörünün içinde olmalı.</div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="jvm_args">Ek JVM argümanları (isteğe bağlı)</label>
+        <input class="form-control font-monospace" id="jvm_args" name="jvm_args" value="{{ values.jvm_args }}" placeholder="-XX:+UseG1GC">
+        <div class="form-text">-Xms/-Xmx RAM alanından otomatik eklenir.</div>
+      </div>
+      <div class="col-12">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="accept_eula" name="accept_eula" checked>
+          <label class="form-check-label" for="accept_eula">
+            <a href="https://aka.ms/MinecraftEULA" target="_blank" rel="noopener">Minecraft EULA</a>'yı okudum ve kabul ediyorum (eula.txt oluşturulur)
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card-footer d-flex gap-2">
+    <button class="btn btn-primary" type="submit">Oluştur</button>
+    <a class="btn btn-outline-secondary" href="/">Vazgeç</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}<script src="/static/js/instance_form.js"></script>{% endblock %}

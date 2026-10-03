@@ -1,0 +1,57 @@
+{# Tekrar eden arayüz parçaları. Görünümü değiştirmek için sadece burayı düzenle. #}
+
+{% macro page_header(title, subtitle=None) %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ title }}</h1>
+    {% if subtitle %}<p class="page-subtitle">{{ subtitle }}</p>{% endif %}
+  </div>
+  <div class="page-actions">{% if caller %}{{ caller() }}{% endif %}</div>
+</div>
+{% endmacro %}
+
+{% macro status_badge(status, el_id=None) %}
+{% set labels = {"running": "Çalışıyor", "stopped": "Durdu", "preparing": "Hazırlanıyor", "starting": "Başlıyor", "stopping": "Durduruluyor", "crashed": "Çöktü"} %}
+<span class="status status-{{ status }}"{% if el_id %} id="{{ el_id }}"{% endif %}><span class="status-dot"></span><span class="status-label">{{ labels.get(status, status) }}</span></span>
+{% endmacro %}
+
+{% macro instance_card(i) %}
+<div class="card h-100" data-card="{{ i['id'] }}">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start mb-2">
+      <h2 class="h5 mb-0"><a href="/instances/{{ i['id'] }}" class="stretched-link text-decoration-none text-reset">{{ i["name"] }}</a></h2>
+      {{ status_badge(i["status"]) }}
+    </div>
+    <p class="text-body-secondary small mb-0">Port: {{ i["port"] }} · RAM: {{ i["ram_mb"] // 1024 }} GB</p>
+    <p class="small mb-0 mt-1" data-stats></p>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro empty_state(icon, title, text=None) %}
+<div class="empty-state">
+  <i class="bi {{ icon }}"></i>
+  <p class="mb-1">{{ title }}</p>
+  {% if text %}<p class="small mb-0">{{ text }}</p>{% endif %}
+</div>
+{% endmacro %}
+
+{# İlerleme çubuğu paneli. prefix: JS tarafında VuluProgress.attach(prefix) ile bağlanır. #}
+{% macro progress_panel(prefix) %}
+<div id="{{ prefix }}-progress" class="progress-panel d-none" data-state="running">
+  <div class="d-flex justify-content-between align-items-baseline mb-1">
+    <span class="progress-title" id="{{ prefix }}-progress-title"></span>
+    <span class="progress-percent" id="{{ prefix }}-progress-percent">0%</span>
+  </div>
+  <div class="progress" role="progressbar"><div class="progress-bar" id="{{ prefix }}-progress-bar" style="width:0%"></div></div>
+  <div class="progress-message small text-body-secondary mt-1" id="{{ prefix }}-progress-message"></div>
+</div>
+{% endmacro %}
+
+{% macro stat_tile(key, label, icon) %}
+<div class="stat-tile">
+  <div class="stat-label"><i class="bi {{ icon }}"></i> {{ label }}</div>
+  <div class="stat-value" id="stat-{{ key }}">—</div>
+  <div class="stat-sub" id="stat-{{ key }}-sub"></div>
+</div>
+{% endmacro %}
