@@ -170,8 +170,6 @@ Katkılar memnuniyetle karşılanır:
 
 - **Hata bildirimi:** bir *issue* açın; panelin gösterdiği hata mesajını, Minecraft sürümünü, yükleyiciyi ve işletim sisteminizi ekleyin (şifre ve kişisel bilgileri çıkarın).
 - **Profil paylaşımı:** işe yarayan `profiles/*.json` dosyalarınızı *pull request* ile gönderebilirsiniz.
-- **Çeviri ve arayüz:** arayüz şu an Türkçedir; çoklu dil desteği için yardım aranıyor.
-- **Kod:** büyük değişikliklerden önce bir *issue* ile konuşmak iyi olur. Yeni dış indirme kaynakları eklerken sağlama toplamı doğrulaması ve adres beyaz listesi zorunludur (bkz. `app/services/download.py`, `modrinth.py`).
 
 ## Lisans
 
