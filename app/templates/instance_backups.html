@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% from "components/ui.html" import page_header, progress_panel %}
+{% block title %}Yedekler · {{ inst["name"] }}{% endblock %}
+
+{% block content %}
+{% call page_header("Yedekler · " ~ inst["name"], "Yedekler data/backups/" ~ inst["name"] ~ "/ altında tutulur") %}
+  <a class="btn btn-outline-secondary back-link" href="/instances/{{ inst['id'] }}"><i class="bi bi-arrow-left"></i> Sunucuya dön</a>
+{% endcall %}
+
+<div id="backups-root" data-instance-id="{{ inst['id'] }}">
+  <div id="notes"></div>
+
+  <form id="create-form" class="card static mb-3" style="max-width: 760px" onsubmit="return false">
+    <div class="card-body"><div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label" for="mode">Yedek türü</label>
+        <select class="form-select" id="mode">
+          <option value="full">Tam (tüm sunucu)</option>
+          <option value="world">Yalnızca dünya</option>
+        </select>
+      </div>
+      <div class="col-md-5">
+        <label class="form-label" for="note">Not (isteğe bağlı)</label>
+        <input class="form-control" id="note" maxlength="60" placeholder="örn. modlar güncellenmeden önce">
+      </div>
+      <div class="col-md-3"><button id="create-btn" class="btn btn-primary w-100" type="submit"><i class="bi bi-archive"></i> Yedek al</button></div>
+    </div>
+    <div class="form-text mt-2">Sunucu çalışırken de yedek alınabilir: panel önce dünyayı kaydeder (<code>save-all</code>), yedek bitene kadar otomatik kaydı durdurur. Loglar ve önbellek dahil edilmez.</div>
+    </div>
+  </form>
+
+  <form id="limit-form" class="card static mb-3" style="max-width: 760px" onsubmit="return false">
+    <div class="card-body">
+      <div class="d-flex flex-wrap align-items-center gap-3">
+        <div class="form-check form-switch m-0">
+          <input class="form-check-input" type="checkbox" id="limit-on">
+          <label class="form-check-label" for="limit-on">Eski yedekleri otomatik temizle</label>
+        </div>
+        <div class="input-group input-group-sm" style="width: 210px">
+          <span class="input-group-text">En fazla</span>
+          <input class="form-control text-center" type="number" id="limit-max" min="1" max="500" step="1" value="5" inputmode="numeric" aria-label="En fazla yedek sayısı">
+          <span class="input-group-text">yedek</span>
+        </div>
+        <button id="limit-save" class="btn btn-sm btn-outline-primary" type="submit">Kaydet</button>
+      </div>
+      <div class="form-text" id="limit-help">Açıkken her yeni yedekten sonra sayı sınırı aşılırsa en eski yedekler silinir (elle ve otomatik alınanlar dahil). Kapalıyken yedekler birikmeye devam eder.</div>
+    </div>
+  </form>
+
+  {{ progress_panel("bk") }}
+
+  <div class="card static"><div class="card-body p-0"><div class="table-responsive">
+    <table class="table align-middle mb-0 mods-table">
+      <thead><tr><th>Tarih</th><th>Tür</th><th>Not</th><th class="text-end">Boyut</th><th class="text-end">İşlemler</th></tr></thead>
+      <tbody id="bk-body"><tr><td colspan="5" class="text-body-secondary">Yükleniyor…</td></tr></tbody>
+    </table>
+  </div></div></div>
+  <p class="form-text mt-2">Geri yükleme yalnızca sunucu kapalıyken yapılır ve önce mevcut durumun otomatik bir yedeği alınır. Sunucuyu silmek yedeklerini silmez.</p>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="/static/js/backups.js?v={{ asset_v() }}"></script>{% endblock %}

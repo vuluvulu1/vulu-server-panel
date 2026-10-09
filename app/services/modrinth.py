@@ -66,6 +66,20 @@ class ModManager:
         except (httpx.HTTPError, ValueError):
             raise ModrinthError("Modrinth yanıtı okunamadı.")
 
+    async def _post(self, path: str, body: dict):
+        try:
+            async with new_client() as c:
+                r = await c.post(self.api + path, json=body)
+        except httpx.HTTPError:
+            raise ModrinthError("Modrinth'e ulaşılamadı. İnternet bağlantını kontrol et.")
+        if r.status_code == 429:
+            raise ModrinthError("Modrinth istek sınırına takıldı. Birkaç dakika sonra tekrar dene.")
+        try:
+            r.raise_for_status()
+            return r.json()
+        except (httpx.HTTPError, ValueError):
+            raise ModrinthError("Modrinth yanıtı okunamadı.")
+
     async def resolve(self, slugs: list[str], mc: str, loader: str) -> tuple[list[dict], list[str]]:
         loaders = LOADER_FILTER.get(loader)
         if not loaders:

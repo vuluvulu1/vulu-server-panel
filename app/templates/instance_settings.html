@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% from "components/ui.html" import page_header %}
+{% from "components/ui.html" import page_header, server_icon, progress_panel %}
 {% block title %}Ayarlar · {{ inst["name"] }}{% endblock %}
 
 {% block content %}
 {% call page_header("Ayarlar · " ~ inst["name"], "MC " ~ (inst["mc_version"] or "?") ~ " · " ~ inst["loader"]) %}
-  <a class="btn btn-outline-secondary" href="/instances/{{ inst['id'] }}"><i class="bi bi-arrow-left"></i> Sunucuya dön</a>
+  <a class="btn btn-outline-secondary back-link" href="/instances/{{ inst['id'] }}"><i class="bi bi-arrow-left"></i> Sunucuya dön</a>
 {% endcall %}
 
 <div id="settings-root" data-instance-id="{{ inst['id'] }}" data-name="{{ inst['name'] }}">
@@ -68,6 +68,39 @@
     </div>
   </form>
 
+  <div class="card static mt-4" style="max-width: 760px" id="upgrade-card" data-loader="{{ inst['loader'] or 'vanilla' }}" data-current="{{ inst['mc_version'] or '' }}">
+    <div class="card-body">
+      <h2 class="h6">Minecraft sürümü</h2>
+      {% if inst['modpack_slug'] %}
+        <p class="small text-body-secondary mb-0">Bu sunucu bir modpack'ten kuruldu (MC {{ inst['mc_version'] }}); sürümü modpack belirler, buradan değiştirilemez.</p>
+      {% else %}
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <span class="small">Şu an: <strong>{{ inst['mc_version'] or 'bilinmiyor' }}</strong> · {{ inst['loader'] or 'vanilla' }}</span>
+        <select class="form-select form-select-sm" id="up-version" style="width: auto; min-width: 160px"><option value="">Yükleniyor…</option></select>
+        <button id="up-btn" class="btn btn-sm btn-outline-primary" type="button" {{ '' if stopped else 'disabled' }}><i class="bi bi-arrow-up-circle"></i> Sürümü değiştir</button>
+      </div>
+      <div class="form-text">Önce otomatik olarak <strong>tam yedek</strong> alınır. Java yeni sürüme göre seçilir, sunucu dosyası ve Modrinth'ten kurulan modlar ilk başlatmada / hemen yeni sürüme göre kurulur. Elle eklenen modları kendin kontrol etmelisin.</div>
+      <div class="mt-2">{{ progress_panel("up") }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card static mt-4" style="max-width: 760px">
+    <div class="card-body">
+      <h2 class="h6">Sunucu simgesi</h2>
+      <div class="d-flex flex-wrap align-items-center gap-3">
+        {{ server_icon(inst['id'], 64, "icon-current") }}
+        <canvas id="icon-preview" width="64" height="64" class="server-icon-preview d-none" title="Önizleme"></canvas>
+        <div class="d-flex flex-wrap gap-2">
+          <label class="btn btn-sm btn-outline-secondary mb-0"><i class="bi bi-image"></i> Resim seç<input id="icon-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp" hidden></label>
+          <button id="icon-save" class="btn btn-sm btn-primary d-none" type="button"><i class="bi bi-upload"></i> Yükle</button>
+          <button id="icon-remove" class="btn btn-sm btn-outline-danger" type="button"><i class="bi bi-x-lg"></i> Kaldır</button>
+        </div>
+      </div>
+      <div class="form-text">Sunucu listesinde görünen simge. Seçtiğin resim ortadan kare kırpılıp 64×64 PNG'ye çevrilir. Oyunda görünmesi için sunucuyu yeniden başlat.</div>
+    </div>
+  </div>
+
   <div class="card static border-danger mt-4" style="max-width: 760px">
     <div class="card-body">
       <h2 class="h6 text-danger">Tehlikeli bölge</h2>
@@ -78,4 +111,4 @@
 </div>
 {% endblock %}
 
-{% block scripts %}<script src="/static/js/settings.js"></script>{% endblock %}
+{% block scripts %}<script src="/static/js/settings.js?v={{ asset_v() }}"></script>{% endblock %}

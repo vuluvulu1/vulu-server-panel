@@ -27,7 +27,7 @@
           <span class="badge text-bg-secondary">{{ p.jvm_preset }}</span>
           {% if p.mods %}<span class="badge text-bg-info">{{ p.mods|length }} {{ 'eklenti' if p.loader == 'paper' else 'mod' }}</span>{% endif %}
         </div>
-        <a class="btn btn-primary mt-auto" href="/instances/new?profile={{ p.id }}"><i class="bi bi-plus-lg"></i> Bu profille sunucu oluştur</a>
+        <a class="btn btn-primary mt-auto" href="/instances/new?profile={{ p.id }}" data-modal="Yeni sunucu · {{ p.name }}" data-modal-size="md"><i class="bi bi-plus-lg"></i> Bu profille sunucu oluştur</a>
       </div>
     </div>
   </div>

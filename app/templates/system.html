@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "components/ui.html" import page_header, progress_panel %}
+{% block title %}Ayarlar · {{ brand.name }} {{ brand.accent_word }}{% endblock %}
+
+{% block content %}
+{{ page_header("Ayarlar", "Disk kullanımı, Java sürümleri, playit.gg ve indirme önbelleği") }}
+<div id="system-root" style="max-width: 1000px">
+  <div id="notes"></div>
+
+  <div class="card static mb-3" id="playit-card">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <span class="fw-semibold"><i class="bi bi-globe2"></i> playit.gg — port yönlendirmesiz internete açma</span>
+      <span id="pg-badge" class="badge text-bg-secondary">…</span>
+    </div>
+    <div class="card-body">
+      <p class="small text-body-secondary mb-2">Sunucularını modem ayarı yapmadan arkadaşlarına açar. Panel resmi playit programını indirir, doğrular ve arka planda çalıştırır; yalnızca Minecraft portu açılır, panelin kendisi internete açılmaz.</p>
+      <div id="pg-body" class="small">Yükleniyor…</div>
+      <div class="mt-2">{{ progress_panel("pg") }}</div>
+      <details class="mt-2"><summary class="small text-body-secondary">playit çıktısı</summary><pre id="pg-log" class="console small mt-2" style="max-height: 220px"></pre></details>
+    </div>
+  </div>
+
+  <div class="card static mb-3">
+    <div class="card-header fw-semibold">Disk kullanımı</div>
+    <div class="card-body">
+      <div class="disk-bar mb-2" id="disk-bar"></div>
+      <div class="row g-2 small" id="disk-legend"><div class="col text-body-secondary">Hesaplanıyor…</div></div>
+    </div>
+  </div>
+
+  <div class="card static mb-3">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <span class="fw-semibold">Java sürümleri</span>
+      <form id="java-form" class="d-flex gap-2" onsubmit="return false">
+        <select class="form-select form-select-sm" id="java-major" style="width: auto">
+          {% for v in java_choices %}<option value="{{ v }}">Java {{ v }}</option>{% endfor %}
+        </select>
+        <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-download"></i> Kur</button>
+      </form>
+    </div>
+    <div class="card-body pb-0">{{ progress_panel("java") }}</div>
+    <div class="card-body p-0"><div class="table-responsive">
+      <table class="table align-middle mb-0 mods-table">
+        <thead><tr><th>Sürüm</th><th>Paket</th><th class="text-end">Boyut</th><th>Kullanan sunucular</th><th></th></tr></thead>
+        <tbody id="java-body"><tr><td colspan="5" class="text-body-secondary">Yükleniyor…</td></tr></tbody>
+      </table>
+    </div></div>
+    <div class="card-footer form-text m-0">Java'lar panelin <code>runtimes/</code> klasörüne kurulur. Bir sunucunun kullandığı Java'yı silersen, sunucu bir sonraki başlatılışında otomatik olarak yeniden indirilir.</div>
+  </div>
+
+  <div class="card static mb-3">
+    <div class="card-header fw-semibold">İndirme önbelleği</div>
+    <div class="card-body p-0"><div class="table-responsive">
+      <table class="table align-middle mb-0 mods-table">
+        <thead><tr><th>Tür</th><th class="text-end">Dosya</th><th class="text-end">Boyut</th><th></th></tr></thead>
+        <tbody id="cache-body"></tbody>
+      </table>
+    </div></div>
+    <div class="card-footer form-text m-0">Aynı jar'ın tekrar indirilmemesi için tutulur. Temizlemek güvenlidir: gerektiğinde yeniden indirilir. Sunucu klasörlerindeki dosyalara dokunulmaz.</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="/static/js/system.js?v={{ asset_v() }}"></script><script src="/static/js/playit.js?v={{ asset_v() }}"></script>{% endblock %}

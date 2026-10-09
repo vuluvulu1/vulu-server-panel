@@ -20,6 +20,7 @@
     b.appendChild(mid);
     const a = el('a', 'btn btn-sm btn-primary align-self-start flex-shrink-0', 'Sunucu oluştur');
     a.href = '/instances/new?modpack=' + encodeURIComponent(h.slug);
+    a.dataset.modal = 'Yeni sunucu · ' + h.title; a.dataset.modalSize = 'md';
     b.appendChild(a); c.appendChild(b); col.appendChild(c);
     return col;
   }

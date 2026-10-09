@@ -6,7 +6,7 @@
 
 > **Durum:** Aktif geliştirme aşamasında (erken sürüm). Panel şu an yalnızca yerel kullanım (`127.0.0.1`) için tasarlanmıştır ve **henüz giriş sistemi yoktur**; internete açılmamalıdır.
 
-*Bu proje Mojang Studios, Microsoft, Modrinth, PaperMC, FabricMC, Minecraft Forge veya NeoForged ile bağlantılı değildir; yalnızca bu hizmetlerin herkese açık API'lerini kullanır.*
+*Bu proje Mojang Studios, Microsoft, Modrinth, PaperMC, FabricMC, Minecraft Forge veya NeoForge ile bağlantılı değildir; yalnızca bu hizmetlerin herkese açık API'lerini kullanır.*
 
 ## Özellikler
 
@@ -17,6 +17,16 @@
 - **Mod tarayıcı:** Modrinth'te arama, bağımlılıklarıyla tek tıkla kurulum, kurulu modları açma/kapatma/silme.
 - **Modpack içe aktarma:** Modrinth `.mrpack` paketlerinden sunucu kurulumu; yalnızca istemci dosyaları otomatik atlanır.
 - **Ayarlar:** port, RAM, Java ve JVM ayarları; açıklamalı `server.properties` formu; onaylı kalıcı silme.
+- **Dosya yöneticisi:** sunucu klasörünü gezme, metin dosyalarını düzenleme, yükleme/indirme, yeniden adlandırma, silme.
+- **Yedekleme:** tam ya da yalnızca dünya yedeği (sunucu çalışırken de), indirme, geri yükleme (öncesinde otomatik güvenlik yedeği).
+- **Zamanlama:** belirli gün ve saatlerde otomatik yeniden başlatma (oyunculara sohbetten geri sayımla) ve otomatik yedek (saklama sınırıyla).
+- **Sunucu simgesi:** panelden resim yükleyerek `server-icon.png` (64×64) ayarlama.
+- **Minecraft sürümünü değiştirme:** sunucu *Ayarlar* penceresinden yeni sürüm seçilir; önce otomatik tam yedek alınır, gereken Java yeniden seçilir, sunucu jar'ı/yükleyici bir sonraki başlatmada yeniden indirilir ve Modrinth'ten kurulan modlar yeni sürüme göre güncellenir. Sürüm düşürme ayrıca onay ister.
+- **Oyuncular:** beyaz liste, OP, yasak ve atma; sunucu açıkken anında (RCON), kapalıyken dosyalar düzenlenerek.
+- **Mod yardımcıları:** eksik mod bağımlılıklarının ve sunucuda gereksiz istemci modlarının tespiti; Modrinth'teki modlar için güncelleme denetimi ve tek tıkla güncelleme (eski dosyalar saklanır).
+- **Çökme analizi:** sunucu çöktüğünde konsol ve crash raporu incelenip neden ve öneri Türkçe gösterilir (Java sürümü, bellek, port, eksik mod, istemci modu vb.).
+- **playit.gg ile internete açma:** port yönlendirmesi gerekmeden sunucuyu arkadaşlarına açma; panel resmi playit programını indirir, doğrular ve çalıştırır, herkese açık adresi kopyalanabilir şekilde gösterir.
+- **Bakım:** disk kullanımı özeti, kurulu Java sürümlerini görme/kurma/silme, indirme önbelleğini temizleme; yedeklerde isteğe bağlı otomatik temizleme (en fazla N yedek).
 - **Özelleştirilebilir arayüz:** token tabanlı tema sistemi (3 hazır tema); yeni tema eklemek tek bir `.css` dosyasıdır.
 
 ## Gereksinimler
@@ -59,12 +69,14 @@ Panel varsayılan olarak http://127.0.0.1:8000 adresinde açılır.
 
 ## Hızlı başlangıç
 
-1. **Boş sunucu:** *Sunucular → Yeni sunucu* → Minecraft sürümü ve yükleyiciyi seçin → *Oluştur* → *Başlat*. Java ve sunucu jar'ı ilk başlatmada otomatik indirilir.
+1. **Boş sunucu:** *Sunucular → Yeni sunucu* → Minecraft sürümü ve yükleyiciyi seçin → *Oluştur* → *Başlat*. Java ve sunucu jar'ı (Vanilla dahil) ilk başlatmada otomatik indirilir ve doğrulanır.
 2. **Profille:** *Profiller* sayfasında bir kartta *"Bu profille sunucu oluştur"*. Form profildeki değerlerle dolar; profildeki modlar ilk başlatmada kurulur.
 3. **Modpack ile:** *Modpack'ler* sayfasında arayın → *"Sunucu oluştur"* → *Başlat*. Yükleyici, modlar ve ayarlar paketten gelir.
 4. **Mod eklemek için:** sunucu sayfasında *"Modlar / Ekle"* → arayın → *Kur* (sunucu kapalıyken; sonra başlatın).
 5. **Ayarlar:** sunucu sayfasında *"Ayarlar"* (port, RAM, Java, JVM) ve *"server.properties"* (zorluk, görüş mesafesi, whitelist…). Değişiklikler sunucu kapalıyken kaydedilir ve yeniden başlatınca geçerli olur.
-6. **Silmek için:** *Ayarlar* sayfasının altındaki *"Tehlikeli bölge"* (dünya dahil kalıcı siler; onay için sunucu adı yazılır).
+6. **Dosyalar ve yedekler:** sunucu sayfasında *"Dosyalar"* ve *"Yedekler"*. Yedekler `data/backups/<sunucu>/` altında `.zip` olarak tutulur.
+7. **Sürüm değiştirmek için:** *Ayarlar → Minecraft sürümü* → sürümü seçin → *Sürümü değiştir* (sunucu kapalıyken). İşlem öncesi otomatik yedek alınır.
+8. **Silmek için:** *Ayarlar* sayfasının altındaki *"Tehlikeli bölge"* (dünya dahil kalıcı siler; onay için sunucu adı yazılır).
 
 Sunucu oluştururken *Minecraft EULA* kutusu işaretlenirse panel `eula.txt` dosyasını sizin adınıza `eula=true` olarak yazar; bu kutuyu işaretlemeden önce [EULA](https://aka.ms/MinecraftEULA)'yı okuyun.
 
@@ -96,6 +108,9 @@ Panel, çalıştığı bilgisayarda süreç başlatıp dosya yazdığı için g�
 - İndirilen her şey (Java, sunucu jar'ları, kurucular, modlar, modpack dosyaları) resmi adreslerden alınır ve SHA-256/SHA-512 ile doğrulanır; arşivlerde yol kaçışı engellenir.
 - Modpack'lerde tehlikeli yollar (`../`, mutlak yol) ve çalıştırılabilir uzantılar (`.exe`, `.bat`, `.sh`, `.dll` vb.) atlanır; `eula.txt`'ye dokunulmaz.
 - Arama sonuçları sayfaya düz metin olarak basılır; ikonlar yalnızca `modrinth.com` adreslerinden gösterilir.
+- Dosya yöneticisi sunucu klasörüne kilitlidir (`..`, mutlak yol ve dışarı işaret eden bağlantılar engellenir); panelin kendi dosyaları salt okunurdur; `.exe`, `.bat`, `.sh` gibi çalıştırılabilir dosyalar yüklenemez. Yazma işlemleri yalnızca sunucu kapalıyken yapılır.
+- Yedek geri yüklemede güvensiz yollar reddedilir ve yalnızca panelin oluşturduğu yedekler kabul edilir.
+- Sunucular ekransız (headless) Java ile çalışır: mod ya da modpack kodu masaüstünde pencere veya tarayıcı açamaz.
 - Ayar kaydetme, `server.properties` ve silme yalnızca sunucu kapalıyken çalışır. Silme yalnızca `instances/<ad>` klasörünü siler (konum doğrulanır).
 - **RCON:** Minecraft, RCON'u tüm ağ arayüzlerinde dinler. Panel her sunucuya rastgele port ve şifre verir; güvenlik duvarı sorarsa **genel ağa izin vermeyin** ve bu portu yönlendirmeyin.
 
@@ -103,7 +118,7 @@ Bir güvenlik açığı bulursanız lütfen herkese açık bir *issue* yerine de
 
 ## Durum ve yol haritası
 
-Ayrıntılı plan, tasarım notları ve açık işler: [`docs/ROADMAP.md`](docs/ROADMAP.md)
+Ayrıntılı plan, tasarım notları ve açık işler: [`roadmap.md`](roadmap.md)
 
 **Tamamlananlar**
 - [x] Süreç yönetimi, canlı konsol, çökme tespiti
@@ -111,11 +126,16 @@ Ayrıntılı plan, tasarım notları ve açık işler: [`docs/ROADMAP.md`](docs/
 - [x] Java, Paper, Fabric, Forge, NeoForge otomatik kurulumu
 - [x] Profiller, Modrinth mod kurulumu, mod tarayıcı, `.mrpack` içe aktarma
 - [x] Sunucu ayarları, `server.properties` formu, güvenli silme
+- [x] Dosya yöneticisi, yedekleme ve geri yükleme
+- [x] Zamanlanmış yeniden başlatma/yedek, yedek saklama sınırı, sunucu simgesi, açılır pencere arayüzü
+- [x] Ayarlar sayfası: disk kullanımı, Java yönetimi, önbellek temizleme
+- [x] Minecraft sürüm yükseltme/düşürme (otomatik yedekle)
+- [x] Eksik bağımlılık tespiti, çökme analizcisi, oyuncu yönetimi, mod güncelleme denetleyicisi
+- [x] playit.gg entegrasyonu (gerçek ortamda doğrulama bekliyor)
 - [x] Güvenlik katmanı (Host/Origin denetimi, girdi ve indirme doğrulaması)
 
 **Planlananlar**
-- [ ] Dosya yöneticisi, yedekleme/geri yükleme, zamanlanmış restart, Java yönetimi
-- [ ] Çökme analizcisi, whitelist/OP yönetimi, Chunky düğmesi, Discord bildirimleri
+- [ ] Discord bildirimleri, Chunky düğmesi, modpack sürüm güncelleme
 - [ ] Giriş sistemi, `systemd`/`tmux` desteği (panel kapansa da sunucular açık kalsın), HTTPS ile yayınlama
 - [ ] Otomatik testlerin depoya eklenmesi, çoklu dil desteği
 
@@ -123,15 +143,15 @@ Ayrıntılı plan, tasarım notları ve açık işler: [`docs/ROADMAP.md`](docs/
 
     run.py                 # python run.py
     profiles/              # profil şablonları (.json)
-    docs/                  # yol haritası ve notlar
+    roadmap.md             # yol haritası ve tasarım notları
     app/
       main.py  config.py  db.py  ui.py  templating.py  security.py
-      routers/             # instances, settings, console, java, paper, loader,
+      routers/             # instances, settings, files, backups, schedules, system, console, java, paper, loader,
                            # stats, profiles, mods, modpacks
       services/            # process/ (süreç yönetimi), launcher, jobs, download,
                            # minecraft, java_manager, paper, fabric, forge,
                            # jvm, modrinth, modpack, profiles, rcon, stats,
-                           # properties, propschema
+                           # properties, propschema, files, backup, scheduler, system
       templates/  static/  # arayüz (css/themes, js, vendor/chart.js)
     data/                  # panel.db ve önbellekler       (git'e girmez)
     instances/             # sunucu klasörleri             (git'e girmez)
@@ -158,20 +178,15 @@ Kural: `components.css` içinde sabit renk yazılmaz, yalnızca `var(--...)` kul
 
 - Panel kapanırsa sunucular da kapanır (kapanırken `stop` komutuyla düzgünce durdurulur). Bağımsız çalışma planlanmaktadır.
 - Sunucu çalışırken `app/` içindeki bir Python dosyası değiştirilirse panel yeniden başlar ve sunucu durur; geliştirme sırasında sunucuyu kapatın.
-- Minecraft sürümü ve yükleyici, sunucu oluşturulduktan sonra değiştirilemez (sürüm yükseltme yedekleme ile birlikte planlanmaktadır).
+- Yükleyici (Paper/Fabric/Forge…) sunucu oluşturulduktan sonra değiştirilemez; Minecraft sürümü değiştirilebilir ama modpack ile kurulan sunucularda değiştirilemez. Elle eklenen modlar sürüm değişiminde güncellenmez.
 - Mod ekleme/silme/açıp kapatma ve ayar değişiklikleri yalnızca sunucu kapalıyken yapılabilir.
 - NeoForge yalnızca Minecraft 1.20.2 ve üstünde desteklenir. Yalnızca Modrinth kaynağı desteklenir (CurseForge desteklenmez).
-- Modpack kurulumu yalnızca ilk başlatmada yapılır; modpack sürüm güncellemesi henüz yoktur.
+- Modpack kurulumu yalnızca ilk başlatmada yapılır; modpack sürüm güncellemesi henüz yoktur. Modrinth'te bulunmayan modlar içeren paketlerde bu modlar eksik kalır (bazı paketler bunları indirmek için yardımcı bir mod içerir; sunucuda pencere açamadığı için çalışmaz).
 - RAM kutucuğu sürecin gerçek bellek kullanımını gösterir; `-Xmx` yalnızca heap'i sınırladığından değer, heap limitinden %10-25 yüksek olabilir (normaldir).
 
 ## Katkıda bulunma
 
-Katkılar memnuniyetle karşılanır:
-
 - **Hata bildirimi:** bir *issue* açın; panelin gösterdiği hata mesajını, Minecraft sürümünü, yükleyiciyi ve işletim sisteminizi ekleyin (şifre ve kişisel bilgileri çıkarın).
-- **Profil paylaşımı:** işe yarayan `profiles/*.json` dosyalarınızı *pull request* ile gönderebilirsiniz.
-- **Çeviri ve arayüz:** arayüz şu an Türkçedir; çoklu dil desteği için yardım aranıyor.
-- **Kod:** büyük değişikliklerden önce bir *issue* ile konuşmak iyi olur. Yeni dış indirme kaynakları eklerken sağlama toplamı doğrulaması ve adres beyaz listesi zorunludur (bkz. `app/services/download.py`, `modrinth.py`).
 
 ## Lisans
 

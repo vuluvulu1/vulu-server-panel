@@ -1,27 +1,36 @@
 {% extends "base.html" %}
-{% from "components/ui.html" import page_header, status_badge, progress_panel, stat_tile %}
+{% from "components/ui.html" import page_header, status_badge, progress_panel, stat_tile, server_icon %}
 {% block title %}{{ inst["name"] }} · {{ brand.name }} {{ brand.accent_word }}{% endblock %}
 
 {% block content %}
-{% call page_header(inst["name"], inst["path"]) %}
-  <div class="d-flex flex-wrap gap-2">
+{% call page_header(inst["name"], inst["path"], inst["id"]) %}
+  <div class="power-group">
     <button class="btn btn-primary" data-action="start"><i class="bi bi-play-fill"></i> Başlat</button>
     <button class="btn btn-outline-secondary" data-action="stop"><i class="bi bi-stop-fill"></i> Durdur</button>
-    <button class="btn btn-outline-secondary" data-action="restart"><i class="bi bi-arrow-repeat"></i> Yeniden başlat</button>
-    <button class="btn btn-outline-danger" data-action="kill"><i class="bi bi-x-octagon"></i> Zorla kapat</button>
-    {% if inst["mc_version"] and inst["loader"] in ("paper", "fabric", "forge", "neoforge") %}
-    <a class="btn btn-outline-primary" href="/instances/{{ inst['id'] }}/mods"><i class="bi bi-puzzle"></i> {{ 'Eklentiler' if inst["loader"] == 'paper' else 'Modlar' }} / Ekle</a>
-    {% endif %}
-    <a class="btn btn-outline-secondary" href="/instances/{{ inst['id'] }}/settings"><i class="bi bi-sliders"></i> Ayarlar</a>
-    <a class="btn btn-outline-secondary" href="/instances/{{ inst['id'] }}/properties"><i class="bi bi-file-earmark-text"></i> server.properties</a>
+    <button class="btn btn-outline-secondary" data-action="restart" title="Yeniden başlat"><i class="bi bi-arrow-repeat"></i><span class="label"> Yeniden başlat</span></button>
+    <button class="btn btn-outline-danger" data-action="kill" title="Zorla kapat"><i class="bi bi-x-octagon"></i><span class="label"> Zorla kapat</span></button>
   </div>
 {% endcall %}
+
+<nav class="instance-tabs" aria-label="Sunucu araçları">
+  {% if inst["mc_version"] and inst["loader"] in ("paper", "fabric", "forge", "neoforge") %}
+  <a href="/instances/{{ inst['id'] }}/mods" data-modal="{{ 'Eklentiler' if inst["loader"] == 'paper' else 'Modlar' }} · {{ inst['name'] }}"><i class="bi bi-puzzle"></i> {{ 'Eklentiler' if inst["loader"] == 'paper' else 'Modlar' }}</a>
+  {% endif %}
+  <a href="/instances/{{ inst['id'] }}/players" data-modal="Oyuncular · {{ inst['name'] }}" data-modal-reload="0"><i class="bi bi-people"></i> Oyuncular</a>
+  <a href="/instances/{{ inst['id'] }}/files" data-modal="Dosyalar · {{ inst['name'] }}" data-modal-reload="0"><i class="bi bi-folder2-open"></i> Dosyalar</a>
+  <a href="/instances/{{ inst['id'] }}/backups" data-modal="Yedekler · {{ inst['name'] }}" data-modal-reload="0"><i class="bi bi-archive"></i> Yedekler</a>
+  <a href="/instances/{{ inst['id'] }}/schedules" data-modal="Zamanlama · {{ inst['name'] }}" data-modal-reload="0"><i class="bi bi-clock-history"></i> Zamanlama</a>
+  <a href="/instances/{{ inst['id'] }}/properties" data-modal="server.properties · {{ inst['name'] }}" data-modal-reload="0"><i class="bi bi-file-earmark-text"></i> server.properties</a>
+  <a href="/instances/{{ inst['id'] }}/settings" data-modal="Ayarlar · {{ inst['name'] }}" data-modal-reload="1"><i class="bi bi-sliders"></i> Ayarlar</a>
+</nav>
+
+<div id="playit-strip" class="playit-strip mb-3" data-instance-id="{{ inst['id'] }}" hidden></div>
 
 <div id="console-root" data-instance-id="{{ inst['id'] }}" data-status="{{ inst['status'] }}">
   <div class="d-flex justify-content-between align-items-center mb-2">
     {{ status_badge(inst["status"], "instance-status") }}
     <span class="text-body-secondary small">
-      {% if profile %}Profil {{ profile.name }} · {% endif %}{% if inst["mc_version"] %}MC {{ inst["mc_version"] }} · {{ inst["loader"] }} · {% endif %}{% if inst["java_major"] %}Java {{ inst["java_major"] }} · {% endif %}Port {{ inst["port"] }} · {{ inst["ram_mb"] // 1024 }} GB · {{ "argüman dosyası" if inst["launch_type"] == "args-file" else inst["jar_file"] }}
+      {% if profile %}Profil {{ profile.name }} · {% endif %}{% if inst["mc_version"] %}MC {{ inst["mc_version"] }} · {{ inst["loader"] }} · {% endif %}<span id="meta-java">{% if inst["java_major"] %}Java {{ inst["java_major"] }} · {% endif %}</span>Port {{ inst["port"] }} · {{ inst["ram_mb"] // 1024 }} GB · {{ "argüman dosyası" if inst["launch_type"] == "args-file" else inst["jar_file"] }}
     </span>
   </div>
 
@@ -55,6 +64,7 @@
     <div class="col-lg-6"><div class="card static"><div class="card-body"><div class="chart-box"><canvas id="chart-play"></canvas></div></div></div></div>
   </div>
 
+  <div id="crash-box"></div>
   <div id="console-output" class="console"></div>
 
   <div class="input-group mt-2">
@@ -72,4 +82,5 @@
 
 {% block scripts %}<script src="/static/js/vendor/chart.umd.js?v={{ asset_v() }}"></script>
 <script src="/static/js/stats.js?v={{ asset_v() }}"></script>
-<script src="/static/js/console.js?v={{ asset_v() }}"></script>{% endblock %}
+<script src="/static/js/console.js?v={{ asset_v() }}"></script>
+<script src="/static/js/playit.js?v={{ asset_v() }}"></script>{% endblock %}

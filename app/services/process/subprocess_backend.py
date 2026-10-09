@@ -13,12 +13,14 @@ import shlex
 import subprocess
 import sys
 import threading
+import time
 from collections import deque
 from pathlib import Path
 
 import psutil
 
 from ...db import get_conn
+from ..crash import analyze, console_lines
 from ..jvm import LaunchError, build_command
 from .base import ProcessError
 
@@ -40,6 +42,7 @@ class _Channel:
         self.subscribers: set[asyncio.Queue] = set()
         self.status = "stopped"
         self.last_progress: dict | None = None   # hazırlık (Java kurulumu) ilerlemesi
+        self.last_crash: dict | None = None      # son çökmenin analizi (yeni başlatmada silinir)
 
     def publish(self, msg: dict) -> None:
         if msg["type"] == "log":
@@ -52,8 +55,10 @@ class _Channel:
 
 
 class _Managed:
-    def __init__(self, popen: subprocess.Popen) -> None:
+    def __init__(self, popen: subprocess.Popen, folder: Path) -> None:
         self.popen = popen
+        self.folder = folder
+        self.started_at = time.time()
         self.stopping = False  # kullanıcı durdurdu mu? (çökme ile ayırmak için)
 
 
@@ -132,6 +137,8 @@ class SubprocessBackend:
             raise ProcessError(str(e))
 
         ch = self._channel(iid)
+        ch.last_crash = None
+        ch.publish({"type": "crash", "items": []})
         if ch.status != "preparing":      # hazırlık (indirme) satırlarını koru, yoksa konsolu temizle
             ch.buffer.clear()
             ch.publish({"type": "clear"})
@@ -152,7 +159,7 @@ class SubprocessBackend:
         except OSError as e:
             raise ProcessError(f"Süreç başlatılamadı: {e}")
 
-        managed = _Managed(popen)
+        managed = _Managed(popen, path)
         self._procs[iid] = managed
         self.set_status(iid, "starting")
 
@@ -186,9 +193,30 @@ class SubprocessBackend:
         if self._procs.get(iid) is not m:
             return  # bu süreç zaten yenisiyle değiştirilmiş
         del self._procs[iid]
-        status = "stopped" if (m.stopping or code == 0) else "crashed"
+        # Açılmadan (status hâlâ "starting") kendiliğinden kapanan sunucu da başarısız sayılır (örn. EULA)
+        failed_start = self._channel(iid).status == "starting" and not m.stopping
+        status = "stopped" if (m.stopping or (code == 0 and not failed_start)) else "crashed"
         self._log(iid, f"[panel] Sunucu kapandı (çıkış kodu: {code})")
+        if status == "crashed":
+            asyncio.get_running_loop().create_task(self._analyze_crash(iid, m))
         self.set_status(iid, status)
+
+    async def _analyze_crash(self, iid: int, m: _Managed) -> None:
+        """Çökmeden sonra konsolu + crash raporunu inceler, nedeni konsola ve arayüze bildirir."""
+        try:
+            res = await asyncio.to_thread(analyze, m.folder, self.history(iid), m.started_at)
+        except Exception:
+            return                                   # analiz yardımcıdır; hata panelin işini bozmasın
+        ch = self._channel(iid)
+        if ch.status != "crashed":
+            return                                   # bu arada yeniden başlatılmış
+        for line in console_lines(res):
+            self._log(iid, line)
+        ch.last_crash = res
+        ch.publish({"type": "crash", **res})
+
+    def crash_info(self, iid: int) -> dict | None:
+        return self._channel(iid).last_crash
 
     # ---------- durdur / öldür ----------
     async def stop(self, iid: int, timeout: int = 60) -> None:

@@ -1,10 +1,13 @@
 {# Tekrar eden arayüz parçaları. Görünümü değiştirmek için sadece burayı düzenle. #}
 
-{% macro page_header(title, subtitle=None) %}
+{% macro page_header(title, subtitle=None, icon_id=None) %}
 <div class="page-header">
-  <div>
-    <h1 class="page-title">{{ title }}</h1>
-    {% if subtitle %}<p class="page-subtitle">{{ subtitle }}</p>{% endif %}
+  <div class="page-heading">
+    {% if icon_id %}{{ server_icon(icon_id, 56) }}{% endif %}
+    <div class="min-w-0">
+      <h1 class="page-title text-truncate" title="{{ title }}">{{ title }}</h1>
+      {% if subtitle %}<p class="page-subtitle" title="{{ subtitle }}">{{ subtitle }}</p>{% endif %}
+    </div>
   </div>
   <div class="page-actions">{% if caller %}{{ caller() }}{% endif %}</div>
 </div>
@@ -18,8 +21,11 @@
 {% macro instance_card(i) %}
 <div class="card h-100" data-card="{{ i['id'] }}">
   <div class="card-body">
-    <div class="d-flex justify-content-between align-items-start mb-2">
-      <h2 class="h5 mb-0"><a href="/instances/{{ i['id'] }}" class="stretched-link text-decoration-none text-reset">{{ i["name"] }}</a></h2>
+    <div class="d-flex justify-content-between align-items-start mb-2 gap-2">
+      <div class="d-flex align-items-center gap-2 min-w-0">
+        {{ server_icon(i['id'], 36) }}
+        <h2 class="h5 mb-0 text-truncate"><a href="/instances/{{ i['id'] }}" class="stretched-link text-decoration-none text-reset">{{ i["name"] }}</a></h2>
+      </div>
       {{ status_badge(i["status"]) }}
     </div>
     <p class="text-body-secondary small mb-0">Port: {{ i["port"] }} · RAM: {{ i["ram_mb"] // 1024 }} GB</p>
@@ -54,4 +60,12 @@
   <div class="stat-value" id="stat-{{ key }}">—</div>
   <div class="stat-sub" id="stat-{{ key }}-sub"></div>
 </div>
+{% endmacro %}
+
+{# Sunucu simgesi (server-icon.png). Yoksa varsayılan simge görünür. #}
+{% macro server_icon(iid, size=48, el_id=None) %}
+<span class="server-icon" style="width:{{ size }}px;height:{{ size }}px;font-size:{{ (size * 0.45)|int }}px"{% if el_id %} id="{{ el_id }}"{% endif %}>
+  <i class="bi bi-hdd-rack"></i>
+  <img src="/api/instances/{{ iid }}/icon" alt="" width="{{ size }}" height="{{ size }}" loading="lazy" onload="this.parentNode.classList.add('has-img')" onerror="this.remove()">
+</span>
 {% endmacro %}

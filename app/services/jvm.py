@@ -47,6 +47,9 @@ def jvm_flags(inst: dict) -> list[str]:
         f"-Xms{ram}M", f"-Xmx{ram}M", "-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8",
         *preset_flags(inst.get("jvm_preset") or "none", ram),
         *shlex.split(inst.get("jvm_args") or ""),
+        # Her zaman en sonda: sunucudaki mod/paket kodu masaüstünde pencere açamasın, tarayıcı başlatamasın
+        # (örn. "eksik modları indir" araçları). Kullanıcı argümanları bunu ezemez.
+        "-Djava.awt.headless=true",
     ]
 
 

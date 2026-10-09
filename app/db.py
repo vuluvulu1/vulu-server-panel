@@ -4,6 +4,20 @@ from contextlib import contextmanager
 from .config import DB_PATH
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS schedules (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    instance_id   INTEGER NOT NULL REFERENCES instances(id) ON DELETE CASCADE,
+    kind          TEXT NOT NULL,                 -- restart | backup
+    time_hm       TEXT NOT NULL,                 -- "04:00" (yerel saat)
+    days          TEXT NOT NULL DEFAULT '1234567',  -- 1=Pzt ... 7=Paz
+    warn_minutes  INTEGER NOT NULL DEFAULT 5,    -- restart: oyunculara kaç dk önce uyarı
+    backup_mode   TEXT NOT NULL DEFAULT 'world', -- backup: full | world
+    keep          INTEGER NOT NULL DEFAULT 7,    -- backup: kaç otomatik yedek saklansın
+    enabled       INTEGER NOT NULL DEFAULT 1,
+    last_run      TEXT,                          -- "2026-10-10 04:00" (aynı dilimde iki kez çalışmasın)
+    last_result   TEXT,
+    created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 CREATE TABLE IF NOT EXISTS users (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     username      TEXT NOT NULL UNIQUE,
@@ -31,6 +45,7 @@ CREATE TABLE IF NOT EXISTS instances (
     rcon_password TEXT,
     profile_id    TEXT,
     modpack_slug  TEXT,
+    backup_limit  INTEGER,
     modpack_version TEXT,
     status        TEXT NOT NULL DEFAULT 'stopped',
     created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -68,6 +83,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE instances ADD COLUMN launch_type TEXT NOT NULL DEFAULT 'jar'")
     if "args_file" not in cols:
         conn.execute("ALTER TABLE instances ADD COLUMN args_file TEXT")
+    if "backup_limit" not in cols:
+        conn.execute("ALTER TABLE instances ADD COLUMN backup_limit INTEGER")
     if "modpack_slug" not in cols:
         conn.execute("ALTER TABLE instances ADD COLUMN modpack_slug TEXT")
     if "modpack_version" not in cols:
@@ -96,7 +113,7 @@ def used_ports() -> set[int]:
 
 
 def update_instance(instance_id: int, **fields) -> None:
-    allowed = {"rcon_port", "rcon_password", "launch_type", "jar_file", "args_file", "port", "ram_mb", "jvm_preset", "jvm_args", "java_path", "java_major"}          # sütun adları beyaz listeden (SQL enjeksiyonu yok)
+    allowed = {"rcon_port", "rcon_password", "launch_type", "jar_file", "args_file", "port", "ram_mb", "jvm_preset", "jvm_args", "java_path", "java_major", "backup_limit", "mc_version"}          # sütun adları beyaz listeden (SQL enjeksiyonu yok)
     bad = set(fields) - allowed
     if bad:
         raise ValueError(f"izin verilmeyen sütun: {bad}")

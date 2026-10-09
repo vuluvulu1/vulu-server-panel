@@ -43,10 +43,40 @@
       if (!stopped) note('warning', 'Sunucu çalışıyor: mod ekleme, silme ve açıp kapatma için önce sunucuyu durdur.');
     } catch (e) { note('danger', String(e.message || e)); }
   }
+  // ---------- bağımlılık denetimi ----------
+  const checkBox = $('mod-check');
+  async function loadCheck() {
+    if (!checkBox) return;
+    try {
+      const r = await api('check');
+      checkBox.replaceChildren();
+      if (r.missing.length) {
+        const a = el('div', 'alert alert-danger py-2 small mb-2');
+        a.appendChild(el('strong', '', `${r.missing.length} zorunlu bağımlılık eksik — sunucu açılmayabilir.`));
+        a.appendChild(el('div', 'mb-1', 'Modrinth\'te aramak için bir ada tıkla. Bulunamazsa mod büyük ihtimalle yalnızca CurseForge\'dadır; jar dosyasını Dosyalar\'dan mods/ klasörüne yükleyebilirsin.'));
+        const ul = el('ul', 'mb-0 ps-3');
+        r.missing.slice(0, 50).forEach(m => {
+          const li = el('li');
+          const b = el('button', 'btn btn-link btn-sm p-0 align-baseline', m.id); b.type = 'button';
+          b.addEventListener('click', () => { $('search-q').value = m.id; search(true); $('search-q').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+          li.append(b, el('span', 'text-body-secondary', ' — isteyen: ' + m.required_by.slice(0, 3).join(', ')));
+          ul.appendChild(li);
+        });
+        a.appendChild(ul); checkBox.appendChild(a);
+      }
+      if (r.client_only.length) {
+        const w = el('div', 'alert alert-warning py-2 small mb-2');
+        w.appendChild(el('strong', '', 'İstemciye özel modlar: '));
+        w.appendChild(document.createTextNode(r.client_only.map(c => c.name).join(', ') + '. Sunucuda gerekmez ve çökmeye yol açabilir; yukarıdaki listeden kapatabilirsin.'));
+        checkBox.appendChild(w);
+      }
+    } catch (e) { /* denetim isteğe bağlı: hata sessizce geçilir */ }
+  }
+
   async function act(kind, data) {
-    try { await post(kind, data); note('success', 'Yapıldı. Değişikliğin etkin olması için sunucuyu (yeniden) başlat.'); }
+    try { await post(kind, data); note('success', 'Yapıldı. Değişikliğin etkin olması için sunucuyu (yeniden) başlat.'); VuluModal.changed(); }
     catch (e) { note('danger', String(e.message || e)); }
-    loadInstalled();
+    loadInstalled(); loadCheck();
   }
 
   // ---------- arama ----------
@@ -86,12 +116,13 @@
       busy = false;
       document.querySelectorAll('#results button').forEach(x => { if (!x.textContent.startsWith('Kurulu')) x.disabled = false; });
       if (s.status === 'done') {
+        VuluModal.changed();
         btn.textContent = 'Kurulu ✓'; btn.className = 'btn btn-sm align-self-start flex-shrink-0 btn-outline-secondary'; btn.disabled = true;
         const w = (s.result && s.result.warnings) || [];
         note(w.length ? 'warning' : 'success', `${h.title} kuruldu (${s.result ? s.result.count : 1} dosya). Etkin olması için sunucuyu (yeniden) başlat.` + (w.length ? ' Uyarılar: ' + w.join(' ') : ''));
         setTimeout(() => prog.hide(), 1200);
       } else note('danger', s.error || 'Kurulum başarısız oldu.');
-      loadInstalled();
+      loadInstalled(); loadCheck();
     };
     try {
       const j = await post('add', { slug: h.slug });
@@ -99,8 +130,52 @@
     } catch (e) { busy = false; document.querySelectorAll('#results button').forEach(x => { if (!x.textContent.startsWith('Kurulu')) x.disabled = false; }); note('danger', String(e.message || e)); }
   }
 
+  // ---------- güncellemeler ----------
+  const updBox = $('upd-box'), updBtn = $('upd-check');
+  async function checkUpdates() {
+    if (busy) return;
+    updBtn.disabled = true; updBox.replaceChildren(el('div', 'small text-body-secondary mb-2', 'Denetleniyor… (dosyalar Modrinth ile karşılaştırılıyor)'));
+    try {
+      const r = await post('updates/check', {});
+      updBox.replaceChildren();
+      const info = `${r.checked} dosya denetlendi` + (r.unknown ? `, ${r.unknown} tanesi Modrinth'te yok (elle/CurseForge)` : '') + '.';
+      if (!r.items.length) { updBox.appendChild(el('div', 'alert alert-success py-2 small mb-3', 'Hepsi güncel. ' + info)); return; }
+      const card = el('div', 'card static mb-3'), cb = el('div', 'card-body');
+      cb.appendChild(el('div', 'small mb-2', `${r.items.length} güncelleme var. ${info}`));
+      const list = el('div', 'mb-2');
+      r.items.forEach(it => {
+        const lab = el('label', 'form-check d-flex align-items-center gap-2 mb-1');
+        const c = el('input', 'form-check-input m-0'); c.type = 'checkbox'; c.value = it.file; c.checked = it.new_type === 'release';
+        lab.append(c, el('span', '', it.title), el('span', 'small text-body-secondary', `${it.current} → ${it.new}`));
+        if (it.new_type !== 'release') lab.appendChild(el('span', 'badge text-bg-warning', it.new_type));
+        list.appendChild(lab);
+      });
+      const go = el('button', 'btn btn-sm btn-primary', 'Seçilenleri güncelle'); go.type = 'button';
+      go.addEventListener('click', () => applyUpdates([...list.querySelectorAll('input:checked')].map(x => x.value), go));
+      cb.append(list, go, el('div', 'form-text', 'Eski dosyalar silinmez, sunucu klasöründeki .vulu-old-mods/ içine taşınır. Beta/alfa sürümler varsayılan olarak seçili değildir.'));
+      card.appendChild(cb); updBox.appendChild(card);
+    } catch (e) { updBox.replaceChildren(el('div', 'alert alert-danger py-2 small mb-3', String(e.message || e))); }
+    finally { updBtn.disabled = false; }
+  }
+  async function applyUpdates(files, btn) {
+    if (!files.length || busy) return;
+    busy = true; btn.disabled = true; updBtn.disabled = true;
+    try {
+      const j = await post('updates/apply', { files });
+      VuluProgress.watchJob(j.job_id, (s) => {
+        prog.show(s);
+        if (s.status === 'running') return;
+        busy = false; updBtn.disabled = false;
+        if (s.status === 'done') { note('success', (s.result && s.result.message) || 'Güncellendi.'); VuluModal.changed(); setTimeout(() => prog.hide(), 1200); updBox.replaceChildren(); }
+        else { note('danger', s.error || 'Güncelleme başarısız oldu.'); btn.disabled = false; }
+        loadInstalled(); loadCheck();
+      });
+    } catch (e) { busy = false; btn.disabled = false; updBtn.disabled = false; note('danger', String(e.message || e)); }
+  }
+  updBtn.addEventListener('click', checkUpdates);
+
   $('search-form').addEventListener('submit', () => search(true));
   more.addEventListener('click', () => search(false));
-  loadInstalled();
+  loadInstalled(); loadCheck();
   search(true);
 })();

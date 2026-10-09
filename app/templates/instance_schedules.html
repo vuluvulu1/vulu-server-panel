@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% from "components/ui.html" import page_header %}
+{% block title %}Zamanlama · {{ inst["name"] }}{% endblock %}
+
+{% block content %}
+{% call page_header("Zamanlama · " ~ inst["name"], "Otomatik yeniden başlatma ve yedekleme") %}
+  <a class="btn btn-outline-secondary back-link" href="/instances/{{ inst['id'] }}"><i class="bi bi-arrow-left"></i> Sunucuya dön</a>
+{% endcall %}
+
+<div id="sched-root" data-instance-id="{{ inst['id'] }}">
+  <div id="notes"></div>
+
+  <form id="sched-form" class="card static mb-3" onsubmit="return false">
+    <div class="card-body"><div class="row g-3 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label" for="kind">Görev</label>
+        <select class="form-select" id="kind">
+          <option value="restart">Yeniden başlat</option>
+          <option value="backup">Yedek al</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="time_hm">Saat</label>
+        <input class="form-control" type="time" id="time_hm" value="04:00" required>
+      </div>
+      <div class="col-md-5 opt-restart">
+        <label class="form-label" for="warn_minutes">Oyunculara uyarı</label>
+        <select class="form-select" id="warn_minutes">
+          <option value="0">Uyarma</option><option value="1">1 dk önce</option><option value="5" selected>5 dk önce</option>
+          <option value="10">10 dk önce</option><option value="15">15 dk önce</option><option value="30">30 dk önce</option>
+        </select>
+      </div>
+      <div class="col-md-3 opt-backup d-none">
+        <label class="form-label" for="backup_mode">Yedek türü</label>
+        <select class="form-select" id="backup_mode"><option value="world">Yalnızca dünya</option><option value="full">Tam</option></select>
+      </div>
+      <div class="col-md-2 opt-backup d-none">
+        <label class="form-label" for="keep">Sakla</label>
+        <input class="form-control" type="number" id="keep" min="1" max="100" value="7" title="Son kaç otomatik yedek saklansın">
+      </div>
+      <div class="col-12">
+        <div class="form-label mb-1">Günler</div>
+        <div class="d-flex flex-wrap gap-2" id="days">
+          {% for d, n in [('1','Pzt'),('2','Sal'),('3','Çar'),('4','Per'),('5','Cum'),('6','Cmt'),('7','Paz')] %}
+          <input type="checkbox" class="btn-check" id="day{{ d }}" value="{{ d }}" checked autocomplete="off">
+          <label class="btn btn-sm btn-outline-secondary" for="day{{ d }}">{{ n }}</label>
+          {% endfor %}
+        </div>
+      </div>
+    </div></div>
+    <div class="card-footer d-flex justify-content-between align-items-center gap-2 flex-wrap">
+      <span class="form-text m-0" id="kind-help">Yalnızca sunucu çalışıyorsa yeniden başlatılır; oyunculara sohbetten geri sayım duyurulur.</span>
+      <button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg"></i> Ekle</button>
+    </div>
+  </form>
+
+  <div class="card static"><div class="card-body p-0"><div class="table-responsive">
+    <table class="table align-middle mb-0 mods-table">
+      <thead><tr><th>Görev</th><th>Saat</th><th>Günler</th><th>Sonraki</th><th>Son çalışma</th><th class="text-center">Etkin</th><th></th></tr></thead>
+      <tbody id="sched-body"><tr><td colspan="7" class="text-body-secondary">Yükleniyor…</td></tr></tbody>
+    </table>
+  </div></div></div>
+  <p class="form-text mt-2">Saatler bu bilgisayarın saatine göredir. Panel kapalıyken kaçırılan görevler sonradan çalıştırılmaz. Otomatik yedekler "otomatik: zamanli" notuyla tutulur; elle aldığın yedekler hiçbir zaman otomatik silinmez.</p>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="/static/js/schedules.js?v={{ asset_v() }}"></script>{% endblock %}

@@ -2,13 +2,15 @@
 {% from "components/ui.html" import page_header, progress_panel %}
 
 {% block content %}
-{{ page_header("Yeni sunucu", "Sunucu klasörü instances/ altında oluşturulur") }}
+{% set embed = request.query_params.get("embed") == "1" %}
+{% if not embed %}{{ page_header("Yeni sunucu", "Sunucu klasörü instances/ altında oluşturulur") }}{% endif %}
+<div id="new-root">
 
 {% if errors %}
 <div class="alert alert-danger"><ul class="mb-0">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
 {% endif %}
 
-<form id="instance-form" method="post" action="/instances" class="card static" style="max-width: 760px">
+<form id="instance-form" method="post" action="/instances{{ '?embed=1' if embed }}" class="card static" style="max-width: 760px">
   <div class="card-body">
     {% if profile %}
     <input type="hidden" name="profile_id" value="{{ profile.id }}">
@@ -139,9 +141,10 @@
   </div>
   <div class="card-footer d-flex gap-2">
     <button class="btn btn-primary" type="submit">Oluştur</button>
-    <a class="btn btn-outline-secondary" href="/">Vazgeç</a>
+    <a class="btn btn-outline-secondary" href="/" data-modal-close>Vazgeç</a>
   </div>
 </form>
+</div>
 {% endblock %}
 
 {% block scripts %}<script src="/static/js/instance_form.js?v={{ asset_v() }}"></script>{% endblock %}

@@ -20,8 +20,8 @@ BASE_HOSTS = {"127.0.0.1", "localhost", "[::1]"}
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
 SECURITY_HEADERS = {
-    "X-Frame-Options": "DENY",                             # clickjacking: panel iframe içine alınamaz
-    "Content-Security-Policy": "frame-ancestors 'none'",
+    "X-Frame-Options": "SAMEORIGIN",                       # clickjacking: yalnızca panelin kendisi çerçeveleyebilir (açılır pencereler)
+    "Content-Security-Policy": "frame-ancestors 'self'",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "same-origin",
 }

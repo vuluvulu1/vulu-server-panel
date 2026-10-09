@@ -42,3 +42,10 @@ NEOFORGE_MAVEN = os.getenv("VULU_NEOFORGE_MAVEN", "https://maven.neoforged.net/r
 MODRINTH_API = os.getenv("VULU_MODRINTH_API", "https://api.modrinth.com/v2")
 # Mod dosyaları yalnızca bu sunuculardan indirilir (başka adrese yönlendirilen dosyalar reddedilir)
 MODRINTH_CDN_HOSTS = [h.strip().lower() for h in os.getenv("VULU_MODRINTH_CDN", "cdn.modrinth.com,cdn-raw.modrinth.com").split(",") if h.strip()]
+
+BACKUPS_DIR = DATA_DIR / "backups"
+
+PLAYIT_API = os.getenv("VULU_PLAYIT_API", "https://api.playit.gg")
+MOJANG_PROFILE_API = os.getenv("VULU_MOJANG_PROFILE_API", "https://api.mojang.com/users/profiles/minecraft/")
+# Testler için ek Mojang indirme sunucuları (normalde boş)
+MOJANG_EXTRA_HOSTS = {h.strip().lower() for h in os.getenv("VULU_MOJANG_HOSTS", "").split(",") if h.strip()}
