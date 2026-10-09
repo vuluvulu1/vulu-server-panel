@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
-from ..services.container import java, jobs, minecraft, paper
+from ..services.container import installers, java, jobs, minecraft
 from ..services.java_manager import JavaError
 from ..services.minecraft import McError
 from ..services.paper import PaperError
@@ -13,8 +13,8 @@ router = APIRouter()
 async def mc_versions(snapshots: bool = False, loader: str = "vanilla"):
     """loader=paper ise yalnızca Paper'ın desteklediği sürümler döner."""
     try:
-        if loader == "paper":
-            return await paper.versions()
+        if loader in installers:
+            return await installers[loader].versions()
         return await minecraft.list_versions(snapshots)
     except (McError, PaperError) as e:
         raise HTTPException(502, str(e))

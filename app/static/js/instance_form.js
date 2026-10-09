@@ -5,8 +5,10 @@
   const $ = (id) => document.getElementById(id);
   const mc = $('mc_version'), loader = $('loader'), javaMode = $('java_mode');
   const customBox = $('java-custom-box'), paperSection = $('paper-section');
+  const INSTALLERS = ['paper', 'fabric', 'forge', 'neoforge'];            // jar'ı panelin indirebildiği yükleyiciler
+  const ARGS_LOADERS = ['forge', 'neoforge'];
 
-  // Durum kutusu + ilerleme çubuğu bileşeni (Java ve Paper aynısını kullanır)
+  // Durum kutusu + ilerleme çubuğu bileşeni (Java ve yükleyici aynısını kullanır)
   function makeBox(prefix) {
     const box = $(prefix + '-status'), text = $(prefix + '-status-text'), reason = $(prefix + '-status-reason');
     const btn = $(prefix + '-install-btn');
@@ -56,12 +58,13 @@
   // ---------- Minecraft sürüm listesi ----------
   async function loadVersions() {
     const wanted = mc.value || mc.dataset.selected || '';
-    const isPaper = loader.value === 'paper';
-    paperSection.classList.toggle('d-none', !isPaper);
+    const hasInstaller = INSTALLERS.includes(loader.value);
+    paperSection.classList.toggle('d-none', !hasInstaller);
+    toggleArgs();
     mc.replaceChildren(new Option('Yükleniyor…', ''));
     try {
-      const j = await getJSON('/api/minecraft/versions' + (isPaper ? '?loader=paper' : ''));
-      mc.replaceChildren(new Option(isPaper ? '— Sürüm seç —' : "— Seçme (Java'yı kendim ayarlayacağım) —", ''));
+      const j = await getJSON('/api/minecraft/versions' + (hasInstaller ? '?loader=' + loader.value : ''));
+      mc.replaceChildren(new Option(hasInstaller ? '— Sürüm seç —' : "— Seçme (Java'yı kendim ayarlayacağım) —", ''));
       j.versions.forEach(v => mc.appendChild(new Option(v.id + (v.id === j.latest ? '  (en yeni)' : ''), v.id)));
       mc.value = j.versions.some(v => v.id === wanted) ? wanted : '';
       mc.dataset.selected = '';
@@ -69,7 +72,7 @@
       mc.replaceChildren(new Option('Sürüm listesi alınamadı', ''));
       J.show('error', 'Minecraft sürüm listesi alınamadı.', String(e.message || e));
     }
-    refreshJava(); refreshPaper();
+    refreshJava(); refreshLoader();
   }
 
   // ---------- Java ----------
@@ -98,37 +101,55 @@
     } catch (e) { if (my === J.req) J.show('error', String(e.message || e)); }
   }
 
-  // ---------- Paper ----------
-  async function refreshPaper() {
+  // ---------- Yükleyici jar'ı (Paper / Fabric) ----------
+  async function refreshLoader() {
     if (P.busy) return;
-    if (loader.value !== 'paper') { P.hide(); return; }
-    if (!mc.value) { P.show('muted', "Paper jar'ını indirmek için bir sürüm seç."); return; }
+    if (!INSTALLERS.includes(loader.value)) { P.hide(); return; }
+    if (!mc.value) { P.show('muted', "Sunucu jar'ını indirmek için bir sürüm seç."); return; }
     const my = ++P.req;
-    P.show('muted', 'Paper build bilgisi alınıyor…');
+    P.show('muted', 'Sürüm bilgisi alınıyor…');
     try {
-      const j = await getJSON('/api/paper/resolve?mc_version=' + encodeURIComponent(mc.value));
+      const j = await getJSON(`/api/loader/resolve?loader=${loader.value}&mc_version=${encodeURIComponent(mc.value)}`);
       if (my !== P.req) return;
       P.current = j;
-      const mb = (j.size / 1048576).toFixed(0);
-      const label = `Paper ${j.version} · build #${j.build} (${j.channel})`;
-      if (j.cached) P.show('ok', `✓ ${label} indirildi (önbellekte)`, 'Sunucu ilk başlatılınca klasöre kopyalanır.');
+      const size = j.size > 0 ? ` · ≈ ${(j.size / 1048576).toFixed(0)} MB` : '';
+      if (j.cached) P.show('ok', `✓ ${j.label} indirildi (önbellekte)`, 'Sunucu ilk başlatılınca klasöre kopyalanır.');
       else {
-        P.show(j.stable ? 'warn' : 'error', `${label} · ≈ ${mb} MB indirilecek`,
+        P.show(j.stable ? 'warn' : 'error', `${j.label}${size} · indirilecek`,
           j.stable ? "İstersen şimdi indir; yoksa ilk başlatmada otomatik indirilir."
                    : "Dikkat: bu sürüm için kararlı (STABLE) build yok, deneysel build kullanılacak.");
         P.btn.classList.remove('d-none');
       }
-    } catch (e) { if (my === P.req) P.show('error', 'Paper bilgisi alınamadı.', String(e.message || e)); }
+    } catch (e) { if (my === P.req) P.show('error', 'Sürüm bilgisi alınamadı.', String(e.message || e)); }
   }
 
   J.btn.addEventListener('click', runJob(J, () => getJSON('/api/java/install', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ major: J.current.major }),
   }), refreshJava));
-  P.btn.addEventListener('click', runJob(P, () => getJSON('/api/paper/download', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mc_version: mc.value }),
-  }), refreshPaper));
+  P.btn.addEventListener('click', runJob(P, () => getJSON('/api/loader/download', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ loader: loader.value, mc_version: mc.value }),
+  }), refreshLoader));
 
-  mc.addEventListener('change', () => { refreshJava(); refreshPaper(); });
+  // ---------- RAM kaydırıcısı ----------
+  const ram = $('ram_gb'), ramOut = $('ram_out'), ramWarn = $('ram_warn');
+  function ramUpdate() {
+    ramOut.textContent = ram.value;
+    const total = Number(ram.dataset.total || 0);
+    ramWarn.textContent = total && Number(ram.value) > total - 2 ? '⚠ İşletim sistemi için en az 2 GB boş bırak' : '';
+  }
+  ram.addEventListener('input', ramUpdate);
+  ramUpdate();
+
+  // ---------- Başlatma türü: argüman dosyası kutusu ----------
+  const launch = $('launch_type'), argsBox = $('args-box');
+  function toggleArgs() {
+    const show = launch.value === 'args-file' || (launch.value === 'auto' && ARGS_LOADERS.includes(loader.value));
+    argsBox.classList.toggle('d-none', !show);
+  }
+  launch.addEventListener('change', toggleArgs);
+
+  mc.addEventListener('change', () => { refreshJava(); refreshLoader(); });
   loader.addEventListener('change', loadVersions);
   javaMode.addEventListener('change', refreshJava);
   loadVersions();

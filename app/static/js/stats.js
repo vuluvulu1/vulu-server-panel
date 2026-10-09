@@ -51,7 +51,12 @@
 
   function render(s) {
     $('stat-cpu').textContent = s.running ? s.cpu.toFixed(1) + '%' : '—';
-    $('stat-ram').textContent = s.running ? `${(s.ram_mb / 1024).toFixed(1)} / ${(s.ram_max_mb / 1024).toFixed(1)} GB` : '—';
+    $('stat-ram').textContent = s.running ? `${(s.ram_mb / 1024).toFixed(1)} GB` : '—';
+    const extra = s.ram_mb - s.ram_max_mb;
+    $('stat-ram-sub').textContent = s.running
+      ? (extra > 0 ? `Heap ${(s.ram_max_mb / 1024).toFixed(1)} GB + Java'nın kendi payı ${(extra / 1024).toFixed(1)} GB`
+                   : `Heap limiti ${(s.ram_max_mb / 1024).toFixed(1)} GB`)
+      : '';
     $('stat-uptime').textContent = s.running ? fmtUptime(s.uptime) : '—';
 
     const pv = $('stat-players'), ps = $('stat-players-sub');
@@ -60,7 +65,7 @@
 
     const tv = $('stat-tps'), ts = $('stat-tps-sub');
     if (s.running && s.tps !== null) { tv.textContent = s.tps.toFixed(1); tv.dataset.level = level(s.tps); ts.textContent = ''; }
-    else { tv.textContent = '—'; delete tv.dataset.level; ts.textContent = s.running && s.rcon === 'ok' ? 'Bu yükleyicide TPS komutu yok' : ''; }
+    else { tv.textContent = '—'; delete tv.dataset.level; ts.textContent = s.running && s.rcon === 'ok' ? (s.tps_supported ? 'TPS okunamadı' : 'Bu yükleyicide TPS komutu yok') : ''; }
 
     const h = s.history, labels = h.t.map(t => new Date(t * 1000).toLocaleTimeString());
     res.data.labels = labels; res.data.datasets[0].data = h.cpu; res.data.datasets[1].data = h.ram;

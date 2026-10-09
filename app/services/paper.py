@@ -95,6 +95,7 @@ class PaperManager:
             raise PaperError(f"Paper {version} build #{best.get('id')} için indirme bağlantısı yok.")
         channel = best.get("channel", "?")
         return {
+            "type": "paper", "label": f"Paper {version} · build #{int(best['id'])} ({channel})",
             "version": version, "build": int(best["id"]), "channel": channel,
             "stable": channel in ("STABLE", "RECOMMENDED"),
             "name": dl["name"], "url": dl["url"], "size": int(dl.get("size") or 0),
@@ -106,7 +107,7 @@ class PaperManager:
         return p.is_file() and (not info["size"] or p.stat().st_size == info["size"])
 
     # ---------- önbelleğe indirme işi ----------
-    def ensure_cached_job(self, version: str) -> Job:
+    def ensure_cached_job(self, version: str, pin: str | None = None) -> Job:
         return self.jobs.start("paper", f"Paper {version} indiriliyor", f"paper-{version}",
                                lambda j: self._cache(j, version))
 
@@ -151,6 +152,7 @@ class PaperManager:
         finally:
             tmp.unlink(missing_ok=True)
         (folder / INFO_FILE).write_text(json.dumps({
-            "type": "paper", "version": info["version"], "build": info["build"], "channel": info["channel"],
-            "name": info["name"], "sha256": info["sha256"], "installed_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "type": info.get("type", "paper"), "label": info.get("label"), "version": info["version"],
+            "build": info["build"], "channel": info.get("channel", ""),
+            "name": info["name"], "sha256": info.get("sha256", ""), "installed_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         }), encoding="utf-8")

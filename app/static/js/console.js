@@ -9,6 +9,7 @@
   const statusEl = document.getElementById('instance-status');
   const buttons = document.querySelectorAll('[data-action]');
   const updBtn = document.getElementById('paper-update-btn');
+  const modsBtn = document.getElementById('mods-update-btn');
 
   const LABELS = { running: 'Çalışıyor', stopped: 'Durdu', preparing: 'Hazırlanıyor', starting: 'Başlıyor', stopping: 'Durduruluyor', crashed: 'Çöktü' };
   const prog = VuluProgress.attach('prep');
@@ -56,6 +57,7 @@
       b.disabled = b.dataset.action === 'start' ? active : (s === 'stopped' || s === 'crashed');
     });
     if (updBtn) updBtn.disabled = active;
+    if (modsBtn) modsBtn.disabled = active;
     input.disabled = !(s === 'running' || s === 'starting');
     sendBtn.disabled = input.disabled;
   }
@@ -120,6 +122,16 @@
       const j = await r.json().catch(() => ({}));
       if (!r.ok) addLines(['[panel] ' + (j.detail || 'Hata: ' + r.status)]);
       else if (j.message) addLines(['[panel] ' + j.message]);
+    } catch (e) {
+      addLines(['[panel] Panele ulaşılamadı.']);
+    }
+  });
+
+  if (modsBtn) modsBtn.addEventListener('click', async () => {
+    try {
+      const r = await fetch(`/api/instances/${id}/mods/update`, { method: 'POST' });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) addLines(['[panel] ' + (j.detail || 'Hata: ' + r.status)]);
     } catch (e) {
       addLines(['[panel] Panele ulaşılamadı.']);
     }

@@ -1,0 +1,20 @@
+{
+  "id": "fabric-performans",
+  "name": "Fabric Temel",
+  "description": "Fabric ile boş başlangıç: hafif modlar için temiz bir taban.",
+  "mc_version": "latest",
+  "loader": "fabric",
+  "jvm_preset": "aikar",
+  "default_ram_gb": 4,
+  "server_properties": {
+    "view-distance": 8,
+    "simulation-distance": 6
+  },
+  "mods": [
+    "fabric-api",
+    "lithium",
+    "ferrite-core",
+    "modernfix",
+    "chunky"
+  ]
+}

@@ -23,7 +23,7 @@ SECURITY_HEADERS = {
     "X-Frame-Options": "DENY",                             # clickjacking: panel iframe içine alınamaz
     "Content-Security-Policy": "frame-ancestors 'none'",
     "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "no-referrer",
+    "Referrer-Policy": "same-origin",
 }
 
 
@@ -52,10 +52,14 @@ class LocalGuardMiddleware:
 
         bad = _hostname(host) not in self.allowed
         if not bad and changes_state:
-            origin = h.get("origin")
-            if origin is not None and urlparse(origin).netloc.lower() != host.lower():
-                bad = True                                  # başka site (ya da "null" origin)
-            if h.get("sec-fetch-site", "same-origin") not in ("same-origin", "none"):
+            origin, sfs = h.get("origin"), h.get("sec-fetch-site")
+            if origin == "null":
+                # Bazı tarayıcılar same-origin form POST'unda "null" yollar. Yalnızca tarayıcının koyduğu
+                # (sahtelenemeyen) Sec-Fetch-Site açıkça same-origin ise kabul et.
+                bad = sfs != "same-origin"
+            elif origin is not None and urlparse(origin).netloc.lower() != host.lower():
+                bad = True                                  # başka site
+            if sfs not in (None, "same-origin", "none"):
                 bad = True
         if bad:
             if scope["type"] == "websocket":

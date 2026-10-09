@@ -172,3 +172,8 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .stat-value[data-level="warn"] { color: var(--warning); }
 .stat-value[data-level="bad"]  { color: var(--danger); }
 .chart-box { position: relative; height: 180px; }
+
+/* --- Mod tarayıcı --- */
+.mod-icon { width: 48px; height: 48px; flex: none; border-radius: var(--radius-sm); object-fit: cover; background: var(--surface-2); }
+.mod-desc { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.mods-table { --bs-table-bg: transparent; --bs-table-color: var(--text); --bs-table-border-color: var(--border); }

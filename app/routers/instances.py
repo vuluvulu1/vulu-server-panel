@@ -1,6 +1,8 @@
 import asyncio
 import re
 import sqlite3
+
+import psutil
 from pathlib import Path
 
 from fastapi import APIRouter, Form, HTTPException, Request
@@ -12,7 +14,12 @@ from ..db import get_conn, get_instance
 from ..services.container import launcher, minecraft
 from ..services.minecraft import LOADERS, McError
 from ..services.paper import PaperError, read_jar_info
-from ..services.container import paper as paper_mgr
+from ..services.container import installers, modpacks
+from ..services.container import minecraft as mc_service
+from ..services.jvm import PRESETS, validate_args_file
+from ..services.modrinth import ModrinthError, read_mods_info
+from ..services.profiles import get_profile, props_as_strings
+from ..services.properties import update_properties
 from ..services.process import ProcessError, process_manager as pm
 from ..templating import templates
 
@@ -40,6 +47,15 @@ async def _safe(iid: int, coro) -> None:
         pm.notify_error(iid, str(e))
 
 
+def _sys_ram_gb() -> int:
+    return max(1, psutil.virtual_memory().total // 2**30)
+
+
+def _ctx(values: dict, errors: list[str]) -> dict:
+    return {"values": values, "errors": errors, "loaders": LOADERS, "presets": PRESETS, "sys_ram_gb": _sys_ram_gb(),
+            "profile": get_profile(values.get("profile_id"))}
+
+
 def _next_free_port() -> int:
     with get_conn() as conn:
         row = conn.execute("SELECT MAX(port) AS p FROM instances").fetchone()
@@ -48,13 +64,34 @@ def _next_free_port() -> int:
 
 # ---------- sayfalar ----------
 @router.get("/instances/new")
-async def new_instance_form(request: Request):
+async def new_instance_form(request: Request, profile: str = "", modpack: str = ""):
     values = {
         "name": "", "port": str(_next_free_port()), "ram_gb": "4",
         "jar_file": "server.jar", "java_path": "java", "jvm_args": "",
         "mc_version": "", "loader": "vanilla", "java_mode": "auto",
+        "jvm_preset": "aikar", "launch_type": "auto", "args_file": "", "profile_id": "",
+        "modpack_slug": "", "modpack_version": "", "modpack_label": "",
     }
-    return templates.TemplateResponse(request, "instance_new.html", {"values": values, "errors": [], "loaders": LOADERS})
+    errs: list[str] = []
+    if prof := get_profile(profile):                      # profil seçildiyse formu onunla doldur
+        values.update(profile_id=prof.id, loader=prof.loader, jvm_preset=prof.jvm_preset,
+                      ram_gb=str(min(prof.default_ram_gb, _sys_ram_gb())))
+        ver = prof.mc_version
+        if ver == "latest":
+            try:
+                mgr = installers.get(prof.loader)
+                ver = (await mgr.versions() if mgr else await mc_service.list_versions())["latest"] or ""
+            except Exception:
+                ver = ""                                   # servise ulaşılamadı: sürümü kullanıcı seçsin
+        values["mc_version"] = ver
+    if modpack and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{1,63}", modpack):     # Modrinth modpack seçildi
+        try:
+            pk = await modpacks.version_info(modpack)
+            values.update(modpack_slug=pk["slug"], modpack_version=pk["version_id"], modpack_label=f"{pk['title']} {pk['version_number']}",
+                          loader=pk["loader"], mc_version=pk["mc_version"], jvm_preset="aikar", ram_gb=str(min(6, _sys_ram_gb())))
+        except ModrinthError as e:
+            errs.append(str(e))
+    return templates.TemplateResponse(request, "instance_new.html", _ctx(values, errs))
 
 
 @router.post("/instances")
@@ -69,14 +106,30 @@ async def create_instance(
     mc_version: str = Form(""),
     loader: str = Form("vanilla"),
     java_mode: str = Form("custom"),
+    jvm_preset: str = Form("none"),
+    launch_type: str = Form("auto"),
+    args_file: str = Form(""),
+    profile_id: str = Form(""),
+    modpack_slug: str = Form(""),
+    modpack_version: str = Form(""),
     accept_eula: str | None = Form(None),
 ):
     values = {
         "name": name.strip(), "port": port.strip(), "ram_gb": ram_gb.strip(),
         "jar_file": jar_file.strip(), "java_path": java_path.strip(), "jvm_args": jvm_args.strip(),
         "mc_version": mc_version.strip(), "loader": loader.strip(), "java_mode": java_mode.strip(),
+        "jvm_preset": jvm_preset.strip(), "launch_type": launch_type.strip(), "args_file": args_file.strip(),
+        "profile_id": profile_id.strip(), "modpack_slug": modpack_slug.strip(), "modpack_version": modpack_version.strip(), "modpack_label": "",
     }
     errors: list[str] = []
+
+    pack = None
+    if values["modpack_slug"] or values["modpack_version"]:      # modpack: sürüm ve yükleyiciyi Modrinth belirler, forma güvenilmez
+        try:
+            pack = await modpacks.version_info(values["modpack_slug"], values["modpack_version"] or None)
+            values.update(loader=pack["loader"], mc_version=pack["mc_version"], modpack_label=f"{pack['title']} {pack['version_number']}")
+        except ModrinthError as e:
+            errors.append(str(e))
 
     if not NAME_RE.match(values["name"]):
         errors.append("Ad 1-32 karakter olmalı; harf, rakam, tire ve alt çizgi içerebilir (boşluk yok).")
@@ -90,14 +143,27 @@ async def create_instance(
         errors.append("Minecraft sürümü geçersiz.")
     if err := validate_jvm_args(values["jvm_args"]):
         errors.append(err)
+    if values["jvm_preset"] not in PRESETS:
+        errors.append("Geçersiz JVM ayarı.")
+    if values["launch_type"] not in ("auto", "jar", "args-file"):
+        errors.append("Geçersiz başlatma türü.")
+    if err := validate_args_file(values["args_file"]):
+        errors.append(err)
+    prof = get_profile(values["profile_id"]) if values["profile_id"] else None
+    if values["profile_id"] and not prof:
+        errors.append("Seçilen profil bulunamadı.")
+    launch_type = values["launch_type"]
+    if launch_type == "auto":
+        launch_type = "args-file" if values["loader"] in ("forge", "neoforge") else "jar"
 
-    if values["loader"] == "paper" and values["mc_version"] and not errors:
+    mgr = installers.get(values["loader"])
+    if mgr and values["mc_version"] and not errors:
         try:
-            known = {v["id"] for v in (await paper_mgr.versions())["versions"]}
+            known = {v["id"] for v in (await mgr.versions())["versions"]}
             if values["mc_version"] not in known:
-                errors.append(f"Paper {values['mc_version']} sürümünü desteklemiyor. Listeden Paper'ın desteklediği bir sürüm seç.")
+                errors.append(f"{values['loader'].capitalize()} {values['mc_version']} sürümünü desteklemiyor. Listeden desteklenen bir sürüm seç.")
         except PaperError:
-            pass   # PaperMC'ye ulaşılamıyor: ilk başlatmada net bir hata gösterilir
+            pass   # servise ulaşılamıyor: ilk başlatmada net bir hata gösterilir
 
     java_major: int | None = None
     if values["java_mode"] == "custom":
@@ -127,6 +193,8 @@ async def create_instance(
             raise ValueError
     except ValueError:
         errors.append("RAM 1-128 GB arasında bir sayı olmalı.")
+    if ram_i > _sys_ram_gb():
+        errors.append(f"Bilgisayarında {_sys_ram_gb()} GB RAM var; bundan fazlasını veremezsin.")
 
     if not errors:
         with get_conn() as conn:
@@ -135,28 +203,36 @@ async def create_instance(
 
     if errors:
         return templates.TemplateResponse(
-            request, "instance_new.html", {"values": values, "errors": errors, "loaders": LOADERS}, status_code=400
+            request, "instance_new.html", _ctx(values, errors), status_code=400
         )
 
     folder = INSTANCES_DIR / values["name"]
     folder.mkdir(parents=True, exist_ok=True)
     if accept_eula:
         (folder / "eula.txt").write_text("eula=true\n", encoding="utf-8")
+    if prof and prof.server_properties:
+        try:
+            update_properties(folder / "server.properties", props_as_strings(prof))
+        except (OSError, ValueError) as e:
+            errors.append(f"Profil ayarları yazılamadı: {e}")
+            return templates.TemplateResponse(request, "instance_new.html", _ctx(values, errors), status_code=400)
 
     try:
         with get_conn() as conn:
             cur = conn.execute(
                 "INSERT INTO instances (name, path, port, java_path, jar_file, jvm_args, ram_mb, "
-                "mc_version, loader, java_major) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "mc_version, loader, java_major, launch_type, args_file, jvm_preset, profile_id, modpack_slug, modpack_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (values["name"], str(folder), port_i, values["java_path"] or "java",
                  values["jar_file"], values["jvm_args"], ram_i * 1024,
-                 values["mc_version"] or None, values["loader"], java_major),
+                 values["mc_version"] or None, values["loader"], java_major,
+                 launch_type, values["args_file"] or None, values["jvm_preset"], values["profile_id"] or None,
+                 pack["slug"] if pack else None, pack["version_id"] if pack else None),
             )
             iid = cur.lastrowid
     except sqlite3.IntegrityError:
         errors.append("Bu isimde bir sunucu zaten var.")
         return templates.TemplateResponse(
-            request, "instance_new.html", {"values": values, "errors": errors, "loaders": LOADERS}, status_code=400
+            request, "instance_new.html", _ctx(values, errors), status_code=400
         )
 
     return RedirectResponse(f"/instances/{iid}", status_code=303)
@@ -168,7 +244,8 @@ async def instance_detail(request: Request, iid: int):
     if not inst:
         raise HTTPException(404, "Sunucu bulunamadı")
     jar_info = read_jar_info(Path(inst["path"]))
-    return templates.TemplateResponse(request, "instance_detail.html", {"inst": inst, "jar_info": jar_info})
+    return templates.TemplateResponse(request, "instance_detail.html", {"inst": inst, "jar_info": jar_info, "profile": get_profile(inst.get("profile_id")),
+                         "mods_info": read_mods_info(Path(inst["path"]))})
 
 
 @router.post("/instances/{iid}/delete")
@@ -185,6 +262,17 @@ async def delete_instance(iid: int):
 
 
 # ---------- eylemler ----------
+@router.post("/api/instances/{iid}/mods/update")
+async def mods_update(iid: int):
+    inst = get_instance(iid)
+    if not inst:
+        raise HTTPException(404, "Sunucu bulunamadı")
+    try:
+        return {"ok": True, **await launcher.update_mods(inst)}
+    except ProcessError as e:
+        raise HTTPException(400, str(e))
+
+
 @router.post("/api/instances/{iid}/paper/update")
 async def paper_update(iid: int):
     inst = get_instance(iid)

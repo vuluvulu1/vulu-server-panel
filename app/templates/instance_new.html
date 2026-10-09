@@ -10,6 +10,15 @@
 
 <form id="instance-form" method="post" action="/instances" class="card static" style="max-width: 760px">
   <div class="card-body">
+    {% if profile %}
+    <input type="hidden" name="profile_id" value="{{ profile.id }}">
+    <div class="alert alert-info py-2 small">Profil: <strong>{{ profile.name }}</strong>{% if profile.description %} · {{ profile.description }}{% endif %}</div>
+    {% endif %}
+    {% if values.modpack_slug %}
+    <input type="hidden" name="modpack_slug" value="{{ values.modpack_slug }}">
+    <input type="hidden" name="modpack_version" value="{{ values.modpack_version }}">
+    <div class="alert alert-info py-2 small">Modrinth modpack: <strong>{{ values.modpack_label }}</strong> · Minecraft sürümü ve yükleyici modpack'e göre belirlenir; modlar ve ayarlar ilk başlatmada kurulur.</div>
+    {% endif %}
     <div class="row g-3">
       <div class="col-md-6">
         <label class="form-label" for="name">Sunucu adı</label>
@@ -22,7 +31,8 @@
       </div>
       <div class="col-md-3">
         <label class="form-label" for="ram_gb">RAM (GB)</label>
-        <input class="form-control" id="ram_gb" name="ram_gb" value="{{ values.ram_gb }}" inputmode="numeric">
+        <input class="form-range" type="range" id="ram_gb" name="ram_gb" min="1" max="{{ [[sys_ram_gb, 64]|min, 2]|max }}" step="1" value="{{ values.ram_gb }}" data-total="{{ sys_ram_gb }}">
+        <div class="form-text"><output id="ram_out">{{ values.ram_gb }}</output> GB · toplam {{ sys_ram_gb }} GB <span id="ram_warn" class="text-warning"></span></div>
       </div>
 
       <div class="col-md-6">
@@ -53,7 +63,7 @@
           </div>
         </div>
         <div class="mt-2">{{ progress_panel("paper") }}</div>
-        <div class="form-text">Paper jar'ı papermc.io'dan indirilir ve doğrulanır. İndirmezsen sunucuyu ilk başlattığında otomatik indirilir.</div>
+        <div class="form-text">Sunucu jar'ı resmi kaynaktan indirilir. İndirmezsen sunucuyu ilk başlattığında otomatik indirilir.</div>
       </div>
 
       <div class="col-12">
@@ -87,6 +97,27 @@
       </div>
 
       <div class="col-md-6">
+        <label class="form-label" for="jvm_preset">JVM ayarı</label>
+        <select class="form-select" id="jvm_preset" name="jvm_preset">
+          {% for k, label in presets.items() %}<option value="{{ k }}" {{ 'selected' if values.jvm_preset == k else '' }}>{{ label }}</option>{% endfor %}
+        </select>
+        <div class="form-text">Aikar bayrakları Paper ve çoğu sunucuda çöp toplama takılmalarını azaltır.</div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="launch_type">Başlatma türü</label>
+        <select class="form-select" id="launch_type" name="launch_type">
+          <option value="auto" {{ 'selected' if values.launch_type == 'auto' else '' }}>Otomatik (yükleyiciye göre)</option>
+          <option value="jar" {{ 'selected' if values.launch_type == 'jar' else '' }}>Jar dosyası (-jar)</option>
+          <option value="args-file" {{ 'selected' if values.launch_type == 'args-file' else '' }}>Argüman dosyası (Forge / NeoForge)</option>
+        </select>
+      </div>
+      <div class="col-12 d-none" id="args-box">
+        <label class="form-label" for="args_file">Argüman dosyası (boş bırakırsan otomatik bulunur)</label>
+        <input class="form-control font-monospace" id="args_file" name="args_file" value="{{ values.args_file }}" placeholder="libraries/net/minecraftforge/forge/SÜRÜM/{platform}_args.txt">
+        <div class="form-text">Forge/NeoForge kurucusunu sunucu klasöründe çalıştırdıktan sonra panel dosyayı kendisi bulur. <code>{platform}</code>, Windows'ta <code>win</code>, Linux'ta <code>unix</code> olur.</div>
+      </div>
+
+      <div class="col-md-6">
         <label class="form-label" for="jar_file">Jar dosyası</label>
         <input class="form-control" id="jar_file" name="jar_file" value="{{ values.jar_file }}">
         <div class="form-text">Sunucu klasörünün içinde olmalı.</div>
@@ -113,4 +144,4 @@
 </form>
 {% endblock %}
 
-{% block scripts %}<script src="/static/js/instance_form.js"></script>{% endblock %}
+{% block scripts %}<script src="/static/js/instance_form.js?v={{ asset_v() }}"></script>{% endblock %}

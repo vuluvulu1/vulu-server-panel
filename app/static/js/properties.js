@@ -1,0 +1,16 @@
+(function () {
+  const root = document.getElementById('props-root');
+  if (!root) return;
+  const id = root.dataset.instanceId, notes = document.getElementById('notes');
+  const note = (kind, text) => { const d = document.createElement('div'); d.className = `alert alert-${kind} py-2 small mb-2`; d.textContent = text; notes.replaceChildren(d); };
+  document.getElementById('props-form').addEventListener('submit', async () => {
+    const values = {};
+    document.querySelectorAll('[data-key]').forEach(el => { values[el.dataset.key] = el.dataset.type === 'bool' ? el.checked : el.value; });
+    try {
+      const r = await fetch(`/api/instances/${id}/properties`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ values }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.detail || ('Hata ' + r.status));
+      note('success', 'Kaydedildi. Değişiklikler sunucu (yeniden) başlayınca geçerli olur.');
+    } catch (e) { note('danger', String(e.message || e)); }
+  });
+})();

@@ -15,7 +15,8 @@ INTERVAL, RCON_EVERY, HISTORY = 2.0, 3, 180
 TPS_CMDS = {"paper": "tps", "forge": "forge tps", "neoforge": "neoforge tps"}   # vanilla/fabric'te yok
 _COLOR = re.compile(r"§.")
 _LIST = re.compile(r"There are (\d+) of a max of (\d+) players online:?\s*(.*)", re.S)
-_TPS = (re.compile(r"Mean TPS:\s*([\d.]+)"), re.compile(r"TPS from last[^:]*:\s*\*?([\d.]+)"))
+_TPS = (re.compile(r"Mean TPS:\s*([\d.]+)"), re.compile(r"TPS from last[^:]*:\s*\*?([\d.]+)"),
+        re.compile(r"Overall:\s*([\d.,]+)\s*TPS"))      # NeoForge/yeni Forge (Türkçe yerelde ondalık virgül: 20,000)
 
 
 def parse_list(text: str):
@@ -31,7 +32,7 @@ def parse_tps(text: str) -> float | None:
         m = rx.search(t)
         if m:
             try:
-                return round(min(float(m[1]), 20.0), 1)
+                return round(min(float(m[1].replace(",", ".")), 20.0), 1)
             except ValueError:
                 return None
     return None
@@ -50,6 +51,7 @@ class _St:
         self.players = self.max_players = self.tps = None
         self.names: list[str] = []
         self.rcon_state = "off"
+        self.tps_supported = False
 
 
 class StatsService:
@@ -153,6 +155,7 @@ class StatsService:
             if res:
                 st.players, st.max_players, st.names = res
             cmd = TPS_CMDS.get(inst.get("loader") or "")
+            st.tps_supported = cmd is not None
             if cmd:
                 st.tps = parse_tps(await st.rcon.command(cmd))
             st.rcon_state = "ok"
@@ -169,7 +172,7 @@ class StatsService:
             "uptime": st.uptime if st else 0,
             "players": st.players if st else None, "max_players": st.max_players if st else None,
             "player_names": list(st.names) if st else [], "tps": st.tps if st else None,
-            "rcon": st.rcon_state if st else "off",
+            "rcon": st.rcon_state if st else "off", "tps_supported": st.tps_supported if st else False,
         }
         if history:
             h = list(st.hist) if st else []

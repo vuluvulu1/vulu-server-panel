@@ -1,0 +1,18 @@
+{
+  "id": "neoforge-modlu",
+  "name": "NeoForge Modlu Taban",
+  "description": "Büyük modlu sunucular için NeoForge, yüksek RAM, orta görüş mesafesi.",
+  "mc_version": "latest",
+  "loader": "neoforge",
+  "jvm_preset": "aikar",
+  "default_ram_gb": 6,
+  "server_properties": {
+    "view-distance": 10,
+    "simulation-distance": 8
+  },
+  "mods": [
+    "ferrite-core",
+    "modernfix",
+    "chunky"
+  ]
+}

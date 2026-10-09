@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% from "components/ui.html" import page_header %}
+{% block title %}Ayarlar · {{ inst["name"] }}{% endblock %}
+
+{% block content %}
+{% call page_header("Ayarlar · " ~ inst["name"], "MC " ~ (inst["mc_version"] or "?") ~ " · " ~ inst["loader"]) %}
+  <a class="btn btn-outline-secondary" href="/instances/{{ inst['id'] }}"><i class="bi bi-arrow-left"></i> Sunucuya dön</a>
+{% endcall %}
+
+<div id="settings-root" data-instance-id="{{ inst['id'] }}" data-name="{{ inst['name'] }}">
+  {% if not stopped %}<div class="alert alert-warning py-2 small">Sunucu çalışıyor: ayarları değiştirmek için önce durdur.</div>{% endif %}
+  <div id="notes" class="mb-3"></div>
+
+  <form id="settings-form" class="card static" style="max-width: 760px" onsubmit="return false">
+    <div class="card-body"><div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label" for="port">Port</label>
+        <input class="form-control" id="port" value="{{ inst['port'] }}" inputmode="numeric">
+      </div>
+      <div class="col-md-8">
+        <label class="form-label" for="ram_gb">RAM (GB)</label>
+        <input class="form-range" type="range" id="ram_gb" min="1" max="{{ [[sys_ram_gb, 64]|min, 2]|max }}" step="1" value="{{ [inst['ram_mb'] // 1024, 1]|max }}" data-total="{{ sys_ram_gb }}">
+        <div class="form-text"><output id="ram_out">{{ inst['ram_mb'] // 1024 }}</output> GB · toplam {{ sys_ram_gb }} GB <span id="ram_warn" class="text-warning"></span></div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="jvm_preset">JVM ayarı</label>
+        <select class="form-select" id="jvm_preset">
+          {% for k, label in presets.items() %}<option value="{{ k }}" {{ 'selected' if inst['jvm_preset'] == k else '' }}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="jvm_args">Ek JVM argümanları</label>
+        <input class="form-control font-monospace" id="jvm_args" value="{{ inst['jvm_args'] }}" placeholder="-XX:+UseG1GC">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="java_mode">Java</label>
+        <select class="form-select" id="java_mode">
+          <option value="auto" {{ 'selected' if java_mode == 'auto' else '' }}>Otomatik (sürüme göre yeniden belirle)</option>
+          {% for v in ['8', '11', '17', '21', '25'] %}<option value="{{ v }}" {{ 'selected' if java_mode == v else '' }}>Java {{ v }}</option>{% endfor %}
+          <option value="custom" {{ 'selected' if java_mode == 'custom' else '' }}>Özel yol (gelişmiş)</option>
+        </select>
+        <div class="form-text">Seçilen Java kurulu değilse sunucu başlatılırken otomatik indirilir.</div>
+      </div>
+      <div class="col-md-6 d-none" id="java-custom-box">
+        <label class="form-label" for="java_path">Java yolu</label>
+        <input class="form-control" id="java_path" value="{{ inst['java_path'] }}">
+        <div class="form-text"><code>java</code> ya da bir <code>java.exe</code> dosyasına tam yol.</div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="launch_type">Başlatma türü</label>
+        <select class="form-select" id="launch_type">
+          <option value="jar" {{ 'selected' if inst['launch_type'] == 'jar' else '' }}>Jar dosyası (-jar)</option>
+          <option value="args-file" {{ 'selected' if inst['launch_type'] == 'args-file' else '' }}>Argüman dosyası (Forge / NeoForge)</option>
+        </select>
+      </div>
+      <div class="col-md-6" id="jar-box">
+        <label class="form-label" for="jar_file">Jar dosyası</label>
+        <input class="form-control" id="jar_file" value="{{ inst['jar_file'] }}">
+      </div>
+      <div class="col-12 d-none" id="args-box">
+        <label class="form-label" for="args_file">Argüman dosyası (boş = otomatik bul)</label>
+        <input class="form-control font-monospace" id="args_file" value="{{ inst['args_file'] or '' }}">
+      </div>
+    </div></div>
+    <div class="card-footer d-flex gap-2">
+      <button id="save-btn" class="btn btn-primary" type="submit" {{ '' if stopped else 'disabled' }}>Kaydet</button>
+      <a class="btn btn-outline-secondary" href="/instances/{{ inst['id'] }}">Vazgeç</a>
+    </div>
+  </form>
+
+  <div class="card static border-danger mt-4" style="max-width: 760px">
+    <div class="card-body">
+      <h2 class="h6 text-danger">Tehlikeli bölge</h2>
+      <p class="small text-body-secondary mb-2">Sunucuyu <strong>dünyası, modları ve tüm dosyalarıyla birlikte kalıcı olarak</strong> siler. Geri alınamaz. Önce yedek almanı öneririm.</p>
+      <button id="destroy-btn" class="btn btn-sm btn-outline-danger" type="button" {{ '' if stopped else 'disabled' }}><i class="bi bi-trash"></i> Sunucuyu ve dosyalarını sil</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="/static/js/settings.js"></script>{% endblock %}

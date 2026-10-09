@@ -19,7 +19,7 @@ from pathlib import Path
 import psutil
 
 from ...db import get_conn
-from ...security import validate_java_path, validate_jvm_args
+from ..jvm import LaunchError, build_command
 from .base import ProcessError
 
 BUFFER_LINES = 1000
@@ -126,26 +126,15 @@ class SubprocessBackend:
             raise ProcessError("Sunucu zaten çalışıyor.")
 
         path = Path(inst["path"])
-        jar = path / inst["jar_file"]
-        if not jar.is_file():
-            raise ProcessError(f"Jar dosyası bulunamadı: {jar}")
-
-        # Derin savunma: veritabanındaki eski/elle değiştirilmiş kayıtlar da kontrol edilir
-        if err := validate_jvm_args(inst["jvm_args"] or "") or validate_java_path(inst["java_path"]):
-            raise ProcessError(err)
-
-        ram = int(inst["ram_mb"])
-        cmd = [
-            inst["java_path"],
-            f"-Xms{ram}M", f"-Xmx{ram}M",
-            "-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8",
-            *shlex.split(inst["jvm_args"] or ""),
-            "-jar", inst["jar_file"], "nogui",
-        ]
+        try:
+            cmd = build_command(inst)
+        except LaunchError as e:
+            raise ProcessError(str(e))
 
         ch = self._channel(iid)
-        ch.buffer.clear()
-        ch.publish({"type": "clear"})
+        if ch.status != "preparing":      # hazırlık (indirme) satırlarını koru, yoksa konsolu temizle
+            ch.buffer.clear()
+            ch.publish({"type": "clear"})
         self._log(iid, "[panel] Başlatılıyor: " + " ".join(cmd))
 
         try:

@@ -33,3 +33,12 @@ USER_AGENT = f"vulu-server-panel/0.1 ({PANEL_CONTACT or 'personal use'})"
 # Panele hangi adreslerle girilebilir (DNS rebinding koruması). Varsayılan: sadece yerel.
 # VDS'te alan adın için: PANEL_ALLOWED_HOSTS=panel.alanadin.com
 ALLOWED_HOSTS_EXTRA = [h.strip().lower() for h in os.getenv("PANEL_ALLOWED_HOSTS", "").split(",") if h.strip()]
+
+FABRIC_API = os.getenv("VULU_FABRIC_API", "https://meta.fabricmc.net/v2")
+
+FORGE_MAVEN = os.getenv("VULU_FORGE_MAVEN", "https://maven.minecraftforge.net")
+NEOFORGE_MAVEN = os.getenv("VULU_NEOFORGE_MAVEN", "https://maven.neoforged.net/releases")
+
+MODRINTH_API = os.getenv("VULU_MODRINTH_API", "https://api.modrinth.com/v2")
+# Mod dosyaları yalnızca bu sunuculardan indirilir (başka adrese yönlendirilen dosyalar reddedilir)
+MODRINTH_CDN_HOSTS = [h.strip().lower() for h in os.getenv("VULU_MODRINTH_CDN", "cdn.modrinth.com,cdn-raw.modrinth.com").split(",") if h.strip()]

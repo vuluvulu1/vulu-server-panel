@@ -1,0 +1,17 @@
+{
+  "id": "paper-survival",
+  "name": "Paper Survival",
+  "description": "Hafif ve hızlı oyun sunucusu: Paper, Aikar ayarları, makul görüş mesafesi.",
+  "mc_version": "latest",
+  "loader": "paper",
+  "jvm_preset": "aikar",
+  "default_ram_gb": 4,
+  "server_properties": {
+    "view-distance": 8,
+    "simulation-distance": 6,
+    "motd": "vulu Paper sunucusu"
+  },
+  "mods": [
+    "chunky"
+  ]
+}

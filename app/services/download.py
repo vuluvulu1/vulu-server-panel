@@ -14,11 +14,13 @@ def mb(n: float) -> str:
 
 
 async def download_file(
-    job: Job, url: str, dest: Path, *, expected_sha256: str = "", size_hint: int = 0,
+    job: Job, url: str, dest: Path, *, expected_sha256: str = "", expected_sha1: str = "", expected_sha512: str = "", size_hint: int = 0,
     start_pct: float = 0.0, span_pct: float = 100.0, label: str = "İndiriliyor",
 ) -> str:
     """url'yi dest'e indirir; ilerlemeyi job'a start_pct..start_pct+span_pct aralığında yazar."""
     sha = hashlib.sha256()
+    sha1 = hashlib.sha1()
+    sha512 = hashlib.sha512()
     done = 0
     started = time.monotonic()
     try:
@@ -30,6 +32,8 @@ async def download_file(
                     async for chunk in r.aiter_bytes(65536):
                         f.write(chunk)
                         sha.update(chunk)
+                        sha1.update(chunk)
+                        sha512.update(chunk)
                         done += len(chunk)
                         speed = done / max(time.monotonic() - started, 0.001)
                         frac = min(done / total, 1.0) if total else 0.0
@@ -41,6 +45,10 @@ async def download_file(
 
     job.update(start_pct + span_pct, "verify", "Doğrulanıyor…")
     digest = sha.hexdigest()
+    if expected_sha512 and sha512.hexdigest() != expected_sha512.lower():
+        raise JobError("İndirilen dosya doğrulanamadı (sağlama toplamı uyuşmuyor). Tekrar dene.")
+    if expected_sha1 and sha1.hexdigest() != expected_sha1.lower():
+        raise JobError("İndirilen dosya doğrulanamadı (sağlama toplamı uyuşmuyor). Tekrar dene.")
     if expected_sha256 and digest != expected_sha256.lower():
         raise JobError("İndirilen dosya doğrulanamadı (sağlama toplamı uyuşmuyor). Tekrar dene.")
     return digest

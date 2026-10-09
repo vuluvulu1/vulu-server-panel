@@ -36,6 +36,7 @@ class Job:
             "type": "progress", "job_id": self.id, "kind": self.kind, "title": self.title,
             "status": self.status, "percent": round(self.percent, 1),
             "stage": self.stage, "message": self.message, "error": self.error,
+            "result": self.result if self.status == "done" else None,
         }
 
     def _publish(self, force: bool = False) -> None:

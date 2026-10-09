@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "components/ui.html" import page_header %}
+{% block title %}server.properties · {{ inst["name"] }}{% endblock %}
+
+{% block content %}
+{% call page_header("server.properties · " ~ inst["name"], "Oyun ayarları") %}
+  <a class="btn btn-outline-secondary" href="/instances/{{ inst['id'] }}"><i class="bi bi-arrow-left"></i> Sunucuya dön</a>
+{% endcall %}
+
+<div id="props-root" data-instance-id="{{ inst['id'] }}">
+  {% if not stopped %}<div class="alert alert-warning py-2 small">Sunucu çalışıyor: ayarları değiştirmek için önce durdur. Değişiklikler sunucu yeniden başlayınca geçerli olur.</div>{% endif %}
+  {% if not exists %}<div class="alert alert-info py-2 small">Bu sunucu henüz hiç başlatılmadı; <code>server.properties</code> ilk başlatmada oluşur. Şimdi kaydettiklerin dosyaya yazılır, kalan ayarlar varsayılan gelir.</div>{% endif %}
+  <div id="notes" class="mb-3"></div>
+
+  <form id="props-form" onsubmit="return false">
+    {% for group, fields in groups %}
+    <div class="card static mb-3" style="max-width: 900px">
+      <div class="card-header fw-semibold">{{ group }}</div>
+      <div class="card-body"><div class="row g-3">
+        {% for f in fields %}
+        {% set v = cur.get(f.key, f.default) %}
+        <div class="col-md-6">
+          {% if f.type == 'bool' %}
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="p-{{ f.key }}" data-key="{{ f.key }}" data-type="bool" {{ 'checked' if v == 'true' else '' }}>
+              <label class="form-check-label" for="p-{{ f.key }}">{{ f.label }}</label>
+            </div>
+          {% else %}
+            <label class="form-label" for="p-{{ f.key }}">{{ f.label }}</label>
+            {% if f.type == 'enum' %}
+              <select class="form-select" id="p-{{ f.key }}" data-key="{{ f.key }}">
+                {% for o in f.options %}<option value="{{ o }}" {{ 'selected' if v == o else '' }}>{{ o }}</option>{% endfor %}
+              </select>
+            {% elif f.type == 'int' %}
+              <input class="form-control" id="p-{{ f.key }}" data-key="{{ f.key }}" value="{{ v }}" inputmode="numeric">
+            {% else %}
+              <input class="form-control" id="p-{{ f.key }}" data-key="{{ f.key }}" value="{{ v }}" maxlength="200">
+            {% endif %}
+          {% endif %}
+          {% if f.help or f.warn %}<div class="form-text {{ 'text-warning' if f.warn else '' }}">{{ f.help }}</div>{% endif %}
+        </div>
+        {% endfor %}
+      </div></div>
+    </div>
+    {% endfor %}
+    <div class="mb-4"><button id="save-btn" class="btn btn-primary" type="submit" {{ '' if stopped else 'disabled' }}>Kaydet</button></div>
+  </form>
+
+  {% if others %}
+  <details class="mb-4" style="max-width: 900px">
+    <summary class="text-body-secondary small">Diğer ayarlar ({{ others|length }}) — salt okunur</summary>
+    <table class="table table-sm mt-2 mods-table"><tbody>
+      {% for k, v in others.items() %}<tr><td class="font-monospace small">{{ k }}</td><td class="font-monospace small text-body-secondary">{{ v }}</td></tr>{% endfor %}
+    </tbody></table>
+    <div class="form-text">Port ve RCON ayarlarını panel kendisi yönetir.</div>
+  </details>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="/static/js/properties.js"></script>{% endblock %}

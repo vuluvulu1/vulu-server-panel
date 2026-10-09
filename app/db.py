@@ -22,11 +22,16 @@ CREATE TABLE IF NOT EXISTS instances (
     mc_version    TEXT,
     loader        TEXT NOT NULL DEFAULT 'vanilla',
     java_major    INTEGER,
+    launch_type   TEXT NOT NULL DEFAULT 'jar',
+    args_file     TEXT,
+    jvm_preset    TEXT NOT NULL DEFAULT 'none',
     jvm_args      TEXT NOT NULL DEFAULT '',
     ram_mb        INTEGER NOT NULL DEFAULT 4096,
     rcon_port     INTEGER,
     rcon_password TEXT,
     profile_id    TEXT,
+    modpack_slug  TEXT,
+    modpack_version TEXT,
     status        TEXT NOT NULL DEFAULT 'stopped',
     created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -59,6 +64,16 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE instances ADD COLUMN loader TEXT NOT NULL DEFAULT 'vanilla'")
     if "java_major" not in cols:
         conn.execute("ALTER TABLE instances ADD COLUMN java_major INTEGER")
+    if "launch_type" not in cols:
+        conn.execute("ALTER TABLE instances ADD COLUMN launch_type TEXT NOT NULL DEFAULT 'jar'")
+    if "args_file" not in cols:
+        conn.execute("ALTER TABLE instances ADD COLUMN args_file TEXT")
+    if "modpack_slug" not in cols:
+        conn.execute("ALTER TABLE instances ADD COLUMN modpack_slug TEXT")
+    if "modpack_version" not in cols:
+        conn.execute("ALTER TABLE instances ADD COLUMN modpack_version TEXT")
+    if "jvm_preset" not in cols:
+        conn.execute("ALTER TABLE instances ADD COLUMN jvm_preset TEXT NOT NULL DEFAULT 'none'")
 
 
 def init_db() -> None:
@@ -81,7 +96,7 @@ def used_ports() -> set[int]:
 
 
 def update_instance(instance_id: int, **fields) -> None:
-    allowed = {"rcon_port", "rcon_password"}          # sütun adları beyaz listeden (SQL enjeksiyonu yok)
+    allowed = {"rcon_port", "rcon_password", "launch_type", "jar_file", "args_file", "port", "ram_mb", "jvm_preset", "jvm_args", "java_path", "java_major"}          # sütun adları beyaz listeden (SQL enjeksiyonu yok)
     bad = set(fields) - allowed
     if bad:
         raise ValueError(f"izin verilmeyen sütun: {bad}")
