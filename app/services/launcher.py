@@ -3,11 +3,14 @@ ilerlemeyi konsola yayınlar, sonra sunucuyu başlatır."""
 import asyncio
 from pathlib import Path
 
+import psutil
+
 from ..db import update_instance
 from .java_manager import JavaManager
 from .jobs import Job
 from .modpack import read_pack_info
-from .modrinth import LOADER_FILTER, ModrinthError, read_mods_info
+from .modcheck import check_mods, summary_lines
+from .modrinth import LOADER_FILTER, ModrinthError, read_mods_info, target_dir
 from .paper import PaperError, read_jar_info
 from .process import ProcessBackend, ProcessError
 from .profiles import get_profile
@@ -17,9 +20,11 @@ BUSY = ("preparing", "starting", "running", "stopping")
 
 
 class InstanceLauncher:
-    def __init__(self, pm: ProcessBackend, java: JavaManager, installers: dict, mods, modpacks) -> None:
+    def __init__(self, pm: ProcessBackend, java: JavaManager, installers: dict, mods, modpacks, minecraft=None) -> None:
         self.pm, self.java, self.installers, self.mods, self.modpacks = pm, java, installers, mods, modpacks
+        self.minecraft = minecraft
         self._prep: dict[int, asyncio.Task] = {}
+        self._notes: dict[int, str] = {}     # hazırlık başlarken konsola yazılacak panel notu
 
     # ---------- ne eksik? ----------
     def _needs_java(self, inst: dict) -> bool:
@@ -79,21 +84,65 @@ class InstanceLauncher:
             inst = prepare_runtime(inst)      # server-port + RCON'u server.properties'e yazar
         except (OSError, ValueError) as e:
             raise ProcessError(f"server.properties hazırlanamadı: {e}")
+        warn: list[str] = []
+        if inst.get("loader") in ("fabric", "quilt", "forge", "neoforge"):     # eksik bağımlılık / istemci modu uyarısı
+            try:
+                res = await asyncio.to_thread(check_mods, Path(inst["path"]) / target_dir(inst["loader"]))
+                warn = summary_lines(res)
+            except Exception:
+                warn = []                                                       # denetim başlatmayı asla engellemez
         await self.pm.start(self._with_java(inst))
+        for line in warn:
+            self.pm.log(inst["id"], line)
 
     # ---------- başlat ----------
     async def start(self, inst: dict) -> dict:
         iid = inst["id"]
         if self.pm.status(iid) in BUSY:
             raise ProcessError("Sunucu zaten çalışıyor ya da hazırlanıyor.")
+        if self.mods.jobs.find_running(f"restore-{iid}"):
+            raise ProcessError("Geri yükleme sürüyor, bitmesini bekle.")
+        if self.mods.jobs.find_running(f"upgrade-{iid}"):
+            raise ProcessError("Sürüm değiştirme sürüyor, bitmesini bekle.")
         if self.mods.jobs.find_running(f"mods-{iid}"):
             raise ProcessError("Mod kurulumu sürüyor, bitmesini bekle.")
-        if not (self._needs_java(inst) or self._needs_loader(inst) or self._needs_mods(inst) or self._needs_modpack(inst)):
+        self._check_memory(inst)
+        inst = await self._fix_java(inst)
+        if iid not in self._notes and not (self._needs_java(inst) or self._needs_loader(inst) or self._needs_mods(inst) or self._needs_modpack(inst)):
             await self._launch(inst)
             return {"preparing": False}
         self.pm.set_status(iid, "preparing")
         self._prep[iid] = asyncio.create_task(self._prepare(inst, start=True))
         return {"preparing": True}
+
+    async def _fix_java(self, inst: dict) -> dict:
+        """Panelin yönettiği Java, Minecraft sürümünün istediğinden eskiyse sunucu hiç açılmaz
+        (UnsupportedClassVersionError). Bu durumda gereken sürüme geçeriz. Özel Java yoluna dokunulmaz."""
+        major, ver = inst.get("java_major"), inst.get("mc_version")
+        if not (major and ver and self.minecraft):
+            return inst
+        try:
+            need = (await self.minecraft.java_for(ver, inst.get("loader") or "vanilla"))["major"]
+        except Exception:
+            return inst                                      # belirlenemedi: olduğu gibi dene
+        if int(major) >= need:
+            return inst
+        update_instance(inst["id"], java_major=need)
+        self._notes[inst["id"]] = (f"[panel] Minecraft {ver} en az Java {need} istiyor; sunucu Java {major} ile ayarlıydı. "
+                                   f"Java {need}'e geçildi.")
+        return {**inst, "java_major": need}
+
+    @staticmethod
+    def _check_memory(inst: dict) -> None:
+        """Java, -Xms = -Xmx ve AlwaysPreTouch ile belleğin tamamını başta ister; yetmezse hemen çöker.
+        Başlatmadan önce boş belleği denetleyip anlaşılır bir mesaj veririz."""
+        need_mb = int(inst["ram_mb"]) + 512                     # yığın + Java'nın kendi payı (kaba alt sınır)
+        free_mb = psutil.virtual_memory().available // (1024 * 1024)
+        if free_mb < need_mb:
+            raise ProcessError(
+                f"Bilgisayarda yeterli boş bellek yok: {free_mb / 1024:.1f} GB boş, bu sunucu en az {need_mb / 1024:.1f} GB istiyor "
+                f"(RAM ayarı {int(inst['ram_mb']) / 1024:.0f} GB + Java payı). Diğer programları kapat ya da sunucunun RAM ayarını düşür."
+            )
 
     async def update_jar(self, inst: dict) -> dict:
         """Jar'ı en yeni build'e günceller (Paper/Fabric). Sunucu kapalıyken çalışır."""
@@ -135,6 +184,9 @@ class InstanceLauncher:
         iid, pm = inst["id"], self.pm
         try:
             pm.emit(iid, {"type": "clear"})
+            if note := self._notes.pop(iid, None):
+                pm.log(iid, note)
+                pm.emit(iid, {"type": "meta", "java_major": int(inst["java_major"])})   # sayfa başlığındaki Java bilgisi
 
             major = inst.get("java_major")
             if major and not self.java.find(major):
@@ -244,7 +296,12 @@ class InstanceLauncher:
         await self.pm.kill(iid)
 
     async def restart(self, inst: dict) -> None:
-        await self.stop(inst["id"])
+        iid = inst["id"]
+        await self.stop(iid)
+        for _ in range(100):                     # süreç bitti ama "durdu" durumu bir an sonra yazılıyor: bekle
+            if self.pm.status(iid) in ("stopped", "crashed"):
+                break
+            await asyncio.sleep(0.1)
         await self.start(inst)
 
     async def shutdown(self) -> None:

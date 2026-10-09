@@ -18,7 +18,8 @@ async def console_ws(ws: WebSocket, iid: int):
 
     # subscribe + history arasında await yok -> satır kaçmaz, tekrarlanmaz
     q = pm.subscribe(iid)
-    await ws.send_json({"type": "history", "lines": pm.history(iid), "status": pm.status(iid), "progress": pm.progress(iid)})
+    await ws.send_json({"type": "history", "lines": pm.history(iid), "status": pm.status(iid), "progress": pm.progress(iid),
+                        "crash": getattr(pm, "crash_info", lambda _i: None)(iid)})
 
     async def sender() -> None:
         try:

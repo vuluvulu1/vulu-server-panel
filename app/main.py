@@ -5,9 +5,9 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import BASE_DIR, INSTANCES_DIR
 from .db import get_conn, init_db
-from .routers import console, instances, java, loader, modpacks, mods, paper, profiles, settings
+from .routers import backups, console, players, playit as playit_router, schedules, system, files, instances, java, loader, modpacks, mods, paper, profiles, settings
 from .routers import stats as stats_router
-from .services.container import jobs, launcher, process_manager, stats
+from .services.container import jobs, launcher, playit, process_manager, scheduler, stats
 from .security import LocalGuardMiddleware
 from .templating import templates
 
@@ -19,7 +19,11 @@ async def lifespan(app: FastAPI):
     with get_conn() as conn:  # panel açılırken hiçbir süreç çalışmıyor
         conn.execute("UPDATE instances SET status = 'stopped'")
     stats.start()
+    scheduler.start()
+    await playit.autostart()
     yield
+    await playit.stop_agent()
+    await scheduler.stop()
     await stats.stop()
     await launcher.shutdown()
     await jobs.shutdown()
@@ -29,8 +33,14 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="vulu Server Panel", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 app.add_middleware(LocalGuardMiddleware)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "app" / "static"), name="static")
-# settings, instances'tan ÖNCE: instances'taki genel /api/instances/{id}/{action} rotası 3 parçalı adresleri (settings, properties, destroy) yutmasın
+# settings/files/backups, instances'tan ÖNCE: instances'taki genel /api/instances/{id}/{action} rotası 3 parçalı adresleri (settings, properties, destroy) yutmasın
 app.include_router(settings.router)
+app.include_router(files.router)
+app.include_router(backups.router)
+app.include_router(schedules.router)
+app.include_router(players.router)
+app.include_router(playit_router.router)
+app.include_router(system.router)
 app.include_router(instances.router)
 app.include_router(console.router)
 app.include_router(java.router)

@@ -15,8 +15,8 @@ NAV_ITEMS = [
     {"label": "Sunucular", "href": "/", "icon": "bi-hdd-rack"},
     {"label": "Profiller", "href": "/profiles", "icon": "bi-box-seam"},
     {"label": "Modpack'ler", "href": "/modpacks", "icon": "bi-boxes"},
-    {"label": "Yedekler", "href": "/backups", "icon": "bi-archive", "soon": True},
-    {"label": "Ayarlar", "href": "/settings", "icon": "bi-gear", "soon": True},
+    {"label": "Yedekler", "href": "/backups", "icon": "bi-archive"},
+    {"label": "Ayarlar", "href": "/settings", "icon": "bi-gear"},
 ]
 
 DEFAULT_THEME = "vulu"

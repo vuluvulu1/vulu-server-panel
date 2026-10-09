@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "components/ui.html" import page_header, empty_state %}
+{% block title %}Yedekler · {{ brand.name }} {{ brand.accent_word }}{% endblock %}
+
+{% block content %}
+{{ page_header("Yedekler", "Tüm sunucuların yedekleri") }}
+{% if rows %}
+<div class="card static"><div class="card-body p-0"><div class="table-responsive">
+  <table class="table align-middle mb-0 mods-table">
+    <thead><tr><th>Sunucu</th><th class="text-end">Yedek sayısı</th><th class="text-end">Toplam boyut</th><th>Son yedek</th><th></th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.name }}</td>
+        <td class="text-end">{{ r.backup_count }}</td>
+        <td class="text-end">{{ '%.1f'|format(r.backup_size / 1048576) }} MB</td>
+        <td class="small text-body-secondary">{{ r.last_backup or '—' }}</td>
+        <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="/instances/{{ r.id }}/backups">Yönet</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div></div></div>
+{% else %}
+  {{ empty_state("bi-archive", "Henüz sunucu yok.") }}
+{% endif %}
+{% endblock %}

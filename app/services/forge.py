@@ -197,7 +197,7 @@ class ForgeManager:
             loop.call_soon_threadsafe(job.update, min(95, 2 + n[0] * 0.4), "install", line[:140])
 
         try:
-            code, tail = await asyncio.to_thread(self._run, [java_exe, "-jar", info["path"], "--installServer"], folder, on_line)
+            code, tail = await asyncio.to_thread(self._run, [java_exe, "-Djava.awt.headless=true", "-jar", info["path"], "--installServer"], folder, on_line)
         except OSError as e:
             raise JobError(f"Kurucu başlatılamadı: {e}")
         if code != 0:

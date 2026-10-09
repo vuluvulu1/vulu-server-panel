@@ -1,3 +1,5 @@
+import base64
+import binascii
 import os
 import shutil
 import stat
@@ -5,13 +7,15 @@ import sys
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from ..config import INSTANCES_DIR
 from ..db import get_conn, get_instance, update_instance
 from ..routers.instances import NAME_RE, JAR_RE, _sys_ram_gb
 from ..security import validate_java_path, validate_jvm_args
-from ..services.container import jobs, launcher, minecraft
+from ..services.container import jobs, launcher, minecraft, upgrader
+from ..services.jobs import JobError
 from ..services.jvm import PRESETS, validate_args_file
 from ..services.minecraft import McError
 from ..services.propschema import GROUPS, MANAGED, validate_value
@@ -190,3 +194,84 @@ async def destroy(iid: int, b: DestroyBody):
     with get_conn() as conn:
         conn.execute("DELETE FROM instances WHERE id = ?", (iid,))
     return {"ok": True}
+
+
+# ---------------- sunucu simgesi (server-icon.png) ----------------
+ICON_NAME = "server-icon.png"
+ICON_MAX = 256 * 1024
+PNG_SIG = b"\x89PNG\r\n\x1a\n"
+
+
+def _valid_icon(data: bytes) -> bool:
+    """Gerçek bir 64x64 PNG mi? (imza + IHDR boyutları + IEND)"""
+    return (len(data) <= ICON_MAX and data[:8] == PNG_SIG and data[12:16] == b"IHDR"
+            and int.from_bytes(data[16:20], "big") == 64 and int.from_bytes(data[20:24], "big") == 64
+            and data.rstrip(b"\x00")[-8:-4] == b"IEND")
+
+
+@router.get("/api/instances/{iid}/icon")
+async def icon_get(iid: int):
+    p = Path(_inst(iid)["path"]) / ICON_NAME
+    if not p.is_file() or p.stat().st_size > ICON_MAX:
+        raise HTTPException(404, "Simge yok")
+    return FileResponse(p, media_type="image/png", headers={"Cache-Control": "no-cache", "X-Content-Type-Options": "nosniff"})
+
+
+class IconBody(BaseModel):
+    data: str = Field(max_length=ICON_MAX * 2)
+
+
+@router.post("/api/instances/{iid}/icon")
+async def icon_set(iid: int, b: IconBody):
+    folder = Path(_inst(iid)["path"])
+    try:
+        raw = base64.b64decode(b.data, validate=True)
+    except (binascii.Error, ValueError):
+        raise HTTPException(400, "Geçersiz resim verisi.")
+    if not _valid_icon(raw):
+        raise HTTPException(400, "Simge 64x64 piksel PNG olmalı.")
+    tmp = folder / (ICON_NAME + ".vulu-tmp")
+    try:
+        tmp.write_bytes(raw)
+        os.replace(tmp, folder / ICON_NAME)
+    except OSError as e:
+        raise HTTPException(500, f"Kaydedilemedi: {e.strerror or e}")
+    finally:
+        tmp.unlink(missing_ok=True)
+    return {"ok": True}
+
+
+@router.post("/api/instances/{iid}/icon/delete")
+async def icon_delete(iid: int):
+    (Path(_inst(iid)["path"]) / ICON_NAME).unlink(missing_ok=True)
+    return {"ok": True}
+
+
+# ---------------- Minecraft sürümünü değiştir ----------------
+class UpgradeBody(BaseModel):
+    mc_version: str = Field(max_length=40)
+    confirm_downgrade: bool = False
+
+
+@router.post("/api/instances/{iid}/upgrade/check")
+async def upgrade_check(iid: int, b: UpgradeBody):
+    inst = _inst(iid)
+    try:
+        return await upgrader.check(inst, b.mc_version)
+    except JobError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post("/api/instances/{iid}/upgrade/start")
+async def upgrade_start(iid: int, b: UpgradeBody):
+    inst = _inst(iid)
+    _stopped(iid)
+    if any(j.status == "running" and (j.key or "").endswith(f"-{iid}") for j in jobs._jobs.values()):
+        raise HTTPException(409, "Bu sunucu için başka bir işlem sürüyor; bitmesini bekle.")
+    try:
+        plan = await upgrader.check(inst, b.mc_version)
+    except JobError as e:
+        raise HTTPException(400, str(e))
+    if plan["downgrade"] and not b.confirm_downgrade:
+        raise HTTPException(400, "Daha eski bir sürüme geçiş dünyayı bozabilir; onaylaman gerekiyor.")
+    return {"job_id": upgrader.ensure_job(inst, b.mc_version).id}

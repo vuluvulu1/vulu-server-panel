@@ -1,4 +1,5 @@
 <!doctype html>
+{% set embed = request.query_params.get("embed") == "1" %}
 <html lang="tr" data-theme="{{ default_theme }}" data-bs-theme="dark">
 <head>
   <meta charset="utf-8">
@@ -29,15 +30,20 @@
   {% endfor %}<link href="/static/css/components.css?v={{ asset_v() }}" rel="stylesheet">
   <link href="/static/css/custom.css?v={{ asset_v() }}" rel="stylesheet">
 </head>
-<body>
+<body class="{{ 'embed' if embed else '' }}">
+  {% if embed %}
+  <main class="app-main">{{ self.content() }}</main>
+  {% else %}
   <div class="app-shell">
     {% include "partials/sidebar.html" %}
     <main class="app-main">
       {% block content %}{% endblock %}
     </main>
   </div>
+  {% endif %}
   <script src="/static/js/theme.js?v={{ asset_v() }}"></script>
   <script src="/static/js/progress.js?v={{ asset_v() }}"></script>
+  <script src="/static/js/modal.js?v={{ asset_v() }}"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

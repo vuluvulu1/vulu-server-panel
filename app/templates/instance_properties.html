@@ -4,7 +4,7 @@
 
 {% block content %}
 {% call page_header("server.properties · " ~ inst["name"], "Oyun ayarları") %}
-  <a class="btn btn-outline-secondary" href="/instances/{{ inst['id'] }}"><i class="bi bi-arrow-left"></i> Sunucuya dön</a>
+  <a class="btn btn-outline-secondary back-link" href="/instances/{{ inst['id'] }}"><i class="bi bi-arrow-left"></i> Sunucuya dön</a>
 {% endcall %}
 
 <div id="props-root" data-instance-id="{{ inst['id'] }}">
@@ -58,4 +58,4 @@
 </div>
 {% endblock %}
 
-{% block scripts %}<script src="/static/js/properties.js"></script>{% endblock %}
+{% block scripts %}<script src="/static/js/properties.js?v={{ asset_v() }}"></script>{% endblock %}

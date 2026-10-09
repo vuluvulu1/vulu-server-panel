@@ -57,6 +57,19 @@ def _inside(folder: Path, rel: str) -> Path | None:
     return dest if dest.is_relative_to(folder.resolve()) else None
 
 
+_REL_RE = re.compile(r"^\d+(\.\d+){1,3}$")
+
+
+def _mc_range(versions) -> str:
+    """Arama sonucundaki Minecraft sürümleri → "1.20.1" ya da "1.19.2–1.20.1" (yalnızca kararlı sürümler).
+    Not: Modrinth'in `latest_version` alanı bir sürüm kimliğidir (örn. WMsE2fOj), Minecraft sürümü değildir."""
+    rel = [str(v) for v in (versions or []) if isinstance(v, str) and _REL_RE.match(v)]
+    if not rel:
+        return ""
+    rel.sort(key=lambda v: tuple(int(x) for x in v.split(".")))
+    return rel[-1] if len(rel) == 1 else f"{rel[0]}–{rel[-1]}"
+
+
 class ModpackManager:
     def __init__(self, api_base: str, cdn_hosts: list[str], cache_dir: Path, jobs: JobManager, mods) -> None:
         self.cdn, self.cache, self.jobs, self.mods = set(cdn_hosts), cache_dir, jobs, mods
@@ -80,7 +93,7 @@ class ModpackManager:
             icon = str(h.get("icon_url") or ""); ih = urlparse(icon).hostname or ""
             hits.append({"slug": slug, "title": str(h.get("title", ""))[:100], "description": str(h.get("description", ""))[:300],
                          "downloads": int(h.get("downloads") or 0), "author": str(h.get("author", ""))[:50],
-                         "mc": str(h.get("latest_version") or "")[:20],
+                         "mc": _mc_range(h.get("versions")),
                          "loaders": [c for c in h.get("categories", []) if c in ("fabric", "forge", "neoforge")],
                          "icon": icon if icon.startswith("https://") and (ih == "modrinth.com" or ih.endswith(".modrinth.com")) else ""})
         return {"hits": hits, "total": int(data.get("total_hits") or 0)}

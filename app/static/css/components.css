@@ -177,3 +177,110 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 .mod-icon { width: 48px; height: 48px; flex: none; border-radius: var(--radius-sm); object-fit: cover; background: var(--surface-2); }
 .mod-desc { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .mods-table { --bs-table-bg: transparent; --bs-table-color: var(--text); --bs-table-border-color: var(--border); }
+
+/* --- Dosya yöneticisi --- */
+.file-editor { min-height: 420px; resize: vertical; font-size: .85rem; background: var(--console-bg, var(--bg)); color: var(--text); }
+.file-editor:focus { box-shadow: none; }
+.breadcrumb { --bs-breadcrumb-divider-color: var(--text-muted); --bs-breadcrumb-item-active-color: var(--text); }
+
+/* --- Açılır pencere (modal) --- */
+body.vmodal-open { overflow: hidden; }
+.vmodal-backdrop {
+  position: fixed; inset: 0; z-index: 1050; display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, .6); backdrop-filter: blur(2px); padding: 2vh 2vw;
+}
+.vmodal {
+  width: min(1200px, 96vw); height: min(90vh, 1000px); display: flex; flex-direction: column;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .5), var(--card-hover-shadow); overflow: hidden;
+}
+.vmodal-md { width: min(880px, 96vw); }
+.vmodal-sm { width: min(640px, 96vw); height: auto; max-height: 90vh; }
+.vmodal-head {
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+  padding: .6rem .9rem; border-bottom: 1px solid var(--border); background: var(--surface-2);
+}
+.vmodal-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: var(--glow-text); }
+.vmodal-tools { display: flex; gap: .4rem; flex: none; align-items: center; }
+.vmodal-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: auto; }
+.vmodal-frame { flex: 1; width: 100%; border: 0; background: var(--bg); }
+
+/* --- Gömülü (pencere içi) sayfa --- */
+body.embed .app-main { padding: 1.25rem 1.5rem; }
+body.embed .page-header .page-title, body.embed .page-header .page-subtitle, body.embed .back-link { display: none; }
+body.embed .page-header { margin-bottom: .75rem; }
+
+/* --- Dosya düzenleyici penceresi --- */
+.vmodal .file-editor { flex: 1; min-height: 0; height: 100%; resize: none; border: 0; border-radius: 0; padding: 1rem;
+  font-family: var(--font-mono); font-size: .86rem; line-height: 1.5; tab-size: 4; white-space: pre; overflow: auto; }
+.editor-status { font-size: .75rem; color: var(--text-muted); }
+/* pencere içindeki sayfada açılan pencere (ör. dosya düzenleyici) tüm alanı kaplasın */
+body.embed .vmodal-backdrop { padding: 0; background: var(--bg); backdrop-filter: none; }
+body.embed .vmodal { width: 100%; height: 100%; max-height: none; border: 0; border-radius: 0; box-shadow: none; }
+/* pencere içinde dar formlar ortalansın */
+.crash-card .crash-item { border-top: 1px solid rgba(255, 255, 255, .08); padding-top: .4rem; margin-top: .4rem; }
+body.embed #players-root { max-width: 1000px; margin: 0 auto; }
+.player-head { width: 24px; height: 24px; border-radius: 4px; image-rendering: pixelated; background: var(--surface-2); }
+.playit-strip { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; padding: .55rem .8rem;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.playit-strip[hidden] { display: none; }
+.playit-addr { font-family: var(--bs-font-monospace, monospace); font-weight: 600; user-select: all; }
+body.embed #new-root { max-width: 760px; margin: 0 auto; }
+body.embed #settings-root { max-width: 760px; margin: 0 auto; }
+body.embed #props-root { max-width: 900px; margin: 0 auto; }
+body.embed #backups-root { max-width: 1000px; margin: 0 auto; }
+body.embed #settings-root > *, body.embed #props-root > *, body.embed #backups-root > * { margin-left: auto; margin-right: auto; }
+
+/* --- Bildirim (toast) --- */
+.vtoast-box { position: fixed; right: 1.25rem; bottom: 1.25rem; z-index: 1100; display: flex; flex-direction: column; gap: .5rem; max-width: min(420px, 92vw); }
+.vtoast {
+  display: flex; gap: .6rem; align-items: flex-start; padding: .7rem .9rem; border-radius: var(--radius-sm);
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-left: 4px solid var(--success);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, .45); font-size: .9rem; animation: vtoast-in .2s ease-out; transition: opacity .3s, transform .3s;
+}
+.vtoast i { color: var(--success); margin-top: .1rem; }
+.vtoast-danger { border-left-color: var(--danger); }
+.vtoast-danger i { color: var(--danger); }
+.vtoast.out { opacity: 0; transform: translateY(8px); }
+@keyframes vtoast-in { from { opacity: 0; transform: translateY(8px); } }
+
+/* --- Sunucu simgesi --- */
+.server-icon {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; flex: none;
+  border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--border); overflow: hidden; color: var(--accent);
+}
+.server-icon > i { font-size: 50%; }
+.server-icon.has-img > i { display: none; }
+.server-icon > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+.server-icon-preview { width: 64px; height: 64px; border-radius: var(--radius-sm); border: 2px dashed var(--accent); image-rendering: pixelated; }
+.min-w-0 { min-width: 0; }
+body.embed #sched-root { max-width: 1000px; margin: 0 auto; }
+
+/* --- Sayfa başlığı: taşmasın --- */
+.page-header { align-items: center; flex-wrap: wrap; }
+.page-heading { display: flex; align-items: center; gap: 1rem; min-width: 0; flex: 1 1 260px; }
+.page-subtitle { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .9rem; }
+.page-actions { flex: none; }
+.server-icon > i { font-size: 1em; }
+
+/* --- Güç düğmeleri --- */
+.power-group { display: flex; gap: .5rem; flex-wrap: nowrap; }
+@media (max-width: 1400px) { .power-group .label { display: none; } }   /* dar ekranda yalnız simge */
+
+/* --- Sunucu araçları sekme çubuğu --- */
+.instance-tabs {
+  display: flex; gap: .35rem; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin;
+  margin: -0.5rem 0 1.25rem; padding: .35rem; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface);
+}
+.instance-tabs a {
+  display: inline-flex; align-items: center; gap: .45rem; white-space: nowrap; flex: none;
+  padding: .45rem .85rem; border-radius: var(--radius-sm); color: var(--text-muted); text-decoration: none;
+  transition: var(--transition); font-size: .92rem;
+}
+.instance-tabs a:hover, .instance-tabs a:focus-visible { background: var(--surface-2); color: var(--accent); text-shadow: var(--glow-text); }
+
+/* --- Sistem sayfası --- */
+.disk-bar { display: flex; height: .9rem; border-radius: var(--radius-sm); overflow: hidden; background: var(--surface-2); }
+.disk-bar > span { display: block; height: 100%; min-width: 0; }
+.legend-dot { display: inline-block; width: .7rem; height: .7rem; border-radius: 50%; vertical-align: middle; }

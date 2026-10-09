@@ -235,6 +235,8 @@ async def create_instance(
             request, "instance_new.html", _ctx(values, errors), status_code=400
         )
 
+    if request.query_params.get("embed") == "1":            # açılır pencereden: pencere ana sayfayı sunucuya yönlendirir
+        return RedirectResponse(f"/instances/{iid}?embed=1&breakout=1", status_code=303)
     return RedirectResponse(f"/instances/{iid}", status_code=303)
 
 
