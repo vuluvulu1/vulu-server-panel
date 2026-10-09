@@ -115,7 +115,3 @@ Sunucu klasöründeki panel dosyaları: `.vulu-jar.json` (yükleyici), `.vulu-mo
 - `SystemdBackend` / `TmuxBackend` (panel kapansa da sunucu açık kalsın)
 - Alan adı + HTTPS ile yayınlama kılavuzu (Caddy), yedek saklama politikası
 - Çoklu dil desteği, otomatik testler ve CI
-
-## 7. Katkıda bulunma
-
-Yukarıdaki açık işlerden biri üzerinde çalışmak isterseniz önce bir *issue* açarak haber verin. Özellikle şunlarda yardım değerlidir: gerçek ortam denemeleri (Forge, farklı modpack'ler), çeviri/çoklu dil, otomatik testler ve profil örnekleri. Yeni dış indirme kaynağı eklerken sağlama toplamı doğrulaması ve adres beyaz listesi zorunludur.
