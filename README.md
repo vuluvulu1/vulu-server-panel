@@ -6,7 +6,7 @@
 
 > **Durum:** Aktif geliştirme aşamasında (erken sürüm). Panel şu an yalnızca yerel kullanım (`127.0.0.1`) için tasarlanmıştır ve **henüz giriş sistemi yoktur**; internete açılmamalıdır.
 
-*Bu proje Mojang Studios, Microsoft, Modrinth, PaperMC, FabricMC, Minecraft Forge veya NeoForged ile bağlantılı değildir; yalnızca bu hizmetlerin herkese açık API'lerini kullanır.*
+*Bu proje Mojang Studios, Microsoft, Modrinth, PaperMC, FabricMC, Minecraft Forge veya NeoForge ile bağlantılı değildir; yalnızca bu hizmetlerin herkese açık API'lerini kullanır.*
 
 ## Özellikler
 
