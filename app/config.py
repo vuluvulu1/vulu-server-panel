@@ -17,7 +17,6 @@ _PANEL = _ps.load(DATA_DIR)
 HOST = _PANEL.get("host") or os.getenv("PANEL_HOST", "127.0.0.1")
 PORT = int(_PANEL.get("port") or os.getenv("PANEL_PORT", "8000"))
 SUPERVISED = os.getenv("VULU_SUPERVISED") == "1"          # run.py gözetiminde mi (panelden yeniden başlatma için)
-SECRET_KEY = os.getenv("PANEL_SECRET_KEY", "degistir-beni")
 
 RUNTIMES_DIR = BASE_DIR / "runtimes"
 
@@ -30,10 +29,13 @@ MOJANG_MANIFEST_URL = os.getenv(
 PAPER_API = os.getenv("VULU_PAPER_API", "https://fill.papermc.io/v3")
 CACHE_DIR = DATA_DIR / "cache"
 
-# PaperMC, istek başlığında iletişim bilgisi (site ya da e-posta) istiyor.
-# .env içine PANEL_CONTACT=<e-posta veya GitHub adresin> yaz.
+# İsteğe bağlı iletişim bilgisi (e-posta ya da site): dış servislere giden User-Agent'ta kullanılır.
 PANEL_CONTACT = (_PANEL["contact"] if "contact" in _PANEL else os.getenv("PANEL_CONTACT", "")).strip()
-USER_AGENT = f"vulu-server-panel/0.1 ({PANEL_CONTACT or 'personal use'})"
+# Dış servisler (PaperMC, Modrinth…) istemciyi tanımlayan bir User-Agent ister. Varsayılan iletişim projenin
+# GitHub adresidir; kullanıcı panelden kendi e-postasını/sitesini yazarsa o kullanılır.
+from . import __version__ as _VERSION                     # noqa: E402
+PROJECT_URL = "https://github.com/vuluvulu1/vulu-server-panel"
+USER_AGENT = f"vulu-server-panel/{_VERSION} ({PANEL_CONTACT or PROJECT_URL})"
 
 # Panele hangi adreslerle girilebilir (DNS rebinding koruması). Varsayılan: sadece yerel.
 # VDS'te alan adın için: PANEL_ALLOWED_HOSTS=panel.alanadin.com
