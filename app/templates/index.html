@@ -2,8 +2,8 @@
 {% from "components/ui.html" import page_header, instance_card, empty_state, server_icon %}
 
 {% block content %}
-{% call page_header("Sunucular", "Tüm Minecraft sunucuların burada") %}
-  <a href="/instances/new" class="btn btn-primary" data-modal="Yeni sunucu" data-modal-size="md"><i class="bi bi-plus-lg"></i> Yeni sunucu</a>
+{% call page_header("Sunucular", "Sunucularını başlat, izle ve yönet") %}
+  <a href="/instances/create" class="btn btn-primary" data-modal="{{ _("Yeni sunucu") }}" data-modal-size="md"><i class="bi bi-plus-lg"></i> {{ _("Yeni sunucu") }}</a>
 {% endcall %}
 
 {% if instances %}

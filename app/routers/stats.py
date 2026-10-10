@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 
 from ..db import get_conn, get_instance
 from ..services.container import stats
+from ..i18n import _t
 
 router = APIRouter()
 
@@ -17,5 +18,5 @@ async def all_stats():
 async def instance_stats(iid: int):
     inst = get_instance(iid)
     if not inst:
-        raise HTTPException(404, "Sunucu bulunamadı")
+        raise HTTPException(404, _t("Sunucu bulunamadı"))
     return stats.snapshot(iid, inst["ram_mb"], history=True)   # RCON şifresi asla dönmez

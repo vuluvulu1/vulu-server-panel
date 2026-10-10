@@ -22,6 +22,7 @@ from urllib.parse import urlparse
 from .download import download_file
 from .jobs import Job, JobError
 from .modrinth import FILENAME, FILENAME_ANY, LOADER_FILTER, MANIFEST, ModManager, ModrinthError, read_mods_info, target_dir
+from ..i18n import _t
 
 OLD_DIR = ".vulu-old-mods"
 KEEP_OLD = 3
@@ -79,7 +80,7 @@ class ModUpdater:
     async def check(self, inst: dict, only: set[str] | None = None) -> dict:
         loader, mc = inst.get("loader") or "", inst.get("mc_version") or ""
         if loader not in LOADER_FILTER or not mc:
-            raise ModrinthError("Güncelleme denetimi için Minecraft sürümü ve Fabric/Forge/NeoForge/Paper gerekli.")
+            raise ModrinthError(_t("Güncelleme denetimi için Minecraft sürümü ve Fabric/Forge/NeoForge/Paper gerekli."))
         folder = Path(inst["path"])
         jars = self._jars(folder, loader)
         if only is not None:
@@ -114,17 +115,17 @@ class ModUpdater:
 
     # ---------- uygula ----------
     def ensure_apply_job(self, inst: dict, files: list[str]) -> Job:
-        return self.mods.jobs.start("mods", "Modlar güncelleniyor", f"mods-{inst['id']}", lambda j: self._apply(j, inst, files))
+        return self.mods.jobs.start("mods", _t("Modlar güncelleniyor"), f"mods-{inst['id']}", lambda j: self._apply(j, inst, files))
 
     async def _apply(self, job: Job, inst: dict, files: list[str]) -> dict:
-        job.update(1, "resolve", "Güncellemeler denetleniyor…")
+        job.update(1, "resolve", _t("Güncellemeler denetleniyor…"))
         try:
             res = await self.check(inst, set(files))
         except ModrinthError as e:
             raise JobError(str(e))
         todo = res["items"]
         if not todo:
-            return {"count": 0, "message": "Güncellenecek mod bulunamadı (zaten güncel olabilir)."}
+            return {"count": 0, "message": _t("Güncellenecek mod bulunamadı (zaten güncel olabilir).")}
         folder = Path(inst["path"])
         target = folder / target_dir(inst["loader"])
         stamp = time.strftime("%Y%m%d-%H%M%S")
@@ -133,7 +134,7 @@ class ModUpdater:
         done, n = [], len(todo)
         for i, it in enumerate(todo):
             if not FILENAME.match(it["new_file"] or ""):
-                raise JobError(f"{it['title']}: geçersiz dosya adı.")
+                raise JobError(_t('{title}: geçersiz dosya adı.', title=it['title']))
             u = urlparse(it["url"] or "")
             if u.scheme not in ("https", "http") or (u.hostname or "") not in self.mods.cdn or not it["sha512"]:
                 raise JobError(f"{it['title']}: beklenmeyen indirme adresi reddedildi.")
@@ -161,6 +162,6 @@ class ModUpdater:
         olds = sorted((p for p in (folder / OLD_DIR).iterdir() if p.is_dir()), key=lambda p: p.name) if (folder / OLD_DIR).is_dir() else []
         for p in olds[:-KEEP_OLD]:
             shutil.rmtree(p, ignore_errors=True)
-        job.update(99, "done", "Tamamlandı")
+        job.update(99, "done", _t("Tamamlandı"))
         return {"count": len(done), "old_dir": f"{OLD_DIR}/{stamp}",
-                "message": f"{len(done)} mod güncellendi. Eski dosyalar {OLD_DIR}/{stamp} klasöründe."}
+                "message": _t('{n} mod güncellendi. Eski dosyalar {OLD_DIR}/{stamp} klasöründe.', n=len(done), OLD_DIR=OLD_DIR, stamp=stamp)}

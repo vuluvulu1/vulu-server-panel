@@ -22,6 +22,7 @@ from .download import download_file
 from .http import new_client
 from .jobs import Job, JobError, JobManager
 from .modrinth import ModrinthError, _NotFound
+from ..i18n import _t
 
 MANIFEST = ".vulu-modpack.json"
 DEP_LOADER = {"fabric-loader": "fabric", "forge": "forge", "neoforge": "neoforge"}
@@ -103,35 +104,35 @@ class ModpackManager:
         try:
             proj = await self.mods._get(f"/project/{slug}")
         except _NotFound:
-            raise ModrinthError("Modpack Modrinth'te bulunamadı.")
+            raise ModrinthError(_t("Modpack Modrinth'te bulunamadı."))
         if proj.get("project_type") != "modpack":
-            raise ModrinthError("Bu proje bir modpack değil.")
+            raise ModrinthError(_t("Bu proje bir modpack değil."))
         if proj.get("server_side") == "unsupported":
-            raise ModrinthError("Bu modpack sunucu desteği sunmuyor.")
+            raise ModrinthError(_t("Bu modpack sunucu desteği sunmuyor."))
         if version_id:
             if not re.fullmatch(r"[A-Za-z0-9]{4,20}", version_id):
-                raise ModrinthError("Geçersiz modpack sürümü.")
+                raise ModrinthError(_t("Geçersiz modpack sürümü."))
             try:
                 v = await self.mods._get(f"/version/{version_id}")
             except _NotFound:
-                raise ModrinthError("Modpack sürümü bulunamadı.")
+                raise ModrinthError(_t("Modpack sürümü bulunamadı."))
             if v.get("project_id") != proj["id"]:
-                raise ModrinthError("Sürüm bu modpack'e ait değil.")
+                raise ModrinthError(_t("Sürüm bu modpack'e ait değil."))
         else:
             vs = await self.mods._get(f"/project/{proj['id']}/version")
             v = next((x for x in vs if x.get("version_type") == "release"), vs[0] if vs else None)
             if not v:
-                raise ModrinthError("Bu modpack'in sürümü yok.")
+                raise ModrinthError(_t("Bu modpack'in sürümü yok."))
         loaders = [x for x in v.get("loaders", []) if x in ("fabric", "forge", "neoforge")]
         if not loaders:
-            raise ModrinthError("Bu modpack'in yükleyicisi desteklenmiyor (Fabric / Forge / NeoForge gerekli).")
+            raise ModrinthError(_t("Bu modpack'in yükleyicisi desteklenmiyor (Fabric / Forge / NeoForge gerekli)."))
         mcs = v.get("game_versions") or []
         if not mcs or not re.fullmatch(r"[0-9A-Za-z._+-]{1,40}", mcs[0]):
-            raise ModrinthError("Modpack'in Minecraft sürümü okunamadı.")
+            raise ModrinthError(_t("Modpack'in Minecraft sürümü okunamadı."))
         files = v.get("files") or []
         f = next((x for x in files if x.get("primary")), files[0] if files else None)
         if not f or not str(f.get("filename", "")).endswith(".mrpack") or not (f.get("hashes") or {}).get("sha512"):
-            raise ModrinthError("Modpack dosyası (.mrpack) bulunamadı.")
+            raise ModrinthError(_t("Modpack dosyası (.mrpack) bulunamadı."))
         if not self._host_ok(f.get("url", ""), self.cdn):
             raise ModrinthError("Beklenmeyen indirme adresi reddedildi.")
         return {"slug": proj.get("slug", slug), "title": proj.get("title", slug), "project_id": proj["id"], "version_id": v["id"],
@@ -140,7 +141,7 @@ class ModpackManager:
 
     # ---------- 1) .mrpack'i indir ve oku ----------
     def ensure_pack_job(self, iid: int, info: dict) -> Job:
-        return self.jobs.start("modpack", f"{info['title']} indiriliyor", f"modpack-dl-{iid}", lambda j: self._fetch_pack(j, info))
+        return self.jobs.start("modpack", _t('{title} indiriliyor', title=info['title']), f"modpack-dl-{iid}", lambda j: self._fetch_pack(j, info))
 
     async def _fetch_pack(self, job: Job, info: dict) -> dict:
         self.cache.mkdir(parents=True, exist_ok=True)
@@ -154,14 +155,14 @@ class ModpackManager:
                 part.replace(path)
             finally:
                 part.unlink(missing_ok=True)
-        job.update(90, "read", "Paket okunuyor…")
+        job.update(90, "read", _t("Paket okunuyor…"))
         idx = await asyncio.to_thread(self._read_index, path)
         deps = idx["dependencies"]
         key = next((k for k in deps if k in DEP_LOADER), None)
         if not key:
-            raise JobError("Bu modpack desteklenmeyen bir yükleyici kullanıyor (Quilt vb.). Fabric / Forge / NeoForge gerekli.")
+            raise JobError(_t("Bu modpack desteklenmeyen bir yükleyici kullanıyor (Quilt vb.). Fabric / Forge / NeoForge gerekli."))
         if DEP_LOADER[key] != info["loader"] or deps.get("minecraft") != info["mc_version"]:
-            raise JobError("Modpack içeriği Modrinth bilgisiyle uyuşmuyor (sürüm/yükleyici).")
+            raise JobError(_t("Modpack içeriği Modrinth bilgisiyle uyuşmuyor (sürüm/yükleyici)."))
         return {"path": str(path), "loader_version": str(deps[key]), "files": len(idx.get("files", []))}
 
     @staticmethod
@@ -170,23 +171,23 @@ class ModpackManager:
             with zipfile.ZipFile(path) as zf:
                 zi = zf.getinfo("modrinth.index.json")
                 if zi.file_size > MAX_INDEX:
-                    raise JobError("modrinth.index.json çok büyük.")
+                    raise JobError(_t("modrinth.index.json çok büyük."))
                 idx = json.loads(zf.read(zi))
         except KeyError:
-            raise JobError("Geçersiz .mrpack: modrinth.index.json yok.")
+            raise JobError(_t("Geçersiz .mrpack: modrinth.index.json yok."))
         except (zipfile.BadZipFile, ValueError):
-            raise JobError("Geçersiz .mrpack dosyası.")
+            raise JobError(_t("Geçersiz .mrpack dosyası."))
         if idx.get("formatVersion") != 1 or idx.get("game") != "minecraft" or not isinstance(idx.get("dependencies"), dict) \
                 or not isinstance(idx.get("files", []), list) or len(idx.get("files", [])) > MAX_FILES:
-            raise JobError("Desteklenmeyen .mrpack biçimi.")
+            raise JobError(_t("Desteklenmeyen .mrpack biçimi."))
         return idx
 
     # ---------- 2) dosyaları ve override'ları kur ----------
     def ensure_install_job(self, iid: int, folder: Path, pack: dict) -> Job:
-        return self.jobs.start("modpack", f"{pack['title']} kuruluyor", f"modpack-install-{iid}", lambda j: self._install(j, folder, pack))
+        return self.jobs.start("modpack", _t('{title} kuruluyor', title=pack['title']), f"modpack-install-{iid}", lambda j: self._install(j, folder, pack))
 
     async def _install(self, job: Job, folder: Path, pack: dict) -> dict:
-        job.update(1, "read", "Dosya listesi okunuyor…")
+        job.update(1, "read", _t("Dosya listesi okunuyor…"))
         idx = await asyncio.to_thread(self._read_index, Path(pack["path"]))
         warnings: list[str] = []
         jobs_: list[tuple[str, str, str, int]] = []                     # (rel, url, sha512, size)
@@ -195,7 +196,7 @@ class ModpackManager:
         for f in idx.get("files", []):
             rel = safe_rel(f.get("path"))
             if rel is None:
-                warnings.append(f"Güvensiz dosya yolu atlandı: {str(f.get('path'))[:80]}")
+                warnings.append(_t('Güvensiz dosya yolu atlandı: {v0}', v0=str(f.get('path'))[:80]))
                 continue
             if (f.get("env") or {}).get("server") == "unsupported":
                 skipped += 1
@@ -203,13 +204,13 @@ class ModpackManager:
             sha = str((f.get("hashes") or {}).get("sha512", ""))
             url = next((u for u in f.get("downloads", []) if isinstance(u, str) and self._host_ok(u, self.hosts)), None)
             if not sha or not url:
-                raise JobError(f"{rel}: doğrulanabilir/izinli indirme adresi yok, kurulum durduruldu.")
+                raise JobError(_t('{rel}: doğrulanabilir/izinli indirme adresi yok, kurulum durduruldu.', rel=rel))
             if _inside(folder, rel) is None:
-                warnings.append(f"Klasör dışına çıkan yol atlandı: {rel}")
+                warnings.append(_t('Klasör dışına çıkan yol atlandı: {rel}', rel=rel))
                 continue
             if rel in seen:                                  # aynı yol iki kez listelenmişse tek kez indir
                 if seen[rel] != sha.lower():
-                    warnings.append(f"Aynı yol için farklı dosyalar listelenmiş, ilki kullanıldı: {rel}")
+                    warnings.append(_t('Aynı yol için farklı dosyalar listelenmiş, ilki kullanıldı: {rel}', rel=rel))
                 continue
             seen[rel] = sha.lower()
             jobs_.append((rel, url, sha, int(f.get("fileSize") or 0)))
@@ -235,19 +236,18 @@ class ModpackManager:
                                     async for chunk in r.aiter_bytes(65536):
                                         n += len(chunk)
                                         if n > MAX_ENTRY:
-                                            raise JobError(f"{rel}: dosya çok büyük.")
+                                            raise JobError(_t('{rel}: dosya çok büyük.', rel=rel))
                                         out.write(chunk); h.update(chunk)
                         except (httpx.HTTPError, OSError) as e:
                             if attempt == 3:
-                                raise JobError(f"{rel}: indirilemedi ({e.__class__.__name__}).")
+                                raise JobError(_t('{rel}: indirilemedi ({name__}).', rel=rel, name__=e.__class__.__name__))
                             continue
                         if h.hexdigest() == sha.lower():             # içeriği SHA-512 doğrular; fileSize yalnızca bilgi
                             if size and n != size:
                                 size_diff[0] += 1
                             break
                         if attempt == 3:
-                            raise JobError(f"{rel}: doğrulanamadı — sha512 beklenen {sha[:12]}…, gelen {h.hexdigest()[:12]}…; "
-                                           f"boyut beklenen {size}, gelen {n}; {meta}")
+                            raise JobError(_t('{rel}: doğrulanamadı — sha512 beklenen {v1}…, gelen {v2}…; boyut beklenen {size}, gelen {n}; {meta}', rel=rel, v1=sha[:12], v2=h.hexdigest()[:12], size=size, n=n, meta=meta))
                     part.replace(dest)
                 finally:
                     part.unlink(missing_ok=True)
@@ -266,9 +266,8 @@ class ModpackManager:
                     await asyncio.gather(*pending, return_exceptions=True)
                     raise err
         if size_diff[0]:
-            warnings.append(f"{size_diff[0]} dosyada paketin listesindeki boyut gerçek boyuttan farklı (paket hazırlayıcının hatası); "
-                            "SHA-512 doğru olduğu için kuruldu.")
-        job.update(92, "overrides", "Ayar dosyaları açılıyor…")
+            warnings.append(_t('{v0} dosyada paketin listesindeki boyut gerçek boyuttan farklı (paket hazırlayıcının hatası); SHA-512 doğru olduğu için kuruldu.', v0=size_diff[0]))
+        job.update(92, "overrides", _t("Ayar dosyaları açılıyor…"))
         n_over = await asyncio.to_thread(self._extract_overrides, Path(pack["path"]), folder, warnings)
         (folder / MANIFEST).write_text(json.dumps({
             "slug": pack["slug"], "title": pack["title"], "version_id": pack["version_id"], "version": pack["version_number"],
@@ -289,11 +288,11 @@ class ModpackManager:
                     rel = safe_rel(zi.filename[len(prefix):])
                     dest = _inside(folder, rel) if rel else None
                     if dest is None:
-                        warnings.append(f"Yasaklı/güvensiz ayar dosyası atlandı: {zi.filename[:80]}")
+                        warnings.append(_t('Yasaklı/güvensiz ayar dosyası atlandı: {v0}', v0=zi.filename[:80]))
                         continue
                     total += zi.file_size
                     if zi.file_size > MAX_ENTRY or total > MAX_UNZIPPED or count > 50000:
-                        raise JobError("Modpack ayar dosyaları çok büyük.")
+                        raise JobError(_t("Modpack ayar dosyaları çok büyük."))
                     dest.parent.mkdir(parents=True, exist_ok=True)
                     with zf.open(zi) as src, open(dest, "wb") as out:
                         shutil.copyfileobj(src, out)

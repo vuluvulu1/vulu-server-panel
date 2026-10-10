@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from ..config import BACKUPS_DIR, BASE_DIR, CACHE_DIR, INSTANCES_DIR, RUNTIMES_DIR
+from ..i18n import _t
 
 CACHE_KINDS = {"vanilla": "Vanilla sunucu jar'ları", "paper": "Paper jar'ları", "fabric": "Fabric jar'ları", "forge": "Forge kurucuları",
                "neoforge": "NeoForge kurucuları", "modpacks": "Modpack paketleri (.mrpack)"}
@@ -49,13 +50,13 @@ def cache_overview() -> list[dict]:
     for kind, label in CACHE_KINDS.items():
         d = CACHE_DIR / kind
         files = [f for f in d.iterdir() if f.is_file()] if d.is_dir() else []
-        out.append({"kind": kind, "label": label, "files": len(files), "size": sum(f.stat().st_size for f in files)})
+        out.append({"kind": kind, "label": _t(label), "files": len(files), "size": sum(f.stat().st_size for f in files)})
     return out
 
 
 def clear_cache(kind: str) -> int:
     if kind not in CACHE_KINDS:
-        raise ValueError("Bilinmeyen önbellek türü.")
+        raise ValueError(_t("Bilinmeyen önbellek türü."))
     d = (CACHE_DIR / kind).resolve()
     if d.parent != CACHE_DIR.resolve() or not d.is_dir():
         return 0
@@ -73,5 +74,5 @@ def clear_cache(kind: str) -> int:
 def java_dir(major: int) -> Path:
     d = (RUNTIMES_DIR / f"java-{int(major)}").resolve()
     if d.parent != RUNTIMES_DIR.resolve() or not re.fullmatch(r"java-\d{1,3}", d.name):
-        raise ValueError("Geçersiz Java sürümü.")
+        raise ValueError(_t("Geçersiz Java sürümü."))
     return d

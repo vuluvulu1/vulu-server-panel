@@ -5,6 +5,7 @@ herhangi bir kötü niyetli web sitesi http://127.0.0.1:8000'e istek atabilir (c
 WebSocket, DNS rebinding). Panel bilgisayarda süreç başlatıp dosya yazdığı için bu, uzaktan
 kod çalıştırmaya kadar gidebilir. Bu middleware bunların hepsini keser.
 """
+import ipaddress
 import os
 import re
 import shlex
@@ -14,9 +15,20 @@ from urllib.parse import urlparse
 from starlette.datastructures import MutableHeaders
 from starlette.responses import PlainTextResponse
 
-from .config import ALLOWED_HOSTS_EXTRA
+from .config import ALLOWED_HOSTS_EXTRA, HOST
+from .i18n import _t
 
 BASE_HOSTS = {"127.0.0.1", "localhost", "[::1]"}
+# Panel yerel ağa açıksa (PANEL_HOST=0.0.0.0 gibi), özel ağ IP'leriyle de girilebilir (192.168.x.x, 10.x.x.x ...).
+LAN_MODE = HOST not in ("127.0.0.1", "localhost", "::1")
+
+
+def _private_ip(hostname: str) -> bool:
+    try:
+        ip = ipaddress.ip_address(hostname.strip("[]"))
+    except ValueError:
+        return False
+    return ip.is_private or ip.is_loopback or ip.is_link_local
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
 SECURITY_HEADERS = {
@@ -50,7 +62,8 @@ class LocalGuardMiddleware:
         host = h.get("host", "")
         changes_state = scope["type"] == "websocket" or scope.get("method", "GET") not in SAFE_METHODS
 
-        bad = _hostname(host) not in self.allowed
+        hn = _hostname(host)
+        bad = hn not in self.allowed and not (LAN_MODE and _private_ip(hn))
         if not bad and changes_state:
             origin, sfs = h.get("origin"), h.get("sec-fetch-site")
             if origin == "null":
@@ -94,13 +107,12 @@ def validate_jvm_args(raw: str) -> str | None:
     try:
         tokens = shlex.split(raw)
     except ValueError:
-        return "Ek JVM argümanları okunamadı (tırnak hatası)."
+        return _t("Ek JVM argümanları okunamadı (tırnak hatası).")
     for t in tokens:
         if not _JVM_TOKEN.match(t):
-            return (f"JVM argümanı kabul edilmedi: {t[:40]!r}. Yalnızca -X / -D ile başlayan ve "
-                    "harf, rakam ve . : + = , / - karakterleri içeren bayraklara izin var.")
+            return (_t('JVM argümanı kabul edilmedi: {v0!r}. Yalnızca -X / -D ile başlayan ve harf, rakam ve . : + = , / - karakterleri içeren bayraklara izin var.', v0=t[:40]))
         if any(f in t.lower() for f in _JVM_FORBIDDEN):
-            return f"Güvenlik nedeniyle bu JVM argümanına izin verilmiyor: {t[:40]!r}"
+            return _t('Güvenlik nedeniyle bu JVM argümanına izin verilmiyor: {v0!r}', v0=t[:40])
     return None
 
 
@@ -111,11 +123,11 @@ def validate_java_path(p: str) -> str | None:
     if p in ("java", "java.exe"):
         return None
     if not p or len(p) > 260:
-        return "Java yolu boş olamaz."
+        return _t("Java yolu boş olamaz.")
     if os.path.basename(p.replace("\\", "/")).lower() not in ("java", "java.exe"):
-        return "Java yolu bir 'java' ya da 'java.exe' dosyasına işaret etmeli."
+        return _t("Java yolu bir 'java' ya da 'java.exe' dosyasına işaret etmeli.")
     if not os.path.isabs(p):
-        return "Tam yol ver (örn. C:\\Program Files\\Java\\jdk-21\\bin\\java.exe) ya da sadece 'java' yaz."
+        return _t("Tam yol ver (örn. C:\\Program Files\\Java\\jdk-21\\bin\\java.exe) ya da sadece 'java' yaz.")
     if not Path(p).is_file():
-        return f"Java dosyası bulunamadı: {p}"
+        return _t('Java dosyası bulunamadı: {p}', p=p)
     return None

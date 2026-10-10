@@ -26,8 +26,8 @@
       },
     });
   }
-  const res = make('chart-res', [{ label: 'CPU %', axis: 'y', color: '--accent' }, { label: 'RAM (MB)', axis: 'y2', color: '--accent-2' }]);
-  const play = make('chart-play', [{ label: 'Oyuncu', axis: 'y', color: '--accent' }, { label: 'TPS', axis: 'y2', color: '--success' }]);
+  const res = make('chart-res', [{ label: _t('CPU %'), axis: 'y', color: '--accent' }, { label: _t('RAM (MB)'), axis: 'y2', color: '--accent-2' }]);
+  const play = make('chart-play', [{ label: _t('Oyuncu'), axis: 'y', color: '--accent' }, { label: 'TPS', axis: 'y2', color: '--success' }]);
   res.options.scales.y.max = 100;
   play.options.scales.y2.max = 20;
   play.options.scales.y.ticks = { precision: 0 };
@@ -54,18 +54,18 @@
     $('stat-ram').textContent = s.running ? `${(s.ram_mb / 1024).toFixed(1)} GB` : '—';
     const extra = s.ram_mb - s.ram_max_mb;
     $('stat-ram-sub').textContent = s.running
-      ? (extra > 0 ? `Heap ${(s.ram_max_mb / 1024).toFixed(1)} GB + Java'nın kendi payı ${(extra / 1024).toFixed(1)} GB`
-                   : `Heap limiti ${(s.ram_max_mb / 1024).toFixed(1)} GB`)
+      ? (extra > 0 ? _t("Heap {v0} GB + Java'nın kendi payı {v1} GB", {v0: (s.ram_max_mb / 1024).toFixed(1), v1: (extra / 1024).toFixed(1)})
+                   : _t("Heap limiti {v0} GB", {v0: (s.ram_max_mb / 1024).toFixed(1)}))
       : '';
     $('stat-uptime').textContent = s.running ? fmtUptime(s.uptime) : '—';
 
     const pv = $('stat-players'), ps = $('stat-players-sub');
     if (s.running && s.players !== null) { pv.textContent = `${s.players} / ${s.max_players}`; ps.textContent = s.player_names.join(', '); }
-    else { pv.textContent = '—'; ps.textContent = s.running && s.rcon !== 'ok' ? 'RCON bağlanıyor…' : ''; }
+    else { pv.textContent = '—'; ps.textContent = s.running && s.rcon !== 'ok' ? _t('RCON bağlanıyor…') : ''; }
 
     const tv = $('stat-tps'), ts = $('stat-tps-sub');
     if (s.running && s.tps !== null) { tv.textContent = s.tps.toFixed(1); tv.dataset.level = level(s.tps); ts.textContent = ''; }
-    else { tv.textContent = '—'; delete tv.dataset.level; ts.textContent = s.running && s.rcon === 'ok' ? (s.tps_supported ? 'TPS okunamadı' : 'Bu yükleyicide TPS komutu yok') : ''; }
+    else { tv.textContent = '—'; delete tv.dataset.level; ts.textContent = s.running && s.rcon === 'ok' ? (s.tps_supported ? _t('TPS okunamadı') : _t('Bu yükleyicide TPS komutu yok')) : ''; }
 
     const h = s.history, labels = h.t.map(t => new Date(t * 1000).toLocaleTimeString());
     res.data.labels = labels; res.data.datasets[0].data = h.cpu; res.data.datasets[1].data = h.ram;

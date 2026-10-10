@@ -1,0 +1,27 @@
+/* name: Violet | mode: dark */
+/* Yumuşak grafit zemin, mor vurgu, lavanta ikincil; yuvarlak köşeler. */
+[data-theme="violet"] {
+  --bg: #0f1015;
+  --surface: #16171f;
+  --surface-2: #1e2029;
+  --border: #2a2c39;
+  --text: #ecedf3;
+  --text-muted: #8d90a3;
+
+  --accent: #8b6cff;
+  --accent-hover: #a48dff;
+  --accent-contrast: #ffffff;
+  --accent-rgb: 139, 108, 255;
+  --accent-2: #c4a8ff;
+
+  --success: #45d89a;
+  --warning: #ffb65c;
+  --danger: #ff6474;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --heading-weight: 700;
+
+  --card-shadow: 0 1px 0 rgba(255, 255, 255, .03) inset;
+  --card-hover-shadow: 0 8px 28px rgba(139, 108, 255, .18);
+}

@@ -18,10 +18,12 @@ from ..services.container import installers, modpacks
 from ..services.container import minecraft as mc_service
 from ..services.jvm import PRESETS, validate_args_file
 from ..services.modrinth import ModrinthError, read_mods_info
-from ..services.profiles import get_profile, props_as_strings
+from ..services.icons import ICON_NAME, decode_icon, default_icon, write_icon
+from ..services.profiles import get_profile, load_profiles, props_as_strings
 from ..services.properties import update_properties
 from ..services.process import ProcessError, process_manager as pm
 from ..templating import templates
+from ..i18n import _t
 
 router = APIRouter()
 
@@ -63,6 +65,13 @@ def _next_free_port() -> int:
 
 
 # ---------- sayfalar ----------
+@router.get("/instances/create")
+async def create_chooser(request: Request):
+    """Yeni sunucu sihirbazının ilk adımı: boş / profilden / modpack'ten."""
+    profiles, _ = load_profiles()
+    return templates.TemplateResponse(request, "instance_create.html", {"profile_count": len(profiles)})
+
+
 @router.get("/instances/new")
 async def new_instance_form(request: Request, profile: str = "", modpack: str = ""):
     values = {
@@ -70,7 +79,7 @@ async def new_instance_form(request: Request, profile: str = "", modpack: str = 
         "jar_file": "server.jar", "java_path": "java", "jvm_args": "",
         "mc_version": "", "loader": "vanilla", "java_mode": "auto",
         "jvm_preset": "aikar", "launch_type": "auto", "args_file": "", "profile_id": "",
-        "modpack_slug": "", "modpack_version": "", "modpack_label": "",
+        "modpack_slug": "", "modpack_version": "", "modpack_label": "", "icon_data": "",
     }
     errs: list[str] = []
     if prof := get_profile(profile):                      # profil seçildiyse formu onunla doldur
@@ -113,6 +122,7 @@ async def create_instance(
     modpack_slug: str = Form(""),
     modpack_version: str = Form(""),
     accept_eula: str | None = Form(None),
+    icon_data: str = Form("", max_length=600_000),
 ):
     values = {
         "name": name.strip(), "port": port.strip(), "ram_gb": ram_gb.strip(),
@@ -132,27 +142,35 @@ async def create_instance(
             errors.append(str(e))
 
     if not NAME_RE.match(values["name"]):
-        errors.append("Ad 1-32 karakter olmalı; harf, rakam, tire ve alt çizgi içerebilir (boşluk yok).")
+        errors.append(_t("Ad 1-32 karakter olmalı; harf, rakam, tire ve alt çizgi içerebilir (boşluk yok)."))
     if not JAR_RE.match(values["jar_file"]):
-        errors.append("Jar dosya adı geçersiz (örn. server.jar).")
+        errors.append(_t("Jar dosya adı geçersiz (örn. server.jar)."))
     if values["loader"] not in LOADERS:
-        errors.append("Geçersiz mod yükleyici.")
+        errors.append(_t("Geçersiz mod yükleyici."))
     if values["java_mode"] not in JAVA_MODES:
-        errors.append("Geçersiz Java seçimi.")
+        errors.append(_t("Geçersiz Java seçimi."))
     if values["mc_version"] and not MC_RE.match(values["mc_version"]):
-        errors.append("Minecraft sürümü geçersiz.")
+        errors.append(_t("Minecraft sürümü geçersiz."))
     if err := validate_jvm_args(values["jvm_args"]):
         errors.append(err)
     if values["jvm_preset"] not in PRESETS:
-        errors.append("Geçersiz JVM ayarı.")
+        errors.append(_t("Geçersiz JVM ayarı."))
     if values["launch_type"] not in ("auto", "jar", "args-file"):
-        errors.append("Geçersiz başlatma türü.")
+        errors.append(_t("Geçersiz başlatma türü."))
     if err := validate_args_file(values["args_file"]):
         errors.append(err)
     prof = get_profile(values["profile_id"]) if values["profile_id"] else None
     if values["profile_id"] and not prof:
-        errors.append("Seçilen profil bulunamadı.")
+        errors.append(_t("Seçilen profil bulunamadı."))
     launch_type = values["launch_type"]
+    icon_bytes = None
+    if icon_data.strip():
+        icon_bytes = decode_icon(icon_data.strip())
+        if icon_bytes is None:
+            errors.append(_t("Sunucu resmi okunamadı; başka bir resim seç ya da varsayılanı kullan."))
+            values["icon_data"] = ""
+        else:
+            values["icon_data"] = icon_data.strip()
     if launch_type == "auto":
         launch_type = "args-file" if values["loader"] in ("forge", "neoforge") else "jar"
 
@@ -161,7 +179,7 @@ async def create_instance(
         try:
             known = {v["id"] for v in (await mgr.versions())["versions"]}
             if values["mc_version"] not in known:
-                errors.append(f"{values['loader'].capitalize()} {values['mc_version']} sürümünü desteklemiyor. Listeden desteklenen bir sürüm seç.")
+                errors.append(_t('{v0} {mc_version} sürümünü desteklemiyor. Listeden desteklenen bir sürüm seç.', v0=values['loader'].capitalize(), mc_version=values['mc_version']))
         except PaperError:
             pass   # servise ulaşılamıyor: ilk başlatmada net bir hata gösterilir
 
@@ -171,7 +189,7 @@ async def create_instance(
             errors.append(err)
     elif values["java_mode"] == "auto":
         if not values["mc_version"]:
-            errors.append("Java'yı otomatik seçmek için bir Minecraft sürümü seçmelisin.")
+            errors.append(_t("Java'yı otomatik seçmek için bir Minecraft sürümü seçmelisin."))
         elif not errors:
             try:
                 java_major = (await minecraft.java_for(values["mc_version"], values["loader"]))["major"]
@@ -186,20 +204,20 @@ async def create_instance(
         if not 1024 <= port_i <= 65535:
             raise ValueError
     except ValueError:
-        errors.append("Port 1024-65535 arasında bir sayı olmalı.")
+        errors.append(_t("Port 1024-65535 arasında bir sayı olmalı."))
     try:
         ram_i = int(values["ram_gb"])
         if not 1 <= ram_i <= 128:
             raise ValueError
     except ValueError:
-        errors.append("RAM 1-128 GB arasında bir sayı olmalı.")
+        errors.append(_t("RAM 1-128 GB arasında bir sayı olmalı."))
     if ram_i > _sys_ram_gb():
-        errors.append(f"Bilgisayarında {_sys_ram_gb()} GB RAM var; bundan fazlasını veremezsin.")
+        errors.append(_t('Bilgisayarında {v0} GB RAM var; bundan fazlasını veremezsin.', v0=_sys_ram_gb()))
 
     if not errors:
         with get_conn() as conn:
             if conn.execute("SELECT 1 FROM instances WHERE port = ?", (port_i,)).fetchone():
-                errors.append(f"{port_i} portunu başka bir sunucu kullanıyor.")
+                errors.append(_t('{port_i} portunu başka bir sunucu kullanıyor.', port_i=port_i))
 
     if errors:
         return templates.TemplateResponse(
@@ -210,11 +228,18 @@ async def create_instance(
     folder.mkdir(parents=True, exist_ok=True)
     if accept_eula:
         (folder / "eula.txt").write_text("eula=true\n", encoding="utf-8")
+    if not (folder / ICON_NAME).exists():                 # seçilen resim, yoksa varsayılan vulu simgesi
+        icon = icon_bytes or default_icon()
+        if icon:
+            try:
+                write_icon(folder, icon)
+            except OSError:
+                pass
     if prof and prof.server_properties:
         try:
             update_properties(folder / "server.properties", props_as_strings(prof))
         except (OSError, ValueError) as e:
-            errors.append(f"Profil ayarları yazılamadı: {e}")
+            errors.append(_t('Profil ayarları yazılamadı: {e}', e=e))
             return templates.TemplateResponse(request, "instance_new.html", _ctx(values, errors), status_code=400)
 
     try:
@@ -230,7 +255,7 @@ async def create_instance(
             )
             iid = cur.lastrowid
     except sqlite3.IntegrityError:
-        errors.append("Bu isimde bir sunucu zaten var.")
+        errors.append(_t("Bu isimde bir sunucu zaten var."))
         return templates.TemplateResponse(
             request, "instance_new.html", _ctx(values, errors), status_code=400
         )
@@ -244,7 +269,7 @@ async def create_instance(
 async def instance_detail(request: Request, iid: int):
     inst = get_instance(iid)
     if not inst:
-        raise HTTPException(404, "Sunucu bulunamadı")
+        raise HTTPException(404, _t("Sunucu bulunamadı"))
     jar_info = read_jar_info(Path(inst["path"]))
     return templates.TemplateResponse(request, "instance_detail.html", {"inst": inst, "jar_info": jar_info, "profile": get_profile(inst.get("profile_id")),
                          "mods_info": read_mods_info(Path(inst["path"]))})
@@ -254,9 +279,9 @@ async def instance_detail(request: Request, iid: int):
 async def delete_instance(iid: int):
     inst = get_instance(iid)
     if not inst:
-        raise HTTPException(404, "Sunucu bulunamadı")
+        raise HTTPException(404, _t("Sunucu bulunamadı"))
     if pm.status(iid) in ("preparing", "starting", "running", "stopping"):
-        raise HTTPException(409, "Çalışan sunucu silinemez. Önce durdur.")
+        raise HTTPException(409, _t("Çalışan sunucu silinemez. Önce durdur."))
     with get_conn() as conn:
         conn.execute("DELETE FROM instances WHERE id = ?", (iid,))
     # Dosyalar bilerek silinmiyor: dünya verisi kaybolmasın.
@@ -268,7 +293,7 @@ async def delete_instance(iid: int):
 async def mods_update(iid: int):
     inst = get_instance(iid)
     if not inst:
-        raise HTTPException(404, "Sunucu bulunamadı")
+        raise HTTPException(404, _t("Sunucu bulunamadı"))
     try:
         return {"ok": True, **await launcher.update_mods(inst)}
     except ProcessError as e:
@@ -279,7 +304,7 @@ async def mods_update(iid: int):
 async def paper_update(iid: int):
     inst = get_instance(iid)
     if not inst:
-        raise HTTPException(404, "Sunucu bulunamadı")
+        raise HTTPException(404, _t("Sunucu bulunamadı"))
     try:
         return {"ok": True, **await launcher.update_jar(inst)}
     except ProcessError as e:
@@ -290,7 +315,7 @@ async def paper_update(iid: int):
 async def instance_action(iid: int, action: str):
     inst = get_instance(iid)
     if not inst:
-        raise HTTPException(404, "Sunucu bulunamadı")
+        raise HTTPException(404, _t("Sunucu bulunamadı"))
 
     if action == "start":
         try:

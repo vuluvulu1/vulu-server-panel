@@ -20,6 +20,7 @@ from pathlib import Path, PurePosixPath
 from ..db import get_instance
 from .jobs import Job, JobError, JobManager
 from .properties import read_properties
+from ..i18n import _t
 
 EXCLUDE_TOP = {"logs", "crash-reports", "cache", ".fabric", "debug"}
 SKIP_SUFFIX = (".part", ".vulu-tmp", ".lck")
@@ -59,10 +60,10 @@ class BackupManager:
 
     def path_for(self, inst: dict, filename: str) -> Path:
         if not FILE_RE.match(filename or ""):
-            raise BackupError("Geçersiz yedek adı.")
+            raise BackupError(_t("Geçersiz yedek adı."))
         p = self.dir_for(inst) / filename
         if not p.is_file():
-            raise BackupError("Yedek bulunamadı.")
+            raise BackupError(_t("Yedek bulunamadı."))
         return p
 
     # ---------- listeleme ----------
@@ -90,13 +91,13 @@ class BackupManager:
 
     # ---------- yedek alma ----------
     def ensure_create_job(self, inst: dict, mode: str, note: str = "") -> Job:
-        return self.jobs.start("backup", f"{inst['name']} yedekleniyor", f"backup-{inst['id']}",
+        return self.jobs.start("backup", _t('{name} yedekleniyor', name=inst['name']), f"backup-{inst['id']}",
                                lambda j: self._create(j, inst, mode, note))
 
     async def _save_off(self, iid: int, job: Job) -> bool:
         if self.pm.status(iid) != "running":
             return False
-        job.update(1, "save", "Sunucu kaydediliyor (save-all)…")
+        job.update(1, "save", _t("Sunucu kaydediliyor (save-all)…"))
         q = self.pm.subscribe(iid)
         try:
             await self.pm.send_command(iid, "save-off")
@@ -124,10 +125,10 @@ class BackupManager:
 
     async def _create(self, job: Job, inst: dict, mode: str, note: str) -> dict:
         if mode not in ("full", "world"):
-            raise JobError("Geçersiz yedek türü.")
+            raise JobError(_t("Geçersiz yedek türü."))
         folder = Path(inst["path"])
         if not folder.is_dir():
-            raise JobError("Sunucu klasörü bulunamadı.")
+            raise JobError(_t("Sunucu klasörü bulunamadı."))
         paused = await self._save_off(inst["id"], job)
         try:
             res = await asyncio.to_thread(self._zip, job, inst, folder, mode, note, asyncio.get_running_loop())
@@ -157,13 +158,13 @@ class BackupManager:
     def _zip(self, job: Job, inst: dict, folder: Path, mode: str, note: str, loop) -> dict:
         files = self._collect(folder, mode)
         if not files:
-            raise JobError("Yedeklenecek dosya yok" + (" (dünya klasörü bulunamadı; sunucu hiç başlatılmamış olabilir)." if mode == "world" else "."))
+            raise JobError(_t("Yedeklenecek dosya yok") + (_t(" (dünya klasörü bulunamadı; sunucu hiç başlatılmamış olabilir).") if mode == "world" else "."))
         total = sum(p.stat().st_size for p in files) or 1
         if total > MAX_TOTAL:
-            raise JobError("Sunucu klasörü çok büyük (64 GB üstü).")
+            raise JobError(_t("Sunucu klasörü çok büyük (64 GB üstü)."))
         free = shutil.disk_usage(self.base.parent if self.base.parent.exists() else folder).free
         if free < total * 0.6 + 200 * 2**20:
-            raise JobError("Diskte yeterli boş alan yok.")
+            raise JobError(_t("Diskte yeterli boş alan yok."))
         d = self.dir_for(inst)
         d.mkdir(parents=True, exist_ok=True)
         raw = note[5:] if note.startswith("auto:") else note
@@ -193,7 +194,7 @@ class BackupManager:
                                          "created": time.strftime("%Y-%m-%d %H:%M:%S"), "files": n}).encode("utf-8")
             os.replace(part, out)
         except OSError as e:
-            raise JobError(f"Yedek yazılamadı: {e}")
+            raise JobError(_t('Yedek yazılamadı: {e}', e=e))
         finally:
             part.unlink(missing_ok=True)
         return {"file": name, "size": out.stat().st_size, "files": n}
@@ -201,16 +202,16 @@ class BackupManager:
     # ---------- geri yükleme ----------
     def ensure_restore_job(self, inst: dict, filename: str) -> Job:
         p = self.path_for(inst, filename)
-        return self.jobs.start("restore", f"{inst['name']} geri yükleniyor", f"restore-{inst['id']}",
+        return self.jobs.start("restore", _t('{name} geri yükleniyor', name=inst['name']), f"restore-{inst['id']}",
                                lambda j: self._restore(j, inst, p))
 
     async def _restore(self, job: Job, inst: dict, zpath: Path) -> dict:
         if self.pm.status(inst["id"]) not in ("stopped", "crashed"):
-            raise JobError("Geri yüklemek için önce sunucuyu durdur.")
-        job.update(1, "check", "Yedek denetleniyor…")
+            raise JobError(_t("Geri yüklemek için önce sunucuyu durdur."))
+        job.update(1, "check", _t("Yedek denetleniyor…"))
         meta, names = await asyncio.to_thread(self._inspect, zpath)
         mode = meta.get("mode")
-        job.update(5, "safety", "Önce mevcut durumun yedeği alınıyor…")
+        job.update(5, "safety", _t("Önce mevcut durumun yedeği alınıyor…"))
         folder = Path(inst["path"])
         safety = None
         if any(folder.iterdir()):
@@ -228,15 +229,15 @@ class BackupManager:
                 names = [i.filename for i in zf.infolist() if not i.is_dir()]
                 total = sum(i.file_size for i in zf.infolist())
         except (zipfile.BadZipFile, ValueError, OSError):
-            raise JobError("Yedek dosyası bozuk ya da okunamıyor.")
+            raise JobError(_t("Yedek dosyası bozuk ya da okunamıyor."))
         if meta.get("vulu") != 1 or meta.get("mode") not in ("full", "world"):
-            raise JobError("Bu dosya panelin oluşturduğu bir yedek değil.")
+            raise JobError(_t("Bu dosya panelin oluşturduğu bir yedek değil."))
         if total > MAX_TOTAL:
-            raise JobError("Yedek çok büyük.")
+            raise JobError(_t("Yedek çok büyük."))
         for n in names:
             pp = PurePosixPath(n)
             if pp.is_absolute() or any(x in ("", ".", "..") for x in pp.parts) or ":" in n or "\\" in n:
-                raise JobError("Yedek güvensiz dosya yolları içeriyor; geri yüklenmedi.")
+                raise JobError(_t("Yedek güvensiz dosya yolları içeriyor; geri yüklenmedi."))
         return meta, names
 
     def _apply(self, job: Job, folder: Path, zpath: Path, mode: str, names: list[str], loop) -> None:
@@ -260,7 +261,7 @@ class BackupManager:
             for k, i in enumerate(infos, 1):
                 dest = (folder / i.filename).resolve()
                 if not dest.is_relative_to(root):
-                    raise JobError("Güvensiz yol.")
+                    raise JobError(_t("Güvensiz yol."))
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 with zf.open(i) as src, open(dest, "wb") as out:
                     shutil.copyfileobj(src, out)

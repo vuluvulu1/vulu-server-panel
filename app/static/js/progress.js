@@ -13,7 +13,7 @@ window.VuluProgress = {
         title.textContent = s.title || '';
         pct.textContent = Math.floor(s.percent || 0) + '%';
         bar.style.width = (s.percent || 0) + '%';
-        msg.textContent = s.status === 'error' ? (s.error || 'Hata') : (s.message || '');
+        msg.textContent = s.status === 'error' ? (s.error || _t('Hata')) : (s.message || '');
       },
       hide() { panel.classList.add('d-none'); },
     };

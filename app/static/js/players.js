@@ -11,7 +11,7 @@
   async function api(path, opts) {
     const r = await fetch(`/api/instances/${id}/players/${path}`, opts);
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(typeof j.detail === 'string' ? j.detail : ('Hata ' + r.status));
+    if (!r.ok) throw new Error(typeof j.detail === 'string' ? j.detail : (_t('Hata ') + r.status));
     return j;
   }
 
@@ -40,7 +40,7 @@
   function fill(listId, items, mk) {
     const ul = $('l-' + listId); ul.replaceChildren();
     $('c-' + listId).textContent = items.length;
-    if (!items.length) ul.appendChild(el('li', 'list-group-item small text-body-secondary', 'Boş'));
+    if (!items.length) ul.appendChild(el('li', 'list-group-item small text-body-secondary', _t('Boş')));
     items.slice(0, 500).forEach(x => ul.appendChild(mk(x)));
   }
 
@@ -48,19 +48,19 @@
     state = j;
     const running = j.status === 'running';
     $('wl-switch').checked = !!j.whitelist_enabled;
-    $('pl-mode').textContent = (j.online_mode ? 'Hesap doğrulaması açık' : 'Çevrimdışı mod (online-mode=false)') + ' · ' + (running ? 'değişiklikler anında geçerli' : 'sunucu kapalı: dosyalar düzenlenir, açılınca geçerli olur');
-    $('pl-help').textContent = running ? 'Sunucu çalışıyor: komutlar RCON ile gönderilir.' :
-      (j.online_mode ? 'Sunucu kapalı: oyuncunun UUID\'si Mojang\'dan alınır (internet gerekir).' : 'Sunucu kapalı, çevrimdışı mod: UUID addan hesaplanır.');
+    $('pl-mode').textContent = (j.online_mode ? _t('Hesap doğrulaması açık') : _t('Hesap doğrulaması kapalı (online-mode=false)')) + ' · ' + (running ? _t('değişiklikler anında uygulanır') : _t('değişiklikler sunucu açılınca uygulanır'));
+    $('pl-help').textContent = running ? _t('Sunucu açık: işlemler doğrudan sunucuya komut olarak gönderilir.') :
+      (j.online_mode ? _t('Sunucu kapalı: oyuncunun hesap kimliği Mojang\'dan öğrenilir, bu yüzden internet bağlantısı gerekir.') : _t('Sunucu kapalı ve hesap doğrulaması kapalı: oyuncu kimliği addan hesaplanır, internet gerekmez.'));
     const wl = new Set(j.whitelist.map(e => e.name.toLowerCase())), ops = new Set(j.ops.map(e => e.name.toLowerCase()));
     fill('online', j.online.map(n => ({ name: n })), (e) => row(e.name, '', [
-      ...(ops.has(e.name.toLowerCase()) ? [] : [['OP yap', 'bi-star', 'op', 'btn-outline-warning']]),
-      ['At', 'bi-box-arrow-right', 'kick', 'btn-outline-secondary', 'kick'],
-      ['Yasakla', 'bi-slash-circle', 'ban', 'btn-outline-danger', 'ban'],
+      ...(ops.has(e.name.toLowerCase()) ? [] : [[_t('OP yap'), 'bi-star', 'op', 'btn-outline-warning']]),
+      [_t('At'), 'bi-box-arrow-right', 'kick', 'btn-outline-secondary', 'kick'],
+      [_t('Yasakla'), 'bi-slash-circle', 'ban', 'btn-outline-danger', 'ban'],
     ]));
-    fill('whitelist', j.whitelist, (e) => row(e.name, '', [['Listeden çıkar', 'bi-x-lg', 'whitelist_remove', 'btn-outline-secondary']]));
-    fill('ops', j.ops, (e) => row(e.name, 'seviye ' + e.level, [['OP\'luğu al', 'bi-star-fill', 'deop', 'btn-outline-secondary']]));
-    fill('bans', j.bans, (e) => row(e.name, e.reason ? '— ' + e.reason : '', [['Yasağı kaldır', 'bi-unlock', 'pardon', 'btn-outline-success']]));
-    if (j.status === 'starting' || j.status === 'stopping' || j.status === 'preparing') note('warning', 'Sunucu açılıyor ya da kapanıyor; işlemler birkaç saniye sonra yapılabilir.');
+    fill('whitelist', j.whitelist, (e) => row(e.name, '', [[_t('Listeden çıkar'), 'bi-x-lg', 'whitelist_remove', 'btn-outline-secondary']]));
+    fill('ops', j.ops, (e) => row(e.name, _t('seviye ') + e.level, [[_t('OP\'luğu al'), 'bi-star-fill', 'deop', 'btn-outline-secondary']]));
+    fill('bans', j.bans, (e) => row(e.name, e.reason ? '— ' + e.reason : '', [[_t('Yasağı kaldır'), 'bi-unlock', 'pardon', 'btn-outline-success']]));
+    if (j.status === 'starting' || j.status === 'stopping' || j.status === 'preparing') note('warning', _t('Sunucu şu an açılıyor ya da kapanıyor; birkaç saniye sonra tekrar dene.'));
   }
 
   async function load() {
@@ -71,10 +71,10 @@
     if (busy) return;
     let reason = '';
     if (ask === 'ban' || (action === 'ban' && !ask)) {
-      if (!confirm(`${name} yasaklansın mı?`)) return;
-      reason = (prompt('Yasak nedeni (isteğe bağlı):', '') || '').slice(0, 100);
+      if (!confirm(_t("{name} yasaklansın mı?", {name}))) return;
+      reason = (prompt(_t('Yasak nedeni (isteğe bağlı):'), '') || '').slice(0, 100);
     } else if (ask === 'kick') {
-      reason = (prompt(`${name} sunucudan atılsın mı? Neden (isteğe bağlı):`, '') ?? null);
+      reason = (prompt(_t("{name} sunucudan atılsın mı? Neden (isteğe bağlı):", {name}), '') ?? null);
       if (reason === null) return;
     }
     busy = true; document.querySelectorAll('#players-root button, #wl-switch').forEach(b => b.disabled = true);
@@ -87,7 +87,7 @@
 
   document.querySelectorAll('#pl-form [data-act]').forEach(b => b.addEventListener('click', () => {
     const n = $('pl-name').value.trim();
-    if (!NAME.test(n)) { note('danger', 'Oyuncu adı 1-16 karakter olmalı; yalnızca harf, rakam ve alt çizgi.'); return; }
+    if (!NAME.test(n)) { note('danger', _t('Oyuncu adı 1-16 karakter olmalı; yalnızca harf, rakam ve alt çizgi.')); return; }
     run(b.dataset.act, n).then(() => { if (!$('pl-notes').firstChild) $('pl-name').value = ''; });
   }));
   $('wl-switch').addEventListener('change', (e) => run(e.target.checked ? 'whitelist_on' : 'whitelist_off', ''));

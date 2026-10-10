@@ -6,6 +6,7 @@ import socket
 from pathlib import Path
 
 from ..db import update_instance, used_ports
+from ..i18n import _t
 
 _SAFE_VALUE = re.compile(r"^[^\x00-\x1f\\]{0,200}$")   # satır sonu / kaçış karakteri yok → enjeksiyon olmaz
 
@@ -35,7 +36,7 @@ def read_properties(path: Path) -> dict[str, str]:
 def update_properties(path: Path, updates: dict[str, str]) -> None:
     for k, v in updates.items():
         if not re.fullmatch(r"[A-Za-z0-9_.\-]+", k) or not _SAFE_VALUE.match(str(v)):
-            raise ValueError(f"güvensiz özellik: {k}")
+            raise ValueError(_t('güvensiz özellik: {k}', k=k))
     lines = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
     out, seen = [], set()
     for ln in lines:
@@ -62,7 +63,7 @@ def _free_port(avoid: set[int]) -> int:
                 return p
             except OSError:
                 continue
-    raise OSError("RCON için boş port bulunamadı")
+    raise OSError(_t("RCON için boş port bulunamadı"))
 
 
 def prepare_runtime(inst: dict) -> dict:

@@ -6,6 +6,8 @@ Gösterim: `[x]` tamamlandı · `[~]` kısmen / gerçek ortamda daha fazla doğr
 
 ## 1. Genel durum
 
+Güncel sürüm: **v0.1.0** (ilk release).
+
 | Alan | Durum |
 |---|---|
 | Süreç yönetimi, canlı konsol | ✅ |
@@ -19,8 +21,14 @@ Gösterim: `[x]` tamamlandı · `[~]` kısmen / gerçek ortamda daha fazla doğr
 | Ayarlar sayfası (disk, Java yönetimi, önbellek) | ✅ gerçek ortamda doğrulandı |
 | Yedek otomatik temizleme | 🔶 kod ve otomatik testler tamam, gerçek ortamda doğrulama bekliyor |
 | Vanilla jar indirme | ✅ gerçek ortamda doğrulandı |
-| Minecraft sürüm yükseltme | 🔶 düzeltme sonrası yeniden denenecek (Java sürümü güncellenmeden kalabiliyordu) |
-| Giriş sistemi ve uzaktan yayınlama | ⏳ planlanıyor |
+| Minecraft sürüm yükseltme | ✅ gerçek ortamda doğrulandı |
+| Arayüz yenilemesi (sihirbaz, vulu teması, tema seçimi, ortalanmış düzen) | ✅ |
+| İngilizce arayüz (dil seçimi) | 🔶 kod ve otomatik testler tamam, gerçek ortamda doğrulama bekliyor |
+| Çift tıkla başlatıcı (`baslat.bat` / `baslat.sh`) | ✅ Windows'ta doğrulandı |
+| Release paketi (GitHub Actions) | 🔶 ilk release'te denenecek |
+| Giriş sistemi, ev ağından erişim | 🔶 kod ve otomatik testler tamam, gerçek ortamda doğrulama bekliyor |
+| Android telefonda çalıştırma (Termux) | ⏳ sırada |
+| HTTPS ile internete yayınlama | ⏳ planlanıyor |
 
 ## 2. Mevcut özellikler
 
@@ -34,13 +42,17 @@ Gösterim: `[x]` tamamlandı · `[~]` kısmen / gerçek ortamda daha fazla doğr
 - **Mod tarayıcı:** arama, tek tıkla kurulum, kurulu liste (profil / eklenen / bağımlılık / elle), açma-kapatma (`.jar.disabled`), silme.
 - **Modpack:** `/modpacks` ile arama; yükleyici modpack'in tam sürümüyle kurulur; `env.server = unsupported` dosyalar atlanır; paralel doğrulamalı indirme; `overrides/` ve `server-overrides/`; yasaklı yol/uzantı denetimi.
 - **Ayarlar:** port, RAM, Java, JVM, başlatma türü, jar/argüman dosyası; yaklaşık 25 doğrulamalı `server.properties` ayarı (panelin yönettiği anahtarlar hariç, ASCII dışı karakterler `\uXXXX` olarak yazılır); onaylı kalıcı silme (yalnızca `instances/<ad>`). Hepsi yalnızca sunucu kapalıyken.
-- **Arayüz:** token/tema sistemi (3 tema), bileşen makroları, statik dosyalara `?v=` ile önbellek tazeleme.
+- **Arayüz:** token/tema sistemi, bileşen makroları, statik dosyalara `?v=` ile önbellek tazeleme. Temalar: `vulu` (varsayılan; logodaki kömür siyahı / kahve / kum paleti, keskin köşeler), `light` (vulu'nun gündüz hali), `neon`, `violet`. Tema `localStorage`'da tutulur; `<html data-themes>` geçerli temaları taşır, kayıtlı tema silinmişse varsayılana dönülür. *Ayarlar → Görünüm*'deki önizlemeler kendi `data-theme` değişkenleriyle boyanır. Bootstrap durum renkleri (uyarı/hata/başarı) tema token'larına bağlıdır. İçerik `.page-wrap` ile en fazla 1280 px ve ortalı.
 - **Güvenlik:** `LocalGuardMiddleware` (Host, Origin, Sec-Fetch-Site), güvenlik başlıkları, `/docs` kapalı, JVM argümanı ve Java yolu doğrulaması, her sunucuya rastgele RCON port/şifresi.
 
 - **Dosya yöneticisi:** `services/files.py` — tüm yollar `safe_path` ile sunucu klasörüne kilitli (resolve + `is_relative_to`, dışarı işaret eden bağlantılar gizlenir), panel dosyaları salt okunur, 2 MB'a kadar metin düzenleme, 512 MB'a kadar yükleme, çalıştırılabilir uzantılar engelli; yazma yalnızca sunucu kapalıyken.
 - **Yedekleme:** `services/backup.py` — `data/backups/<ad>/<ad>_<full|world>_<tarih>[_not].zip`, üst veri zip yorumunda; çalışırken `save-off` + `save-all flush` → zip → `save-on`; geri yüklemeden önce otomatik güvenlik yedeği, yol doğrulaması ve yalnızca panel yedeklerinin kabulü. Sunucu silinince yedekler korunur.
 
+- **Dağıtım:** `baslat.bat` / `baslat.sh` yalnızca Python 3.11+'ı bulur (Windows'ta yoksa `winget` ile kurmayı önerir), gerisini `tools/launcher.py` (yalnızca standart kütüphane) yapar: `.venv` oluşturma, `requirements.txt` değiştiyse `pip --dry-run --report` ile paket sayısını öğrenip ilerleme çubuğuyla kurma, `.env` oluşturma, paneli `run.py --open` ile başlatma. Günlük çalıştırmada istek kayıtları kapalıdır (`log_level=warning`); `--dev` yeniden yüklemeyi ve ayrıntılı kayıtları açar. Release'te `.github/workflows/release.yml`, `tools/build_release.py` ile `vulu-panel-v<sürüm>.zip` üretip release'e ekler (etiket `app/__init__.py`'deki sürümle uyuşmazsa durur; `data/`, `.env`, `.venv` pakete girmez).
+- **Çoklu dil:** `app/i18n/` — kaynak dil Türkçe; metinler kodda Türkçe yazılır, `en.json` Türkçe → İngilizce eşlemesidir (katalogda olmayan metin Türkçe kalır, eksik çeviri hiçbir şeyi bozmaz). Python ve Jinja'da `_t("… {ad} …", ad=…)` / `_(…)`, JavaScript'te `_t("…", {ad})`. Dil tarayıcıda `vulu_lang` çerezinde, panel genelinde `data/lang.txt`'de tutulur (konsol mesajları ve zamanlanmış işler bunu kullanır). Katalog yalnızca Türkçe dışı dillerde sayfaya gömülür. HTML içeren birkaç çeviri `|safe` ile basılır; bunlarda kullanıcı verisi yoktur.
 - **Zamanlama:** `services/scheduler.py` + `schedules` tablosu — günlük saat ve gün seçimi (yerel saat), 15 sn'de bir denetim, aynı dilimde tek çalışma (`last_run`), yeniden başlatmada 30/15/10/5/3/2/1 dk geri sayım (`say`), yedekte `auto:zamanli` notu ve son N yedeği tutma (elle alınanlara dokunulmaz). Panel kapalıyken kaçırılan görevler sonradan çalışmaz. Sunucu silinince zamanlamaları da silinir.
+- **Yeni sunucu sihirbazı:** `/instances/create` (boş / profil / modpack seçimi) → `/profiles` veya `/modpacks` (pencere içinde) → `/instances/new` iki adımlı form (yükleyici kartları + sürüm → ad/port/RAM/resim, gelişmiş ayarlar katlı). Pencere içindeki `data-modal` bağlantıları iç içe pencere açmaz, aynı pencerede ilerler. Profiller ve Modpack'ler sol menüden kaldırıldı.
+- **Sunucu resmi:** `services/icons.py` — oluştururken seçilen resim tarayıcıda 64×64 PNG'ye kırpılır; sunucuda PNG imzası/IHDR/IEND doğrulanır; seçilmezse `static/img/default-icon.png` (vulu) yazılır. Simgesi olmayan sunucular arayüzde vulu logosuyla gösterilir.
 - **Arayüz:** sunucu sayfasındaki sekmeler açılır pencerede (`?embed=1`, aynı kaynak iframe; `X-Frame-Options: SAMEORIGIN`), kayıtta pencere kapanır ve bildirim gösterilir; sunucu simgesi tarayıcıda 64×64 PNG'ye çevrilir, sunucu tarafında PNG imzası ve boyutu doğrulanır.
 
 - **Ayarlar (sistem) sayfası:** `/settings` — disk kullanımı (sunucular, yedekler, Java, önbellek), kurulu Java'lar (boyut, kullanan sunucular; çalışan bir sunucu kullanıyorsa silme engellenir), eksik Java'lar, önbellek temizleme (yalnızca `data/cache/<tür>` dosyaları; indirme sürerken engellenir).
@@ -50,6 +62,8 @@ Gösterim: `[x]` tamamlandı · `[~]` kısmen / gerçek ortamda daha fazla doğr
 - **Çökme analizcisi:** `services/crash.py` — sunucu çöktüğünde (ya da açılmadan kapandığında) konsolun son satırları ve bu çalıştırmada yazılan crash raporu okunur; Java sürümü, bellek, port, EULA, dünya kilidi/bozulması, eksik bağımlılık (Fabric/Forge/NeoForge), istemci modu, Mixin, çift mod, donma (watchdog) ve raporun şüphelendiği modlar için Türkçe neden + öneri konsola ve sunucu sayfasındaki karta yazılır.
 - **Oyuncular:** `services/players.py` — beyaz liste, OP, yasak, atma ve beyaz liste anahtarı. Sunucu çalışıyorsa RCON komutu (anında geçerli), kapalıysa `whitelist.json`/`ops.json`/`banned-players.json` atomik düzenlenir; UUID `online-mode=true` ise Mojang'dan, değilse çevrimdışı kuralla (`OfflinePlayer:<ad>`, MD5/v3) hesaplanır. Ad `^[A-Za-z0-9_]{1,16}$` ile doğrulanır, yasak nedeni tek satıra indirgenir (komut enjeksiyonu yok).
 - **Mod güncelleme denetleyicisi:** `services/modupdate.py` — klasördeki her jar'ın SHA-512'si Modrinth'e sorulur (`/version_files` + `/version_files/update`), böylece panelin kurduğu, modpack'ten gelen ve elle eklenen modlar birlikte denetlenir. Güncellemede istemci yalnızca dosya adı gönderir, adres/hash sunucuda yeniden alınır; yeni dosya yalnızca Modrinth CDN'inden SHA-512 ile indirilir; eski dosya `.vulu-old-mods/<tarih>/` klasörüne taşınır (son 3 saklanır), kapalı mod kapalı kalır. Beta/alfa sürümler varsayılan seçili değildir.
+- **Panel ayarları:** `app/panel_settings.py` + `routers/panel.py` — adres (yalnızca bu bilgisayar / ev ağı), port, PaperMC iletişim bilgisi ve izinli alan adları panelden değiştirilir; `data/panel-settings.json` `.env`'in üzerine yazar. Ağ ayarı değişikliği mevcut parolayı ister. `run.py` artık gözetmen: paneli alt süreç olarak çalıştırır; panel "yeniden başlat" isteyince önce sunucuları ve playit'i düzgünce durdurur, `data/restart.flag` yazar, gözetmen paneli yeni ayarlarla yeniden açar.
+- **Giriş:** `app/auth.py` — tek yönetici; `hashlib.scrypt` (n=2^15) ile parola, 256 bit rastgele oturum belirteci (veritabanında SHA-256'sı), HttpOnly + SameSite=Strict çerez (HTTPS'te Secure), 12 saat / "beni hatırla" ile 30 gün kayan süre; IP ve kullanıcı adı başına 5 hatadan sonra artan bekleme; ilk hesap konsolda/`data/setup-code.txt`'de görünen tek kullanımlık kodla. `AuthMiddleware` sayfaları `/login`'e yönlendirir, API'ye 401, WebSocket'e kapatma döner; `LocalGuardMiddleware` dışta çalışır (Host/Origin). `PANEL_HOST=0.0.0.0` iken yalnızca özel ağ IP'leri Host olarak kabul edilir. Parola değişince diğer oturumlar kapanır.
 - **playit.gg:** `services/playit.py` — resmi playit programının hizmet kurmadan çalışan 0.17.1 sürümü GitHub'dan indirilir ve sabit SHA-256 ile doğrulanır (her başlatmada yeniden); bağlama `/claim/setup` + `/claim/exchange` ile (kullanıcı `playit.gg/claim/<kod>` adresinde onaylar), anahtar `data/playit/secret.txt` içinde tutulur ve tarayıcıya gönderilmez; program panelin alt süreci olarak çalışır, çökerse yeniden başlatılır. Tüneller `/agents/rundata` ile okunup yerel port eşleşmesiyle sunucuya bağlanır; "İnternete aç" `/tunnels/create` (Minecraft Java, 127.0.0.1:<port>) dener, olmazsa site üzerinden elle oluşturma tarif edilir. Yalnızca Minecraft portu açılır; açmadan önce beyaz liste/online-mode uyarısı verilir.
 - **Başlatma güvenceleri:** Java her zaman ekransız modda başlar (mod kodu pencere ya da tarayıcı açamaz; ek argümanlarla kapatılamaz); başlatmadan önce boş RAM denetlenir; panelin yönettiği Java, Minecraft sürümünün istediğinden eskiyse otomatik yükseltilir; bellek yetmezliği ve uyumsuz Java çökmelerinde konsola Türkçe neden yazılır.
 - **Yedek otomatik temizleme:** sunucu başına `backup_limit`; her yeni yedekten sonra en eski yedekler silinir (yeni alınan korunur). Yedekler oluşturulma zamanına göre sıralanır (aynı saniyede alınanlar dosya zamanına göre).
@@ -119,7 +133,7 @@ Sunucu klasöründeki panel dosyaları: `.vulu-jar.json` (yükleyici), `.vulu-mo
 - [ ] Profile bağlı olmayan sunucularda profil mod listesi yok (mod tarayıcıyla eklenebilir).
 - [ ] Otomatik testler henüz depoda değil (sahte dış servislerle yazılmış testler `tests/` olarak eklenmeli).
 - [ ] Panel kapanınca sunucular kapanır (`systemd`/`tmux` arka ucu planlanıyor).
-- [ ] Giriş sistemi yok; bu nedenle internete açılamaz.
+- [ ] Bağlantı HTTP (şifresiz); panel yalnızca ev ağına açılmalı, internete açmak için HTTPS bekleniyor.
 
 ## 6. Planlanan işler
 
@@ -132,7 +146,7 @@ Sunucu klasöründeki panel dosyaları: `.vulu-jar.json` (yükleyici), `.vulu-mo
 - Discord webhook bildirimleri, modpack sürüm güncelleme
 
 **Uzun dönem**
-- Giriş sistemi (argon2, oturum, hız sınırı, CSRF), çoklu kullanıcı ve yetkiler
+- Çoklu kullanıcı ve yetkiler
 - `SystemdBackend` / `TmuxBackend` (panel kapansa da sunucu açık kalsın)
 - Alan adı + HTTPS ile yayınlama kılavuzu (Caddy), yedek saklama politikası
-- Çoklu dil desteği, otomatik testler ve CI
+- Yeni diller (yalnızca bir çeviri dosyası gerekir), otomatik testler ve CI

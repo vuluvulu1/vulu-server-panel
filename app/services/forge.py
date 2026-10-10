@@ -25,6 +25,7 @@ from .download import download_file
 from .http import new_client
 from .jobs import Job, JobError, JobManager
 from .paper import INFO_FILE, PaperError
+from ..i18n import _t
 
 SAFE = re.compile(r"^[0-9A-Za-z._+-]{1,60}$")
 RELEASE_RE = re.compile(r"^\d+\.\d+(\.\d+)?$")
@@ -81,7 +82,7 @@ class ForgeManager:
                 r.raise_for_status()
                 text = r.text
         except httpx.HTTPError:
-            raise ForgeError(f"{self.name} sürüm listesine ulaşılamadı. İnternet bağlantını kontrol et.")
+            raise ForgeError(_t('{name} sürüm listesine ulaşılamadı. İnternet bağlantını kontrol et.', name=self.name))
         by_mc: dict[str, list[str]] = {}
         for v in re.findall(r"<version>([^<]+)</version>", text):
             mc = self._mc_of(v) if SAFE.match(v) else None
@@ -101,12 +102,12 @@ class ForgeManager:
     async def resolve(self, mc: str, pin: str | None = None) -> dict:
         vs = (await self._metadata()).get(mc) if re.fullmatch(r"[0-9A-Za-z._+-]{1,40}", mc) else None
         if not vs:
-            raise ForgeError(f"{self.name} {mc} sürümünü desteklemiyor.")
+            raise ForgeError(_t('{name} {mc} sürümünü desteklemiyor.', name=self.name, mc=mc))
         stable = [v for v in vs if not UNSTABLE.search(self._tail(v))]
         if pin:                                            # modpack'in istediği tam yükleyici sürümü
             want = f"{mc}-{pin}" if self.flavor == "forge" else pin
             if want not in vs:
-                raise ForgeError(f"{self.name} {pin} sürümü bulunamadı.")
+                raise ForgeError(_t('{name} {pin} sürümü bulunamadı.', name=self.name, pin=pin))
             chosen, stable = want, [want] if not UNSTABLE.search(self._tail(want)) else []
         else:
             chosen = max(stable or vs, key=lambda v: _natural(self._tail(v)))
@@ -134,11 +135,11 @@ class ForgeManager:
 
     # ---------- kurucuyu önbelleğe indir ----------
     def ensure_cached_job(self, version: str, pin: str | None = None) -> Job:
-        return self.jobs.start(self.flavor, f"{self.name} {version} kurucusu indiriliyor", f"{self.flavor}-dl-{version}-{pin or ''}",
+        return self.jobs.start(self.flavor, _t('{name} {version} kurucusu indiriliyor', name=self.name, version=version), f"{self.flavor}-dl-{version}-{pin or ''}",
                                lambda j: self._cache(j, version, pin))
 
     async def _cache(self, job: Job, version: str, pin: str | None = None) -> dict:
-        job.update(0, "resolve", f"{self.name} sürüm bilgisi alınıyor…")
+        job.update(0, "resolve", _t('{name} sürüm bilgisi alınıyor…', name=self.name))
         try:
             info = await self.resolve(version, pin)
         except ForgeError as e:
@@ -146,7 +147,7 @@ class ForgeManager:
         self.cache.mkdir(parents=True, exist_ok=True)
         path = self.cache / info["name"]
         if self.is_cached(info):
-            job.update(95, "cache", "Önbellekte hazır")
+            job.update(95, "cache", _t("Önbellekte hazır"))
             return {**info, "path": str(path), "cached": True}
         kind, digest = await self._checksum(info["url"])
         part = self.cache / (info["name"] + ".part")
@@ -157,7 +158,7 @@ class ForgeManager:
             with open(part, "rb") as f:
                 magic = f.read(2)
             if magic != b"PK" or part.stat().st_size < 10_000:
-                raise JobError(f"{self.name}'dan geçerli bir kurucu gelmedi. Biraz sonra tekrar dene.")
+                raise JobError(_t("{name}'dan geçerli bir kurucu gelmedi. Biraz sonra tekrar dene.", name=self.name))
             os.replace(part, path)
         finally:
             part.unlink(missing_ok=True)
@@ -165,7 +166,7 @@ class ForgeManager:
 
     # ---------- kurucuyu çalıştır ----------
     def ensure_install_job(self, iid: int, info: dict, folder: Path, java_exe: str) -> Job:
-        return self.jobs.start("install", f"{info['label']} kuruluyor", f"{self.flavor}-install-{iid}",
+        return self.jobs.start("install", _t('{label} kuruluyor', label=info['label']), f"{self.flavor}-install-{iid}",
                                lambda j: self._install(j, info, folder, java_exe))
 
     @staticmethod
@@ -189,7 +190,7 @@ class ForgeManager:
             timer.cancel()
 
     async def _install(self, job: Job, info: dict, folder: Path, java_exe: str) -> dict:
-        job.update(1, "install", "Kurucu çalıştırılıyor…")
+        job.update(1, "install", _t("Kurucu çalıştırılıyor…"))
         loop, n = asyncio.get_running_loop(), [0]
 
         def on_line(line: str) -> None:
@@ -199,10 +200,10 @@ class ForgeManager:
         try:
             code, tail = await asyncio.to_thread(self._run, [java_exe, "-Djava.awt.headless=true", "-jar", info["path"], "--installServer"], folder, on_line)
         except OSError as e:
-            raise JobError(f"Kurucu başlatılamadı: {e}")
+            raise JobError(_t('Kurucu başlatılamadı: {e}', e=e))
         if code != 0:
-            raise JobError(f"Kurucu başarısız oldu (çıkış kodu {code}): " + " | ".join(tail[-3:]))
-        job.update(97, "finalize", "Başlatma dosyası aranıyor…")
+            raise JobError(_t('Kurucu başarısız oldu (çıkış kodu {code}): ', code=code) + " | ".join(tail[-3:]))
+        job.update(97, "finalize", _t("Başlatma dosyası aranıyor…"))
         db = self._detect(info, folder)
         (folder / INFO_FILE).write_text(json.dumps({
             "type": self.flavor, "label": info["label"], "version": info["version"], "build": info["build"],
@@ -220,4 +221,4 @@ class ForgeManager:
             for name in (f"forge-{info['maven']}.jar", f"forge-{info['maven']}-universal.jar"):
                 if (folder / name).is_file():
                     return {"launch_type": "jar", "jar_file": name, "args_file": None}
-        raise JobError("Kurulum bitti ama başlatma dosyası bulunamadı. Kurucunun çıktısını kontrol et.")
+        raise JobError(_t("Kurulum bitti ama başlatma dosyası bulunamadı. Kurucunun çıktısını kontrol et."))

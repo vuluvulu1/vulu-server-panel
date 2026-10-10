@@ -9,12 +9,11 @@ import re
 from .config import BASE_DIR
 
 BRAND = {"name": "vulu", "accent_word": "panel"}
+SOURCE_URL = "https://github.com/vuluvulu1/vulu-server-panel"   # AGPL-3.0: kaynak koduna bağlantı (Ayarlar sayfasının altında)
 
 # soon=True olanlar "yakında" diye pasif görünür (sayfa henüz yok)
 NAV_ITEMS = [
     {"label": "Sunucular", "href": "/", "icon": "bi-hdd-rack"},
-    {"label": "Profiller", "href": "/profiles", "icon": "bi-box-seam"},
-    {"label": "Modpack'ler", "href": "/modpacks", "icon": "bi-boxes"},
     {"label": "Yedekler", "href": "/backups", "icon": "bi-archive"},
     {"label": "Ayarlar", "href": "/settings", "icon": "bi-gear"},
 ]
@@ -36,4 +35,5 @@ def list_themes() -> list[dict]:
             "name": m["name"] if m else f.stem,
             "mode": m["mode"] if m else "dark",
         })
+    themes.sort(key=lambda t: (t["id"] != DEFAULT_THEME, t["name"].lower()))   # varsayılan en başta
     return themes

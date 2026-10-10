@@ -9,6 +9,7 @@ import psutil
 
 from ..db import get_instance
 from .rcon import RconClient, RconError
+from ..i18n import _t
 
 log = logging.getLogger("vulu.stats")
 INTERVAL, RCON_EVERY, HISTORY = 2.0, 3, 180
@@ -162,7 +163,7 @@ class StatsService:
         except RconError:
             if st.rcon:
                 await st.rcon.close()
-            st.rcon, st.rcon_state = None, "bekleniyor"
+            st.rcon, st.rcon_state = None, _t("bekleniyor")
 
     def snapshot(self, iid: int, ram_max_mb: int, history: bool = False) -> dict:
         st = self._st.get(iid)

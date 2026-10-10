@@ -1,17 +1,19 @@
 {% extends "base.html" %}
-{% from "components/ui.html" import page_header %}
-{% block title %}Modpack'ler · {{ brand.name }} {{ brand.accent_word }}{% endblock %}
+{% from "components/ui.html" import page_header, wizard_back %}
+{% block title %}{{ _("Modpack'ler") }} · {{ brand.name }} {{ brand.accent_word }}{% endblock %}
 
 {% block content %}
-{{ page_header("Modpack'ler", "Modrinth'teki modpack'lerden tek tıkla sunucu kur") }}
+{% set embed = request.query_params.get("embed") == "1" %}
+{% if embed %}{{ wizard_back("/instances/create", "Başlangıç seçimi") }}<p class="wizard-lead">{{ _("Bir modpack seç") }}</p>
+{% else %}{{ page_header("Modpack'ler", "Modrinth'teki hazır paketlerden birkaç tıkla sunucu kur") }}{% endif %}
 <div id="notes" class="mb-3"></div>
-<p class="text-body-secondary small">Yalnızca sunucu desteği olan, Fabric / Forge / NeoForge kullanan modpack'ler listelenir. Seçince Minecraft sürümü, yükleyici ve tüm modlar paketten otomatik kurulur; yalnızca istemci dosyaları atlanır.</p>
+<p class="text-body-secondary small">{{ _("Sunucuda çalışabilen Fabric, Forge ve NeoForge paketleri listelenir. Bir paket seçtiğinde Minecraft sürümü, yükleyici ve modlar paketten gelir; yalnızca oyuncu tarafında gereken dosyalar sunucuya kurulmaz.") }}</p>
 <form id="search-form" class="input-group mb-3" onsubmit="return false">
-  <input id="search-q" class="form-control" placeholder="Modpack ara… (boş bırakırsan en popülerler)" maxlength="100" autocomplete="off">
-  <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Ara</button>
+  <input id="search-q" class="form-control" placeholder="{{ _("Modpack ara… (boş bırakırsan en popülerler)") }}" maxlength="100" autocomplete="off">
+  <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> {{ _("Ara") }}</button>
 </form>
 <div id="results" class="row g-3"></div>
-<div class="text-center mt-3"><button id="more-btn" class="btn btn-outline-secondary d-none" type="button">Daha fazla göster</button></div>
+<div class="text-center mt-3"><button id="more-btn" class="btn btn-outline-secondary d-none" type="button">{{ _("Daha fazla göster") }}</button></div>
 {% endblock %}
 
-{% block scripts %}<script src="/static/js/modpacks.js"></script>{% endblock %}
+{% block scripts %}<script src="/static/js/modpacks.js?v={{ asset_v() }}"></script>{% endblock %}

@@ -5,8 +5,8 @@
   <div class="page-heading">
     {% if icon_id %}{{ server_icon(icon_id, 56) }}{% endif %}
     <div class="min-w-0">
-      <h1 class="page-title text-truncate" title="{{ title }}">{{ title }}</h1>
-      {% if subtitle %}<p class="page-subtitle" title="{{ subtitle }}">{{ subtitle }}</p>{% endif %}
+      <h1 class="page-title text-truncate" title="{{ _(title) }}">{{ _(title) }}</h1>
+      {% if subtitle %}<p class="page-subtitle" title="{{ _(subtitle) }}">{{ _(subtitle) }}</p>{% endif %}
     </div>
   </div>
   <div class="page-actions">{% if caller %}{{ caller() }}{% endif %}</div>
@@ -15,7 +15,7 @@
 
 {% macro status_badge(status, el_id=None) %}
 {% set labels = {"running": "Çalışıyor", "stopped": "Durdu", "preparing": "Hazırlanıyor", "starting": "Başlıyor", "stopping": "Durduruluyor", "crashed": "Çöktü"} %}
-<span class="status status-{{ status }}"{% if el_id %} id="{{ el_id }}"{% endif %}><span class="status-dot"></span><span class="status-label">{{ labels.get(status, status) }}</span></span>
+<span class="status status-{{ status }}"{% if el_id %} id="{{ el_id }}"{% endif %}><span class="status-dot"></span><span class="status-label">{{ _(labels.get(status, status)) }}</span></span>
 {% endmacro %}
 
 {% macro instance_card(i) %}
@@ -28,7 +28,7 @@
       </div>
       {{ status_badge(i["status"]) }}
     </div>
-    <p class="text-body-secondary small mb-0">Port: {{ i["port"] }} · RAM: {{ i["ram_mb"] // 1024 }} GB</p>
+    <p class="text-body-secondary small mb-0">{{ _("Port: {port} · RAM: {ram} GB", port=i["port"], ram=i["ram_mb"] // 1024) }}</p>
     <p class="small mb-0 mt-1" data-stats></p>
   </div>
 </div>
@@ -37,8 +37,8 @@
 {% macro empty_state(icon, title, text=None) %}
 <div class="empty-state">
   <i class="bi {{ icon }}"></i>
-  <p class="mb-1">{{ title }}</p>
-  {% if text %}<p class="small mb-0">{{ text }}</p>{% endif %}
+  <p class="mb-1">{{ _(title) }}</p>
+  {% if text %}<p class="small mb-0">{{ _(text) }}</p>{% endif %}
 </div>
 {% endmacro %}
 
@@ -56,7 +56,7 @@
 
 {% macro stat_tile(key, label, icon) %}
 <div class="stat-tile">
-  <div class="stat-label"><i class="bi {{ icon }}"></i> {{ label }}</div>
+  <div class="stat-label"><i class="bi {{ icon }}"></i> {{ _(label) }}</div>
   <div class="stat-value" id="stat-{{ key }}">—</div>
   <div class="stat-sub" id="stat-{{ key }}-sub"></div>
 </div>
@@ -65,7 +65,13 @@
 {# Sunucu simgesi (server-icon.png). Yoksa varsayılan simge görünür. #}
 {% macro server_icon(iid, size=48, el_id=None) %}
 <span class="server-icon" style="width:{{ size }}px;height:{{ size }}px;font-size:{{ (size * 0.45)|int }}px"{% if el_id %} id="{{ el_id }}"{% endif %}>
-  <i class="bi bi-hdd-rack"></i>
+  <img class="server-icon-default" src="/static/img/vl.svg" alt="">
   <img src="/api/instances/{{ iid }}/icon" alt="" width="{{ size }}" height="{{ size }}" loading="lazy" onload="this.parentNode.classList.add('has-img')" onerror="this.remove()">
 </span>
+{% endmacro %}
+
+
+{# Sihirbaz içinde (açılır pencere) bir önceki adıma dönüş bağlantısı #}
+{% macro wizard_back(href, label="Geri") %}
+<a class="wizard-back" href="{{ href }}{{ '&' if '?' in href else '?' }}embed=1"><i class="bi bi-arrow-left"></i> {{ _(label) }}</a>
 {% endmacro %}

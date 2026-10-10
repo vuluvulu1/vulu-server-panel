@@ -1,12 +1,12 @@
 <!doctype html>
 {% set embed = request.query_params.get("embed") == "1" %}
-<html lang="tr" data-theme="{{ default_theme }}" data-bs-theme="dark">
+<html lang="{{ lang() }}" data-theme="{{ default_theme }}" data-bs-theme="dark" data-default-theme="{{ default_theme }}" data-themes="{% for t in themes() %}{{ t.id }}:{{ t.mode }}{{ ',' if not loop.last }}{% endfor %}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ brand.name }} {{ brand.accent_word }}{% endblock %}</title>
 
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛏️</text></svg>">
+  <link rel="icon" type="image/svg+xml" href="/static/img/vl.svg">
 
   {# Sayfa boyanmadan önce kayıtlı temayı uygula (yanıp sönmeyi önler) #}
   <script>
@@ -30,20 +30,25 @@
   {% endfor %}<link href="/static/css/components.css?v={{ asset_v() }}" rel="stylesheet">
   <link href="/static/css/custom.css?v={{ asset_v() }}" rel="stylesheet">
 </head>
-<body class="{{ 'embed' if embed else '' }}">
-  {% if embed %}
+<body class="{{ 'embed' if embed else '' }}{{ ' bare' if bare else '' }}">
+  {% if bare %}
+  <main class="auth-main">{{ self.content() }}</main>
+  {% elif embed %}
   <main class="app-main">{{ self.content() }}</main>
   {% else %}
   <div class="app-shell">
     {% include "partials/sidebar.html" %}
     <main class="app-main">
-      {% block content %}{% endblock %}
+      <div class="page-wrap">{% block content %}{% endblock %}</div>
     </main>
   </div>
   {% endif %}
+  {% if lang() != 'tr' %}<script type="application/json" id="vulu-i18n">{{ i18n_catalog()|tojson }}</script>{% endif %}
+  <script src="/static/js/i18n.js?v={{ asset_v() }}"></script>
   <script src="/static/js/theme.js?v={{ asset_v() }}"></script>
   <script src="/static/js/progress.js?v={{ asset_v() }}"></script>
   <script src="/static/js/modal.js?v={{ asset_v() }}"></script>
+  {% if not bare %}<script src="/static/js/session.js?v={{ asset_v() }}"></script>{% endif %}
   {% block scripts %}{% endblock %}
 </body>
 </html>

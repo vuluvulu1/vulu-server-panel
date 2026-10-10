@@ -7,6 +7,7 @@ import logging
 import time
 import uuid
 from typing import AsyncIterator, Awaitable, Callable
+from ..i18n import _t
 
 log = logging.getLogger("vulu.jobs")
 
@@ -117,13 +118,13 @@ class JobManager:
             try:
                 job.finish(await runner(job))
             except asyncio.CancelledError:
-                job.fail("İptal edildi.")
+                job.fail(_t("İptal edildi."))
                 raise
             except JobError as e:
                 job.fail(str(e))
             except Exception as e:  # beklenmeyen hata: logla, kullanıcıya özet göster
                 log.exception("job %s failed", job.id)
-                job.fail(f"Beklenmeyen hata: {e}")
+                job.fail(_t('Beklenmeyen hata: {e}', e=e))
 
         task = asyncio.create_task(_run())
         self._tasks.add(task)

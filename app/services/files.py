@@ -5,6 +5,7 @@ import shutil
 import stat
 import sys
 from pathlib import Path, PurePosixPath
+from ..i18n import _t
 
 
 class FileError(Exception):
@@ -27,11 +28,11 @@ def rel_parts(rel: str) -> tuple[str, ...]:
     if not rel:
         return ()
     if len(rel) > 400 or BAD.search(rel):
-        raise FileError("Geçersiz yol.")
+        raise FileError(_t("Geçersiz yol."))
     parts = PurePosixPath(rel).parts
     for p in parts:
         if p in ("", ".", "..") or p.rstrip(" .") != p or p.split(".")[0].lower() in WIN_RESERVED:
-            raise FileError("Geçersiz yol.")
+            raise FileError(_t("Geçersiz yol."))
     return parts
 
 
@@ -39,7 +40,7 @@ def safe_path(root: Path, rel: str) -> Path:
     root = root.resolve()
     p = root.joinpath(*rel_parts(rel)).resolve()     # resolve sembolik bağlantıları da izler → dışarı çıkan bağlantı yakalanır
     if p != root and not p.is_relative_to(root):
-        raise FileError("Yol sunucu klasörünün dışına çıkıyor.")
+        raise FileError(_t("Yol sunucu klasörünün dışına çıkıyor."))
     return p
 
 
@@ -50,7 +51,7 @@ def to_rel(root: Path, p: Path) -> str:
 def check_name(name: str) -> str:
     name = (name or "").strip()
     if not NAME_OK.match(name) or name in (".", "..") or name.rstrip(" .") != name or name.split(".")[0].lower() in WIN_RESERVED:
-        raise FileError("Geçersiz ad.")
+        raise FileError(_t("Geçersiz ad."))
     return name
 
 
@@ -71,7 +72,7 @@ def protected(root: Path, p: Path) -> bool:
 def listing(root: Path, rel: str) -> dict:
     d = safe_path(root, rel)
     if not d.is_dir():
-        raise FileError("Klasör bulunamadı.")
+        raise FileError(_t("Klasör bulunamadı."))
     items = []
     for e in d.iterdir():
         try:
@@ -90,22 +91,22 @@ def listing(root: Path, rel: str) -> dict:
 def read_text(root: Path, rel: str) -> dict:
     p = safe_path(root, rel)
     if not p.is_file():
-        raise FileError("Dosya bulunamadı.")
+        raise FileError(_t("Dosya bulunamadı."))
     if p.stat().st_size > MAX_EDIT or not is_text(p):
-        raise FileError("Bu dosya metin düzenleyicide açılamaz (çok büyük ya da metin değil). İndirerek açabilirsin.")
+        raise FileError(_t("Bu dosya metin düzenleyicide açılamaz (çok büyük ya da metin değil). İndirerek açabilirsin."))
     return {"path": to_rel(root, p), "content": p.read_text(encoding="utf-8", errors="replace"), "locked": protected(root, p)}
 
 
 def write_text(root: Path, rel: str, content: str) -> None:
     p = safe_path(root, rel)
     if protected(root, p):
-        raise FileError("Bu dosyayı panel yönetir; elle değiştirilemez.")
+        raise FileError(_t("Bu dosyayı panel yönetir; elle değiştirilemez."))
     if len(content.encode("utf-8")) > MAX_EDIT:
-        raise FileError("İçerik çok büyük (en fazla 2 MB).")
+        raise FileError(_t("İçerik çok büyük (en fazla 2 MB)."))
     if p.exists() and not (p.is_file() and is_text(p)):
-        raise FileError("Yalnızca metin dosyaları düzenlenebilir.")
+        raise FileError(_t("Yalnızca metin dosyaları düzenlenebilir."))
     if not p.parent.is_dir():
-        raise FileError("Klasör bulunamadı.")
+        raise FileError(_t("Klasör bulunamadı."))
     tmp = p.with_name(p.name + ".vulu-tmp")
     tmp.write_text(content, encoding="utf-8", newline="")
     os.replace(tmp, p)
@@ -114,20 +115,20 @@ def write_text(root: Path, rel: str, content: str) -> None:
 def make_dir(root: Path, rel: str, name: str) -> None:
     d = safe_path(root, rel)
     if not d.is_dir():
-        raise FileError("Klasör bulunamadı.")
+        raise FileError(_t("Klasör bulunamadı."))
     t = d / check_name(name)
     if t.exists():
-        raise FileError("Bu adla bir dosya ya da klasör zaten var.")
+        raise FileError(_t("Bu adla bir dosya ya da klasör zaten var."))
     t.mkdir()
 
 
 def rename(root: Path, rel: str, new_name: str) -> None:
     p = safe_path(root, rel)
     if not p.exists() or protected(root, p):
-        raise FileError("Bu öğe yeniden adlandırılamaz.")
+        raise FileError(_t("Bu öğe yeniden adlandırılamaz."))
     t = p.parent / check_name(new_name)
     if t.exists():
-        raise FileError("Bu adla bir dosya ya da klasör zaten var.")
+        raise FileError(_t("Bu adla bir dosya ya da klasör zaten var."))
     p.rename(t)
 
 
@@ -139,9 +140,9 @@ def _force(func, path, *_):
 def delete(root: Path, rel: str) -> None:
     p = safe_path(root, rel)
     if not p.exists() and not p.is_symlink():
-        raise FileError("Bulunamadı.")
+        raise FileError(_t("Bulunamadı."))
     if protected(root, p):
-        raise FileError("Bu öğe silinemez.")
+        raise FileError(_t("Bu öğe silinemez."))
     if p.is_symlink() or p.is_file():
         p.unlink()
     elif sys.version_info >= (3, 12):
@@ -153,13 +154,13 @@ def delete(root: Path, rel: str) -> None:
 def upload_target(root: Path, rel: str, filename: str, overwrite: bool) -> Path:
     d = safe_path(root, rel)
     if not d.is_dir():
-        raise FileError("Klasör bulunamadı.")
+        raise FileError(_t("Klasör bulunamadı."))
     name = check_name(Path(filename.replace("\\", "/")).name)
     if Path(name).suffix.lower() in UPLOAD_DENY:
-        raise FileError(f"Güvenlik nedeniyle bu dosya türü yüklenemez: {Path(name).suffix}")
+        raise FileError(_t('Güvenlik nedeniyle bu dosya türü yüklenemez: {suffix}', suffix=Path(name).suffix))
     t = d / name
     if protected(root, t):
-        raise FileError("Bu dosyayı panel yönetir.")
+        raise FileError(_t("Bu dosyayı panel yönetir."))
     if t.exists() and (t.is_dir() or not overwrite):
-        raise FileError(f"'{name}' zaten var." + ("" if t.is_dir() else " Üzerine yazmak için kutuyu işaretle."))
+        raise FileError(_t("'{name}' zaten var.", name=name) + ("" if t.is_dir() else _t(" Üzerine yazmak için kutuyu işaretle.")))
     return t

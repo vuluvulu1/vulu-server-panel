@@ -1,6 +1,7 @@
 """Minimal Source-RCON istemcisi (Minecraft RCON ile uyumlu)."""
 import asyncio
 import struct
+from ..i18n import _t
 
 
 class RconError(Exception):
@@ -23,26 +24,26 @@ class RconClient:
             for _ in range(5):
                 rid, typ, _ = await self._recv()
                 if rid == -1:
-                    raise RconError("RCON şifresi reddedildi.")
+                    raise RconError(_t("RCON şifresi reddedildi."))
                 if typ == 2 and rid == 1:
                     return
-            raise RconError("RCON girişi tamamlanamadı.")
+            raise RconError(_t("RCON girişi tamamlanamadı."))
         except _NET as e:
             await self.close()
-            raise RconError(f"RCON bağlantısı kurulamadı ({e.__class__.__name__}).")
+            raise RconError(_t('RCON bağlantısı kurulamadı ({name__}).', name__=e.__class__.__name__))
         except RconError:
             await self.close()
             raise
 
     async def command(self, cmd: str) -> str:
         if not self._w:
-            raise RconError("RCON bağlı değil.")
+            raise RconError(_t("RCON bağlı değil."))
         try:
             await self._send(2, 2, cmd)
             return (await self._recv())[2]
         except _NET as e:
             await self.close()
-            raise RconError(f"RCON komutu başarısız ({e.__class__.__name__}).")
+            raise RconError(_t('RCON komutu başarısız ({name__}).', name__=e.__class__.__name__))
 
     async def close(self) -> None:
         w, self._w, self._r = self._w, None, None
@@ -61,7 +62,7 @@ class RconClient:
     async def _recv(self) -> tuple[int, int, str]:
         length = struct.unpack("<i", await asyncio.wait_for(self._r.readexactly(4), self.timeout))[0]
         if not 10 <= length <= 8192:
-            raise RconError("Geçersiz RCON paketi.")
+            raise RconError(_t("Geçersiz RCON paketi."))
         data = await asyncio.wait_for(self._r.readexactly(length), self.timeout)
         rid, typ = struct.unpack("<ii", data[:8])
         return rid, typ, data[8:-2].decode("utf-8", "replace")

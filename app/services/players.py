@@ -21,6 +21,7 @@ from pathlib import Path
 from .http import new_client
 from .properties import read_properties, update_properties
 from .rcon import RconClient, RconError
+from ..i18n import _t
 
 NAME_RE = re.compile(r"^[A-Za-z0-9_]{1,16}$")
 UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}$")
@@ -96,9 +97,9 @@ class PlayerManager:
     # ---------- işlem ----------
     async def action(self, inst: dict, action: str, name: str = "", reason: str = "") -> str:
         if action not in ACTIONS:
-            raise PlayerError("Geçersiz işlem.")
+            raise PlayerError(_t("Geçersiz işlem."))
         if action not in ("whitelist_on", "whitelist_off") and not NAME_RE.match(name or ""):
-            raise PlayerError("Oyuncu adı 1-16 karakter olmalı; yalnızca harf, rakam ve alt çizgi.")
+            raise PlayerError(_t("Oyuncu adı 1-16 karakter olmalı; yalnızca harf, rakam ve alt çizgi."))
         reason = REASON_RE.sub("", (reason or "").replace("\n", " ").strip())[:100]
         iid = inst["id"]
         lock = self._locks.setdefault(iid, asyncio.Lock())
@@ -107,9 +108,9 @@ class PlayerManager:
             if status == "running":
                 return await self._rcon(inst, action, name, reason)
             if status in ("starting", "stopping", "preparing"):
-                raise PlayerError("Sunucu açılıyor ya da kapanıyor; birkaç saniye sonra tekrar dene.")
+                raise PlayerError(_t("Sunucu açılıyor ya da kapanıyor; birkaç saniye sonra tekrar dene."))
             if action == "kick":
-                raise PlayerError("Atmak için sunucunun çalışıyor olması gerekir.")
+                raise PlayerError(_t("Atmak için sunucunun çalışıyor olması gerekir."))
             return await self._offline(inst, action, name, reason)
 
     async def _rcon(self, inst: dict, action: str, name: str, reason: str) -> str:
@@ -118,7 +119,7 @@ class PlayerManager:
                "ban": f"ban {name} {reason}".rstrip(), "kick": f"kick {name} {reason}".rstrip(),
                "whitelist_on": "whitelist on", "whitelist_off": "whitelist off"}[action]
         if not inst.get("rcon_port") or not inst.get("rcon_password"):
-            raise PlayerError("RCON hazır değil; sunucuyu panelden yeniden başlat.")
+            raise PlayerError(_t("RCON hazır değil; sunucuyu panelden yeniden başlat."))
         cli = RconClient("127.0.0.1", int(inst["rcon_port"]), inst["rcon_password"])
         try:
             await cli.connect()
@@ -134,7 +135,7 @@ class PlayerManager:
                 pass
         await asyncio.sleep(0.3)                                  # sunucu json dosyasını yazsın
         out = re.sub(r"§.", "", out or "").strip()
-        return out[:300] or "Komut gönderildi."
+        return out[:300] or _t("Komut gönderildi.")
 
     async def _uuid(self, inst: dict, name: str) -> tuple[str, str]:
         folder = Path(inst["path"])
@@ -145,18 +146,18 @@ class PlayerManager:
             async with new_client() as c:
                 r = await c.get(self.profile_api + name, timeout=10)
         except Exception:
-            raise PlayerError("Mojang'a ulaşılamadı; oyuncunun UUID'si bulunamadı. İnternet bağlantını kontrol et ya da sunucu açıkken dene.")
+            raise PlayerError(_t("Mojang'a ulaşılamadı; oyuncunun UUID'si bulunamadı. İnternet bağlantını kontrol et ya da sunucu açıkken dene."))
         if r.status_code in (204, 404):
-            raise PlayerError(f"'{name}' adında bir Minecraft hesabı bulunamadı.")
+            raise PlayerError(_t("'{name}' adında bir Minecraft hesabı bulunamadı.", name=name))
         if r.status_code != 200:
-            raise PlayerError(f"Mojang yanıt vermedi (HTTP {r.status_code}). Biraz sonra tekrar dene.")
+            raise PlayerError(_t('Mojang yanıt vermedi (HTTP {status_code}). Biraz sonra tekrar dene.', status_code=r.status_code))
         try:
             j = r.json()
             uid, real = str(j["id"]), str(j.get("name") or name)
         except (ValueError, KeyError, TypeError):
-            raise PlayerError("Mojang'dan beklenmeyen yanıt geldi.")
+            raise PlayerError(_t("Mojang'dan beklenmeyen yanıt geldi."))
         if not UUID_RE.match(uid) or not NAME_RE.match(real):
-            raise PlayerError("Mojang'dan geçersiz yanıt geldi.")
+            raise PlayerError(_t("Mojang'dan geçersiz yanıt geldi."))
         return _dashed(uid), real
 
     async def _offline(self, inst: dict, action: str, name: str, reason: str) -> str:
@@ -166,8 +167,8 @@ class PlayerManager:
             try:
                 update_properties(folder / "server.properties", {"white-list": "true" if on else "false"})
             except (OSError, ValueError) as e:
-                raise PlayerError(f"server.properties yazılamadı: {e}")
-            return "Beyaz liste açıldı." if on else "Beyaz liste kapatıldı."
+                raise PlayerError(_t('server.properties yazılamadı: {e}', e=e))
+            return _t("Beyaz liste açıldı.") if on else _t("Beyaz liste kapatıldı.")
 
         kind = {"whitelist_add": "whitelist", "whitelist_remove": "whitelist", "op": "ops", "deop": "ops",
                 "ban": "bans", "pardon": "bans"}[action]
@@ -178,29 +179,29 @@ class PlayerManager:
 
         if action in ("whitelist_remove", "deop", "pardon"):
             if not existing:
-                return f"{name} listede yok."
+                return _t('{name} listede yok.', name=name)
             items = [e for e in items if str(e.get("name", "")).lower() != low]
-            msg = {"whitelist_remove": f"{name} beyaz listeden çıkarıldı.", "deop": f"{name} artık OP değil.",
-                   "pardon": f"{name} yasağı kaldırıldı."}[action]
+            msg = {"whitelist_remove": _t('{name} beyaz listeden çıkarıldı.', name=name), "deop": _t('{name} artık OP değil.', name=name),
+                   "pardon": _t('{name} yasağı kaldırıldı.', name=name)}[action]
         else:
             if existing:
-                return {"whitelist_add": f"{name} zaten beyaz listede.", "op": f"{name} zaten OP.", "ban": f"{name} zaten yasaklı."}[action]
+                return {"whitelist_add": _t('{name} zaten beyaz listede.', name=name), "op": _t('{name} zaten OP.', name=name), "ban": _t('{name} zaten yasaklı.', name=name)}[action]
             uid, real = await self._uuid(inst, name)
             items = [e for e in items if str(e.get("uuid", "")).lower() != uid]
             if action == "whitelist_add":
                 items.append({"uuid": uid, "name": real})
-                msg = f"{real} beyaz listeye eklendi."
+                msg = _t('{real} beyaz listeye eklendi.', real=real)
             elif action == "op":
                 items.append({"uuid": uid, "name": real, "level": 4, "bypassesPlayerLimit": False})
-                msg = f"{real} OP yapıldı."
+                msg = _t('{real} OP yapıldı.', real=real)
             else:
                 items.append({"uuid": uid, "name": real, "created": datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %z"),
                               "source": "vulu panel", "expires": "forever", "reason": reason or "Banned by an operator."})
-                msg = f"{real} yasaklandı."
+                msg = _t('{real} yasaklandı.', real=real)
         if self.pm.status(inst["id"]) not in ("stopped", "crashed"):
-            raise PlayerError("Sunucu bu arada başlatıldı; işlemi tekrar dene.")
+            raise PlayerError(_t("Sunucu bu arada başlatıldı; işlemi tekrar dene."))
         try:
             _write_list(path, items)
         except OSError as e:
-            raise PlayerError(f"{FILES[kind]} yazılamadı: {e}")
+            raise PlayerError(_t('{v0} yazılamadı: {e}', v0=FILES[kind], e=e))
         return msg

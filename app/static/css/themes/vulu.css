@@ -1,20 +1,29 @@
-/* name: vulu Violet | mode: dark */
+/* name: vulu | mode: dark */
+/* Logo paleti: kömür siyahı zemin, kahverengi çerçeve, kum/bej vurgu. Keskin köşeler, belirgin çerçeveler. */
 [data-theme="vulu"] {
-  --bg: #14151a;
-  --surface: #1c1e26;
-  --surface-2: #252835;
-  --border: #2e3140;
-  --text: #e6e8ef;
-  --text-muted: #8b90a3;
+  --bg: #0b0908;
+  --surface: #141110;
+  --surface-2: #1d1815;
+  --border: #33261c;
+  --text: #f1e9e2;
+  --text-muted: #a08f81;
 
-  --accent: #7c5cff;
-  --accent-hover: #957bff;
-  --accent-contrast: #ffffff;
-  --accent-rgb: 124, 92, 255;
+  --accent: #c9a992;          /* L: kum */
+  --accent-hover: #dcc2ae;
+  --accent-contrast: #1a110b;
+  --accent-rgb: 201, 169, 146;
+  --accent-2: #8a5a36;        /* V: kahve (biraz açılmış, koyu zeminde okunsun) */
+  --accent-2-rgb: 138, 90, 54;
 
-  --success: #3ddc97;
-  --warning: #ffb454;
-  --danger: #ff5c6c;
+  --success: #8fbf6a;
+  --warning: #e3a857;
+  --danger: #e2685a;
 
-  --card-hover-shadow: 0 6px 24px rgba(124, 92, 255, .15);
+  --radius: 6px;
+  --radius-sm: 4px;
+
+  --card-shadow: inset 0 1px 0 rgba(201, 169, 146, .04);
+  --card-hover-shadow: 0 0 0 1px rgba(201, 169, 146, .35), 0 8px 24px rgba(0, 0, 0, .45);
+  --heading-weight: 800;
+  --heading-tracking: -.01em;
 }

@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 from ..db import get_conn, get_instance
 from ..services.scheduler import DAYS_RE, TIME_RE, next_run
 from ..templating import templates
+from ..i18n import _t
 
 router = APIRouter()
 MAX_PER_INSTANCE = 20
@@ -12,7 +13,7 @@ MAX_PER_INSTANCE = 20
 def _inst(iid: int) -> dict:
     inst = get_instance(iid)
     if not inst:
-        raise HTTPException(404, "Sunucu bulunamadı")
+        raise HTTPException(404, _t("Sunucu bulunamadı"))
     return inst
 
 
@@ -46,12 +47,12 @@ async def schedules_create(iid: int, b: ScheduleBody):
     _inst(iid)
     days = "".join(sorted(set(b.days)))
     if not TIME_RE.match(b.time_hm):
-        raise HTTPException(400, "Saat SS:DD biçiminde olmalı (örn. 04:00).")
+        raise HTTPException(400, _t("Saat SS:DD biçiminde olmalı (örn. 04:00)."))
     if not DAYS_RE.match(days):
-        raise HTTPException(400, "En az bir gün seç.")
+        raise HTTPException(400, _t("En az bir gün seç."))
     with get_conn() as conn:
         if conn.execute("SELECT COUNT(*) FROM schedules WHERE instance_id = ?", (iid,)).fetchone()[0] >= MAX_PER_INSTANCE:
-            raise HTTPException(400, f"Bir sunucu için en fazla {MAX_PER_INSTANCE} zamanlama eklenebilir.")
+            raise HTTPException(400, _t('Bir sunucu için en fazla {MAX_PER_INSTANCE} zamanlama eklenebilir.', MAX_PER_INSTANCE=MAX_PER_INSTANCE))
         conn.execute("INSERT INTO schedules (instance_id, kind, time_hm, days, warn_minutes, backup_mode, keep) VALUES (?, ?, ?, ?, ?, ?, ?)",
                      (iid, b.kind, b.time_hm, days, b.warn_minutes, b.backup_mode, b.keep))
     return {"ok": True}
@@ -64,7 +65,7 @@ class IdBody(BaseModel):
 
 def _own(conn, iid: int, sid: int) -> None:
     if not conn.execute("SELECT 1 FROM schedules WHERE id = ? AND instance_id = ?", (sid, iid)).fetchone():
-        raise HTTPException(404, "Zamanlama bulunamadı.")
+        raise HTTPException(404, _t("Zamanlama bulunamadı."))
 
 
 @router.post("/api/instances/{iid}/schedules/toggle")

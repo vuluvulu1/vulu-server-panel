@@ -1,7 +1,7 @@
 (function () {
   const cards = document.querySelectorAll('[data-card]');
   if (!cards.length) return;
-  const LABELS = { running: 'Çalışıyor', stopped: 'Durdu', preparing: 'Hazırlanıyor', starting: 'Başlıyor', stopping: 'Durduruluyor', crashed: 'Çöktü' };
+  const LABELS = { running: _t('Çalışıyor'), stopped: _t('Durdu'), preparing: _t('Hazırlanıyor'), starting: _t('Başlıyor'), stopping: _t('Durduruluyor'), crashed: _t('Çöktü') };
 
   async function tick() {
     if (document.hidden) return;
@@ -18,9 +18,9 @@
         const el = c.querySelector('[data-stats]');
         if (!s.running) { el.textContent = ''; return; }
         const parts = [];
-        if (s.players !== null) parts.push(`Oyuncu ${s.players}/${s.max_players}`);
-        parts.push(`RAM ${(s.ram_mb / 1024).toFixed(1)} GB`, `CPU ${s.cpu}%`);
-        if (s.tps !== null) parts.push(`TPS ${s.tps}`);
+        if (s.players !== null) parts.push(_t("Oyuncu {players}/{max_players}", {players: s.players, max_players: s.max_players}));
+        parts.push(_t("RAM {v0} GB", {v0: (s.ram_mb / 1024).toFixed(1)}), _t("CPU {cpu}%", {cpu: s.cpu}));
+        if (s.tps !== null) parts.push(_t("TPS {tps}", {tps: s.tps}));
         el.textContent = parts.join(' · ');
       });
     } catch (e) {}

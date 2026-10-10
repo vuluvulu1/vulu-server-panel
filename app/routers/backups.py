@@ -6,6 +6,7 @@ from ..db import get_conn, get_instance, update_instance
 from ..services.backup import BackupError
 from ..services.container import backups, jobs, launcher
 from ..templating import templates
+from ..i18n import _t
 
 router = APIRouter()
 STOPPED = ("stopped", "crashed")
@@ -14,7 +15,7 @@ STOPPED = ("stopped", "crashed")
 def _inst(iid: int) -> dict:
     inst = get_instance(iid)
     if not inst:
-        raise HTTPException(404, "Sunucu bulunamadı")
+        raise HTTPException(404, _t("Sunucu bulunamadı"))
     return inst
 
 
@@ -55,9 +56,9 @@ class FileBody(BaseModel):
 async def backups_create(iid: int, b: CreateBody):
     inst = _inst(iid)
     if jobs.find_running(f"restore-{iid}"):
-        raise HTTPException(409, "Geri yükleme sürüyor.")
+        raise HTTPException(409, _t("Geri yükleme sürüyor."))
     if launcher.pm.status(iid) in ("preparing", "starting", "stopping"):
-        raise HTTPException(409, "Sunucu başlarken/dururken yedek alınamaz; birkaç saniye bekle.")
+        raise HTTPException(409, _t("Sunucu başlarken/dururken yedek alınamaz; birkaç saniye bekle."))
     return {"job_id": backups.ensure_create_job(inst, b.mode, b.note.strip()).id}
 
 
@@ -77,9 +78,9 @@ async def backups_limit(iid: int, b: LimitBody):
 async def backups_restore(iid: int, b: FileBody):
     inst = _inst(iid)
     if launcher.pm.status(iid) not in STOPPED:
-        raise HTTPException(409, "Geri yüklemek için önce sunucuyu durdur.")
+        raise HTTPException(409, _t("Geri yüklemek için önce sunucuyu durdur."))
     if jobs.find_running(f"backup-{iid}") or any(j.status == "running" and (j.key or "").endswith(f"-{iid}") for j in jobs._jobs.values()):
-        raise HTTPException(409, "Bu sunucu için başka bir işlem sürüyor; bitmesini bekle.")
+        raise HTTPException(409, _t("Bu sunucu için başka bir işlem sürüyor; bitmesini bekle."))
     try:
         return {"job_id": backups.ensure_restore_job(inst, b.file).id}
     except BackupError as e:

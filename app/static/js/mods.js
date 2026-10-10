@@ -15,7 +15,7 @@
   async function api(path, opts) {
     const r = await fetch(`/api/instances/${id}/mods/${path}`, opts);
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(j.detail || ('Hata ' + r.status));
+    if (!r.ok) throw new Error(j.detail || (_t('Hata ') + r.status));
     return j;
   }
   const post = (path, data) => api(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
@@ -25,7 +25,7 @@
     try {
       const j = await api('installed');
       body.replaceChildren();
-      if (!j.items.length) body.appendChild(el('tr')).appendChild(el('td', 'text-body-secondary', `Henüz ${noun.toLowerCase()} yok (klasör: ${j.dir}/).`)).colSpan = 5;
+      if (!j.items.length) body.appendChild(el('tr')).appendChild(el('td', 'text-body-secondary', _t("Henüz {v0} yok (klasör: {dir}/).", {v0: noun.toLowerCase(), dir: j.dir}))).colSpan = 5;
       const stopped = j.status === 'stopped' || j.status === 'crashed';
       j.items.forEach(it => {
         const tr = el('tr');
@@ -37,10 +37,10 @@
         en.appendChild(cb); tr.appendChild(en);
         const del = el('td', 'text-end'), b = el('button', 'btn btn-sm btn-outline-danger'); b.type = 'button'; b.disabled = !stopped;
         b.appendChild(el('i', 'bi bi-trash'));
-        b.addEventListener('click', () => { if (confirm(`${it.title} silinsin mi? Başka modların bağımlılığı olabilir.`)) act('remove', { filename: it.file }); });
+        b.addEventListener('click', () => { if (confirm(_t("{title} silinsin mi? Başka modların bağımlılığı olabilir.", {title: it.title}))) act('remove', { filename: it.file }); });
         del.appendChild(b); tr.appendChild(del); body.appendChild(tr);
       });
-      if (!stopped) note('warning', 'Sunucu çalışıyor: mod ekleme, silme ve açıp kapatma için önce sunucuyu durdur.');
+      if (!stopped) note('warning', _t('Sunucu çalışırken modlar değiştirilemez. Mod eklemek, silmek ya da açıp kapatmak için önce sunucuyu durdur.'));
     } catch (e) { note('danger', String(e.message || e)); }
   }
   // ---------- bağımlılık denetimi ----------
@@ -52,29 +52,29 @@
       checkBox.replaceChildren();
       if (r.missing.length) {
         const a = el('div', 'alert alert-danger py-2 small mb-2');
-        a.appendChild(el('strong', '', `${r.missing.length} zorunlu bağımlılık eksik — sunucu açılmayabilir.`));
-        a.appendChild(el('div', 'mb-1', 'Modrinth\'te aramak için bir ada tıkla. Bulunamazsa mod büyük ihtimalle yalnızca CurseForge\'dadır; jar dosyasını Dosyalar\'dan mods/ klasörüne yükleyebilirsin.'));
+        a.appendChild(el('strong', '', _t("{length} zorunlu bağımlılık eksik — sunucu açılmayabilir.", {length: r.missing.length})));
+        a.appendChild(el('div', 'mb-1', _t('Bir ada tıklayınca Modrinth\'te aranır. Sonuç çıkmazsa mod büyük olasılıkla yalnızca CurseForge\'dadır; jar dosyasını oradan indirip Dosyalar sekmesinden mods/ klasörüne yükleyebilirsin.')));
         const ul = el('ul', 'mb-0 ps-3');
         r.missing.slice(0, 50).forEach(m => {
           const li = el('li');
           const b = el('button', 'btn btn-link btn-sm p-0 align-baseline', m.id); b.type = 'button';
           b.addEventListener('click', () => { $('search-q').value = m.id; search(true); $('search-q').scrollIntoView({ behavior: 'smooth', block: 'center' }); });
-          li.append(b, el('span', 'text-body-secondary', ' — isteyen: ' + m.required_by.slice(0, 3).join(', ')));
+          li.append(b, el('span', 'text-body-secondary', _t(' — isteyen: ') + m.required_by.slice(0, 3).join(', ')));
           ul.appendChild(li);
         });
         a.appendChild(ul); checkBox.appendChild(a);
       }
       if (r.client_only.length) {
         const w = el('div', 'alert alert-warning py-2 small mb-2');
-        w.appendChild(el('strong', '', 'İstemciye özel modlar: '));
-        w.appendChild(document.createTextNode(r.client_only.map(c => c.name).join(', ') + '. Sunucuda gerekmez ve çökmeye yol açabilir; yukarıdaki listeden kapatabilirsin.'));
+        w.appendChild(el('strong', '', _t('İstemciye özel modlar: ')));
+        w.appendChild(document.createTextNode(r.client_only.map(c => c.name).join(', ') + _t('. Sunucuda gerekmez ve çökmeye yol açabilir; yukarıdaki listeden kapatabilirsin.')));
         checkBox.appendChild(w);
       }
     } catch (e) { /* denetim isteğe bağlı: hata sessizce geçilir */ }
   }
 
   async function act(kind, data) {
-    try { await post(kind, data); note('success', 'Yapıldı. Değişikliğin etkin olması için sunucuyu (yeniden) başlat.'); VuluModal.changed(); }
+    try { await post(kind, data); note('success', _t('Tamam. Değişikliğin geçerli olması için sunucuyu başlat ya da yeniden başlat.')); VuluModal.changed(); }
     catch (e) { note('danger', String(e.message || e)); }
     loadInstalled(); loadCheck();
   }
@@ -87,9 +87,9 @@
     const mid = el('div', 'flex-grow-1'); mid.style.minWidth = '0';
     mid.appendChild(el('h3', 'h6 mb-1', h.title));
     mid.appendChild(el('p', 'small text-body-secondary mb-1 mod-desc', h.description));
-    mid.appendChild(el('div', 'small text-body-secondary', `${h.author} · ${h.downloads.toLocaleString('tr-TR')} indirme`));
+    mid.appendChild(el('div', 'small text-body-secondary', _t('{author} · {n} indirme', {author: h.author, n: h.downloads.toLocaleString(VULU_LANG)})));
     b.appendChild(mid);
-    const btn = el('button', 'btn btn-sm align-self-start flex-shrink-0 ' + (h.installed ? 'btn-outline-secondary' : 'btn-primary'), h.installed ? 'Kurulu ✓' : 'Kur');
+    const btn = el('button', 'btn btn-sm align-self-start flex-shrink-0 ' + (h.installed ? 'btn-outline-secondary' : 'btn-primary'), h.installed ? _t('Kurulu ✓') : _t('Kur'));
     btn.type = 'button'; btn.disabled = h.installed; btn.dataset.slug = h.slug;
     btn.addEventListener('click', () => install(h, btn));
     b.appendChild(btn); c.appendChild(b); col.appendChild(c);
@@ -102,7 +102,7 @@
       const j = await api(`search?q=${encodeURIComponent(query)}&offset=${offset}`);
       total = j.total; offset += j.hits.length;
       j.hits.forEach(h => results.appendChild(card(h)));
-      if (!results.children.length) results.appendChild(el('p', 'text-body-secondary', 'Sonuç yok.'));
+      if (!results.children.length) results.appendChild(el('p', 'text-body-secondary', _t('Sonuç yok.')));
       if (offset < total && j.hits.length) more.classList.remove('d-none');
     } catch (e) { note('danger', String(e.message || e)); }
   }
@@ -114,34 +114,34 @@
     notes.replaceChildren();
     const finish = (s) => {
       busy = false;
-      document.querySelectorAll('#results button').forEach(x => { if (!x.textContent.startsWith('Kurulu')) x.disabled = false; });
+      document.querySelectorAll('#results button').forEach(x => { if (!x.textContent.startsWith(_t('Kurulu'))) x.disabled = false; });
       if (s.status === 'done') {
         VuluModal.changed();
-        btn.textContent = 'Kurulu ✓'; btn.className = 'btn btn-sm align-self-start flex-shrink-0 btn-outline-secondary'; btn.disabled = true;
+        btn.textContent = _t('Kurulu ✓'); btn.className = 'btn btn-sm align-self-start flex-shrink-0 btn-outline-secondary'; btn.disabled = true;
         const w = (s.result && s.result.warnings) || [];
-        note(w.length ? 'warning' : 'success', `${h.title} kuruldu (${s.result ? s.result.count : 1} dosya). Etkin olması için sunucuyu (yeniden) başlat.` + (w.length ? ' Uyarılar: ' + w.join(' ') : ''));
+        note(w.length ? 'warning' : 'success', _t("{title} kuruldu ({v1} dosya). Etkin olması için sunucuyu (yeniden) başlat.", {title: h.title, v1: s.result ? s.result.count : 1}) + (w.length ? _t(' Uyarılar: ') + w.join(' ') : ''));
         setTimeout(() => prog.hide(), 1200);
-      } else note('danger', s.error || 'Kurulum başarısız oldu.');
+      } else note('danger', s.error || _t('Kurulum başarısız oldu.'));
       loadInstalled(); loadCheck();
     };
     try {
       const j = await post('add', { slug: h.slug });
       VuluProgress.watchJob(j.job_id, (s) => { prog.show(s); if (s.status !== 'running') finish(s); });
-    } catch (e) { busy = false; document.querySelectorAll('#results button').forEach(x => { if (!x.textContent.startsWith('Kurulu')) x.disabled = false; }); note('danger', String(e.message || e)); }
+    } catch (e) { busy = false; document.querySelectorAll('#results button').forEach(x => { if (!x.textContent.startsWith(_t('Kurulu'))) x.disabled = false; }); note('danger', String(e.message || e)); }
   }
 
   // ---------- güncellemeler ----------
   const updBox = $('upd-box'), updBtn = $('upd-check');
   async function checkUpdates() {
     if (busy) return;
-    updBtn.disabled = true; updBox.replaceChildren(el('div', 'small text-body-secondary mb-2', 'Denetleniyor… (dosyalar Modrinth ile karşılaştırılıyor)'));
+    updBtn.disabled = true; updBox.replaceChildren(el('div', 'small text-body-secondary mb-2', _t('Denetleniyor… Mod dosyaları Modrinth\'teki sürümlerle karşılaştırılıyor.')));
     try {
       const r = await post('updates/check', {});
       updBox.replaceChildren();
-      const info = `${r.checked} dosya denetlendi` + (r.unknown ? `, ${r.unknown} tanesi Modrinth'te yok (elle/CurseForge)` : '') + '.';
-      if (!r.items.length) { updBox.appendChild(el('div', 'alert alert-success py-2 small mb-3', 'Hepsi güncel. ' + info)); return; }
+      const info = _t('{n} dosya denetlendi', {n: r.checked}) + (r.unknown ? _t(", {n} tanesi Modrinth'te yok (elle/CurseForge)", {n: r.unknown}) : '') + '.';
+      if (!r.items.length) { updBox.appendChild(el('div', 'alert alert-success py-2 small mb-3', _t('Hepsi güncel. ') + info)); return; }
       const card = el('div', 'card static mb-3'), cb = el('div', 'card-body');
-      cb.appendChild(el('div', 'small mb-2', `${r.items.length} güncelleme var. ${info}`));
+      cb.appendChild(el('div', 'small mb-2', _t("{length} güncelleme var. {info}", {length: r.items.length, info})));
       const list = el('div', 'mb-2');
       r.items.forEach(it => {
         const lab = el('label', 'form-check d-flex align-items-center gap-2 mb-1');
@@ -150,9 +150,9 @@
         if (it.new_type !== 'release') lab.appendChild(el('span', 'badge text-bg-warning', it.new_type));
         list.appendChild(lab);
       });
-      const go = el('button', 'btn btn-sm btn-primary', 'Seçilenleri güncelle'); go.type = 'button';
+      const go = el('button', 'btn btn-sm btn-primary', _t('Seçilenleri güncelle')); go.type = 'button';
       go.addEventListener('click', () => applyUpdates([...list.querySelectorAll('input:checked')].map(x => x.value), go));
-      cb.append(list, go, el('div', 'form-text', 'Eski dosyalar silinmez, sunucu klasöründeki .vulu-old-mods/ içine taşınır. Beta/alfa sürümler varsayılan olarak seçili değildir.'));
+      cb.append(list, go, el('div', 'form-text', _t('Eski dosyalar silinmez, sunucu klasöründeki .vulu-old-mods/ içine taşınır; bir sorun olursa geri koyabilirsin. Beta ve alfa sürümler kararsız olabileceği için varsayılan olarak seçili gelmez.')));
       card.appendChild(cb); updBox.appendChild(card);
     } catch (e) { updBox.replaceChildren(el('div', 'alert alert-danger py-2 small mb-3', String(e.message || e))); }
     finally { updBtn.disabled = false; }
@@ -166,8 +166,8 @@
         prog.show(s);
         if (s.status === 'running') return;
         busy = false; updBtn.disabled = false;
-        if (s.status === 'done') { note('success', (s.result && s.result.message) || 'Güncellendi.'); VuluModal.changed(); setTimeout(() => prog.hide(), 1200); updBox.replaceChildren(); }
-        else { note('danger', s.error || 'Güncelleme başarısız oldu.'); btn.disabled = false; }
+        if (s.status === 'done') { note('success', (s.result && s.result.message) || _t('Güncellendi.')); VuluModal.changed(); setTimeout(() => prog.hide(), 1200); updBox.replaceChildren(); }
+        else { note('danger', s.error || _t('Güncelleme başarısız oldu.')); btn.disabled = false; }
         loadInstalled(); loadCheck();
       });
     } catch (e) { busy = false; btn.disabled = false; updBtn.disabled = false; note('danger', String(e.message || e)); }

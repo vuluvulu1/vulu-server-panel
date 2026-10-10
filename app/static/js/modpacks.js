@@ -11,16 +11,16 @@
     const mid = el('div', 'flex-grow-1'); mid.style.minWidth = '0';
     mid.appendChild(el('h3', 'h6 mb-1', h.title));
     mid.appendChild(el('p', 'small text-body-secondary mb-1 mod-desc', h.description));
-    const meta = el('div', 'small text-body-secondary', `${h.author} · ${h.downloads.toLocaleString('tr-TR')} indirme`);
+    const meta = el('div', 'small text-body-secondary', _t('{author} · {n} indirme', {author: h.author, n: h.downloads.toLocaleString(VULU_LANG)}));
     mid.appendChild(meta);
     const chips = el('div', 'd-flex flex-wrap gap-1 mt-1');
-    if (h.mc) chips.appendChild(el('span', 'badge text-bg-secondary', 'MC ' + h.mc));
+    if (h.mc) chips.appendChild(el('span', 'badge text-bg-secondary', _t('MC ') + h.mc));
     h.loaders.forEach(l => chips.appendChild(el('span', 'badge text-bg-secondary', l)));
     mid.appendChild(chips);
     b.appendChild(mid);
-    const a = el('a', 'btn btn-sm btn-primary align-self-start flex-shrink-0', 'Sunucu oluştur');
+    const a = el('a', 'btn btn-sm btn-primary align-self-start flex-shrink-0', _t('Sunucu oluştur'));
     a.href = '/instances/new?modpack=' + encodeURIComponent(h.slug);
-    a.dataset.modal = 'Yeni sunucu · ' + h.title; a.dataset.modalSize = 'md';
+    a.dataset.modal = _t('Yeni sunucu · ') + h.title; a.dataset.modalSize = 'md';
     b.appendChild(a); c.appendChild(b); col.appendChild(c);
     return col;
   }
@@ -31,10 +31,10 @@
     try {
       const r = await fetch(`/api/modpacks/search?q=${encodeURIComponent(query)}&offset=${offset}`);
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(j.detail || ('Hata ' + r.status));
+      if (!r.ok) throw new Error(j.detail || (_t('Hata ') + r.status));
       total = j.total; offset += j.hits.length;
       j.hits.forEach(h => results.appendChild(card(h)));
-      if (!results.children.length) results.appendChild(el('p', 'text-body-secondary', 'Sonuç yok.'));
+      if (!results.children.length) results.appendChild(el('p', 'text-body-secondary', _t('Sonuç yok.')));
       if (offset < total && j.hits.length) more.classList.remove('d-none');
     } catch (e) { notes.appendChild(el('div', 'alert alert-danger py-2 small', String(e.message || e))); }
   }

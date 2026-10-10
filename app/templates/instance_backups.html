@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% from "components/ui.html" import page_header, progress_panel %}
-{% block title %}Yedekler · {{ inst["name"] }}{% endblock %}
+{% block title %}{{ _("Yedekler") }} · {{ inst["name"] }}{% endblock %}
 
 {% block content %}
-{% call page_header("Yedekler · " ~ inst["name"], "Yedekler data/backups/" ~ inst["name"] ~ "/ altında tutulur") %}
-  <a class="btn btn-outline-secondary back-link" href="/instances/{{ inst['id'] }}"><i class="bi bi-arrow-left"></i> Sunucuya dön</a>
+{% call page_header(_("Yedekler") ~ " · " ~ inst["name"], _("Dünyanın ve dosyaların kopyaları: {path}", path="data/backups/" ~ inst["name"] ~ "/")) %}
+  <a class="btn btn-outline-secondary back-link" href="/instances/{{ inst['id'] }}"><i class="bi bi-arrow-left"></i> {{ _("Sunucuya dön") }}</a>
 {% endcall %}
 
 <div id="backups-root" data-instance-id="{{ inst['id'] }}">
@@ -13,19 +13,19 @@
   <form id="create-form" class="card static mb-3" style="max-width: 760px" onsubmit="return false">
     <div class="card-body"><div class="row g-2 align-items-end">
       <div class="col-md-4">
-        <label class="form-label" for="mode">Yedek türü</label>
+        <label class="form-label" for="mode">{{ _("Yedek türü") }}</label>
         <select class="form-select" id="mode">
-          <option value="full">Tam (tüm sunucu)</option>
-          <option value="world">Yalnızca dünya</option>
+          <option value="full">{{ _("Tam (tüm sunucu)") }}</option>
+          <option value="world">{{ _("Yalnızca dünya") }}</option>
         </select>
       </div>
       <div class="col-md-5">
-        <label class="form-label" for="note">Not (isteğe bağlı)</label>
-        <input class="form-control" id="note" maxlength="60" placeholder="örn. modlar güncellenmeden önce">
+        <label class="form-label" for="note">{{ _("Not (isteğe bağlı)") }}</label>
+        <input class="form-control" id="note" maxlength="60" placeholder="{{ _("örn. modlar güncellenmeden önce") }}">
       </div>
-      <div class="col-md-3"><button id="create-btn" class="btn btn-primary w-100" type="submit"><i class="bi bi-archive"></i> Yedek al</button></div>
+      <div class="col-md-3"><button id="create-btn" class="btn btn-primary w-100" type="submit"><i class="bi bi-archive"></i> {{ _("Yedek al") }}</button></div>
     </div>
-    <div class="form-text mt-2">Sunucu çalışırken de yedek alınabilir: panel önce dünyayı kaydeder (<code>save-all</code>), yedek bitene kadar otomatik kaydı durdurur. Loglar ve önbellek dahil edilmez.</div>
+    <div class="form-text mt-2">{{ _("<strong>Tam yedek</strong> sunucu klasörünün tamamını, <strong>dünya yedeği</strong> yalnızca dünya klasörlerini kapsar. Sunucu çalışırken de yedek alınabilir: panel önce dünyayı diske kaydeder ve yedek bitene kadar otomatik kaydı durdurur. Log ve önbellek dosyaları yedeğe girmez.")|safe }}</div>
     </div>
   </form>
 
@@ -34,16 +34,16 @@
       <div class="d-flex flex-wrap align-items-center gap-3">
         <div class="form-check form-switch m-0">
           <input class="form-check-input" type="checkbox" id="limit-on">
-          <label class="form-check-label" for="limit-on">Eski yedekleri otomatik temizle</label>
+          <label class="form-check-label" for="limit-on">{{ _("Eski yedekleri otomatik temizle") }}</label>
         </div>
         <div class="input-group input-group-sm" style="width: 210px">
-          <span class="input-group-text">En fazla</span>
-          <input class="form-control text-center" type="number" id="limit-max" min="1" max="500" step="1" value="5" inputmode="numeric" aria-label="En fazla yedek sayısı">
-          <span class="input-group-text">yedek</span>
+          <span class="input-group-text">{{ _("En fazla") }}</span>
+          <input class="form-control text-center" type="number" id="limit-max" min="1" max="500" step="1" value="5" inputmode="numeric" aria-label="{{ _("En fazla yedek sayısı") }}">
+          <span class="input-group-text">{{ _("yedek") }}</span>
         </div>
-        <button id="limit-save" class="btn btn-sm btn-outline-primary" type="submit">Kaydet</button>
+        <button id="limit-save" class="btn btn-sm btn-outline-primary" type="submit">{{ _("Kaydet") }}</button>
       </div>
-      <div class="form-text" id="limit-help">Açıkken her yeni yedekten sonra sayı sınırı aşılırsa en eski yedekler silinir (elle ve otomatik alınanlar dahil). Kapalıyken yedekler birikmeye devam eder.</div>
+      <div class="form-text" id="limit-help">{{ _("Açıkken her yeni yedekten sonra, sayı sınırı aşılmışsa en eski yedekler silinir; elle ve otomatik alınanların hepsi sayılır. Kapalıyken yedekler silinmez, birikmeye devam eder.") }}</div>
     </div>
   </form>
 
@@ -51,11 +51,11 @@
 
   <div class="card static"><div class="card-body p-0"><div class="table-responsive">
     <table class="table align-middle mb-0 mods-table">
-      <thead><tr><th>Tarih</th><th>Tür</th><th>Not</th><th class="text-end">Boyut</th><th class="text-end">İşlemler</th></tr></thead>
-      <tbody id="bk-body"><tr><td colspan="5" class="text-body-secondary">Yükleniyor…</td></tr></tbody>
+      <thead><tr><th>{{ _("Tarih") }}</th><th>{{ _("Tür") }}</th><th>{{ _("Not") }}</th><th class="text-end">{{ _("Boyut") }}</th><th class="text-end">{{ _("İşlemler") }}</th></tr></thead>
+      <tbody id="bk-body"><tr><td colspan="5" class="text-body-secondary">{{ _("Yükleniyor…") }}</td></tr></tbody>
     </table>
   </div></div></div>
-  <p class="form-text mt-2">Geri yükleme yalnızca sunucu kapalıyken yapılır ve önce mevcut durumun otomatik bir yedeği alınır. Sunucuyu silmek yedeklerini silmez.</p>
+  <p class="form-text mt-2">{{ _("Geri yükleme sunucu kapalıyken yapılabilir. Panel önce mevcut durumun bir yedeğini alır, böylece geri yüklemeyi de geri alabilirsin. Sunucuyu silsen bile yedekleri yerinde kalır.") }}</p>
 </div>
 {% endblock %}
 

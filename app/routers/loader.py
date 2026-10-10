@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 
 from ..services.container import installers
 from ..services.paper import PaperError
+from ..i18n import _t
 
 router = APIRouter()
 
@@ -10,7 +11,7 @@ router = APIRouter()
 def _mgr(loader: str):
     mgr = installers.get(loader)
     if not mgr:
-        raise HTTPException(400, "Bu mod yükleyici için otomatik indirme yok.")
+        raise HTTPException(400, _t("Bu mod yükleyici için otomatik indirme yok."))
     return mgr
 
 

@@ -5,6 +5,7 @@ from ..db import get_instance
 from ..services.container import players
 from ..services.players import PlayerError
 from ..templating import templates
+from ..i18n import _t
 
 router = APIRouter()
 
@@ -12,7 +13,7 @@ router = APIRouter()
 def _inst(iid: int) -> dict:
     inst = get_instance(iid)
     if not inst:
-        raise HTTPException(404, "Sunucu bulunamadı")
+        raise HTTPException(404, _t("Sunucu bulunamadı"))
     return inst
 
 

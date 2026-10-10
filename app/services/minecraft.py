@@ -12,6 +12,7 @@ from pathlib import Path
 import httpx
 
 from .http import new_client
+from ..i18n import _t
 
 
 class McError(Exception):
@@ -86,7 +87,7 @@ class MinecraftService:
             stale = self._manifest or self._read_json("mc_manifest.json")
             if stale:
                 return stale
-            raise McError("Mojang sürüm listesine ulaşılamadı. İnternet bağlantını kontrol et.")
+            raise McError(_t("Mojang sürüm listesine ulaşılamadı. İnternet bağlantını kontrol et."))
 
     async def list_versions(self, snapshots: bool = False) -> dict:
         m = await self.manifest()
@@ -126,7 +127,7 @@ class MinecraftService:
 
         fb = fallback_java(v)
         if fb is None:
-            raise McError(f"'{v}' sürümü için Java gereksinimi belirlenemedi. Java'yı elle seçebilirsin.")
+            raise McError(_t("'{v}' sürümü için Java gereksinimi belirlenemedi. Java'yı elle seçebilirsin.", v=v))
         return fb, "fallback"
 
     async def java_for(self, mc_version: str, loader: str = "vanilla") -> dict:
@@ -137,12 +138,12 @@ class MinecraftService:
         Java 16 (1.17) artık yayınlanmadığından 17 kullanılır.
         """
         if loader not in LOADERS:
-            raise McError("Bilinmeyen mod yükleyici.")
+            raise McError(_t("Bilinmeyen mod yükleyici."))
         raw, source = await self.required_java(mc_version)
         major = 17 if raw == 16 else raw
         reason = f"Minecraft {mc_version} → Java {major}"
         if raw == 16:
-            reason += " (Mojang 16 istiyor; 16 artık yayınlanmadığı için 17 kullanılır)"
+            reason += _t(" (Mojang 16 istiyor; 16 artık yayınlanmadığı için 17 kullanılır)")
         if source == "fallback":
-            reason += " (tahmini: Mojang'a ulaşılamadı)"
+            reason += _t(" (tahmini: Mojang'a ulaşılamadı)")
         return {"major": major, "reason": reason, "source": source, "loader": loader}

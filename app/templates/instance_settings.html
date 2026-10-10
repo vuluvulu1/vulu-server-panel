@@ -1,85 +1,85 @@
 {% extends "base.html" %}
 {% from "components/ui.html" import page_header, server_icon, progress_panel %}
-{% block title %}Ayarlar · {{ inst["name"] }}{% endblock %}
+{% block title %}{{ _("Ayarlar") }} · {{ inst["name"] }}{% endblock %}
 
 {% block content %}
-{% call page_header("Ayarlar · " ~ inst["name"], "MC " ~ (inst["mc_version"] or "?") ~ " · " ~ inst["loader"]) %}
-  <a class="btn btn-outline-secondary back-link" href="/instances/{{ inst['id'] }}"><i class="bi bi-arrow-left"></i> Sunucuya dön</a>
+{% call page_header(_("Ayarlar") ~ " · " ~ inst["name"], "MC " ~ (inst["mc_version"] or "?") ~ " · " ~ inst["loader"]) %}
+  <a class="btn btn-outline-secondary back-link" href="/instances/{{ inst['id'] }}"><i class="bi bi-arrow-left"></i> {{ _("Sunucuya dön") }}</a>
 {% endcall %}
 
 <div id="settings-root" data-instance-id="{{ inst['id'] }}" data-name="{{ inst['name'] }}">
-  {% if not stopped %}<div class="alert alert-warning py-2 small">Sunucu çalışıyor: ayarları değiştirmek için önce durdur.</div>{% endif %}
+  {% if not stopped %}<div class="alert alert-warning py-2 small">{{ _("Sunucu çalışıyor: ayarları değiştirmek için önce durdur.") }}</div>{% endif %}
   <div id="notes" class="mb-3"></div>
 
   <form id="settings-form" class="card static" style="max-width: 760px" onsubmit="return false">
     <div class="card-body"><div class="row g-3">
       <div class="col-md-4">
-        <label class="form-label" for="port">Port</label>
+        <label class="form-label" for="port">{{ _("Port") }}</label>
         <input class="form-control" id="port" value="{{ inst['port'] }}" inputmode="numeric">
       </div>
       <div class="col-md-8">
-        <label class="form-label" for="ram_gb">RAM (GB)</label>
+        <label class="form-label" for="ram_gb">{{ _("RAM (GB)") }}</label>
         <input class="form-range" type="range" id="ram_gb" min="1" max="{{ [[sys_ram_gb, 64]|min, 2]|max }}" step="1" value="{{ [inst['ram_mb'] // 1024, 1]|max }}" data-total="{{ sys_ram_gb }}">
-        <div class="form-text"><output id="ram_out">{{ inst['ram_mb'] // 1024 }}</output> GB · toplam {{ sys_ram_gb }} GB <span id="ram_warn" class="text-warning"></span></div>
+        <div class="form-text"><output id="ram_out">{{ inst['ram_mb'] // 1024 }}</output> GB · {{ _("toplam {n} GB", n=sys_ram_gb) }} <span id="ram_warn" class="text-warning"></span></div>
       </div>
       <div class="col-md-6">
-        <label class="form-label" for="jvm_preset">JVM ayarı</label>
+        <label class="form-label" for="jvm_preset">{{ _("JVM ayarı") }}</label>
         <select class="form-select" id="jvm_preset">
-          {% for k, label in presets.items() %}<option value="{{ k }}" {{ 'selected' if inst['jvm_preset'] == k else '' }}>{{ label }}</option>{% endfor %}
+          {% for k, label in presets.items() %}<option value="{{ k }}" {{ 'selected' if inst['jvm_preset'] == k else '' }}>{{ _(label) }}</option>{% endfor %}
         </select>
       </div>
       <div class="col-md-6">
-        <label class="form-label" for="jvm_args">Ek JVM argümanları</label>
-        <input class="form-control font-monospace" id="jvm_args" value="{{ inst['jvm_args'] }}" placeholder="-XX:+UseG1GC">
+        <label class="form-label" for="jvm_args">{{ _("Ek JVM argümanları") }}</label>
+        <input class="form-control font-monospace" id="jvm_args" value="{{ inst['jvm_args'] }}" placeholder="{{ _("-XX:+UseG1GC") }}">
       </div>
       <div class="col-md-6">
-        <label class="form-label" for="java_mode">Java</label>
+        <label class="form-label" for="java_mode">{{ _("Java") }}</label>
         <select class="form-select" id="java_mode">
-          <option value="auto" {{ 'selected' if java_mode == 'auto' else '' }}>Otomatik (sürüme göre yeniden belirle)</option>
+          <option value="auto" {{ 'selected' if java_mode == 'auto' else '' }}>{{ _("Otomatik (sürüme göre yeniden belirle)") }}</option>
           {% for v in ['8', '11', '17', '21', '25'] %}<option value="{{ v }}" {{ 'selected' if java_mode == v else '' }}>Java {{ v }}</option>{% endfor %}
-          <option value="custom" {{ 'selected' if java_mode == 'custom' else '' }}>Özel yol (gelişmiş)</option>
+          <option value="custom" {{ 'selected' if java_mode == 'custom' else '' }}>{{ _("Özel yol (gelişmiş)") }}</option>
         </select>
-        <div class="form-text">Seçilen Java kurulu değilse sunucu başlatılırken otomatik indirilir.</div>
+        <div class="form-text">{{ _("\"Otomatik\" Minecraft sürümüne uygun Java'yı seçer. Seçilen sürüm kurulu değilse sunucu başlatılırken indirilir.") }}</div>
       </div>
       <div class="col-md-6 d-none" id="java-custom-box">
-        <label class="form-label" for="java_path">Java yolu</label>
+        <label class="form-label" for="java_path">{{ _("Java yolu") }}</label>
         <input class="form-control" id="java_path" value="{{ inst['java_path'] }}">
-        <div class="form-text"><code>java</code> ya da bir <code>java.exe</code> dosyasına tam yol.</div>
+        <div class="form-text">{{ _("Sistemdeki <code>java</code> komutu ya da bir <code>java.exe</code> dosyasının tam yolu.")|safe }}</div>
       </div>
       <div class="col-md-6">
-        <label class="form-label" for="launch_type">Başlatma türü</label>
+        <label class="form-label" for="launch_type">{{ _("Başlatma türü") }}</label>
         <select class="form-select" id="launch_type">
-          <option value="jar" {{ 'selected' if inst['launch_type'] == 'jar' else '' }}>Jar dosyası (-jar)</option>
-          <option value="args-file" {{ 'selected' if inst['launch_type'] == 'args-file' else '' }}>Argüman dosyası (Forge / NeoForge)</option>
+          <option value="jar" {{ 'selected' if inst['launch_type'] == 'jar' else '' }}>{{ _("Jar dosyası (-jar)") }}</option>
+          <option value="args-file" {{ 'selected' if inst['launch_type'] == 'args-file' else '' }}>{{ _("Argüman dosyası (Forge / NeoForge)") }}</option>
         </select>
       </div>
       <div class="col-md-6" id="jar-box">
-        <label class="form-label" for="jar_file">Jar dosyası</label>
+        <label class="form-label" for="jar_file">{{ _("Jar dosyası") }}</label>
         <input class="form-control" id="jar_file" value="{{ inst['jar_file'] }}">
       </div>
       <div class="col-12 d-none" id="args-box">
-        <label class="form-label" for="args_file">Argüman dosyası (boş = otomatik bul)</label>
+        <label class="form-label" for="args_file">{{ _("Argüman dosyası (boş = otomatik bul)") }}</label>
         <input class="form-control font-monospace" id="args_file" value="{{ inst['args_file'] or '' }}">
       </div>
     </div></div>
     <div class="card-footer d-flex gap-2">
-      <button id="save-btn" class="btn btn-primary" type="submit" {{ '' if stopped else 'disabled' }}>Kaydet</button>
-      <a class="btn btn-outline-secondary" href="/instances/{{ inst['id'] }}">Vazgeç</a>
+      <button id="save-btn" class="btn btn-primary" type="submit" {{ '' if stopped else 'disabled' }}>{{ _("Kaydet") }}</button>
+      <a class="btn btn-outline-secondary" href="/instances/{{ inst['id'] }}">{{ _("Vazgeç") }}</a>
     </div>
   </form>
 
   <div class="card static mt-4" style="max-width: 760px" id="upgrade-card" data-loader="{{ inst['loader'] or 'vanilla' }}" data-current="{{ inst['mc_version'] or '' }}">
     <div class="card-body">
-      <h2 class="h6">Minecraft sürümü</h2>
+      <h2 class="h6">{{ _("Minecraft sürümü") }}</h2>
       {% if inst['modpack_slug'] %}
-        <p class="small text-body-secondary mb-0">Bu sunucu bir modpack'ten kuruldu (MC {{ inst['mc_version'] }}); sürümü modpack belirler, buradan değiştirilemez.</p>
+        <p class="small text-body-secondary mb-0">{{ _("Bu sunucu bir modpack'ten kuruldu (MC {mc}). Minecraft sürümünü paket belirlediği için buradan değiştirilemez.", mc=inst['mc_version']) }}</p>
       {% else %}
       <div class="d-flex flex-wrap align-items-center gap-2">
-        <span class="small">Şu an: <strong>{{ inst['mc_version'] or 'bilinmiyor' }}</strong> · {{ inst['loader'] or 'vanilla' }}</span>
-        <select class="form-select form-select-sm" id="up-version" style="width: auto; min-width: 160px"><option value="">Yükleniyor…</option></select>
-        <button id="up-btn" class="btn btn-sm btn-outline-primary" type="button" {{ '' if stopped else 'disabled' }}><i class="bi bi-arrow-up-circle"></i> Sürümü değiştir</button>
+        <span class="small">{{ _("Şu an:") }} <strong>{{ inst['mc_version'] or 'bilinmiyor' }}</strong> · {{ inst['loader'] or 'vanilla' }}</span>
+        <select class="form-select form-select-sm" id="up-version" style="width: auto; min-width: 160px"><option value="">{{ _("Yükleniyor…") }}</option></select>
+        <button id="up-btn" class="btn btn-sm btn-outline-primary" type="button" {{ '' if stopped else 'disabled' }}><i class="bi bi-arrow-up-circle"></i> {{ _("Sürümü değiştir") }}</button>
       </div>
-      <div class="form-text">Önce otomatik olarak <strong>tam yedek</strong> alınır. Java yeni sürüme göre seçilir, sunucu dosyası ve Modrinth'ten kurulan modlar ilk başlatmada / hemen yeni sürüme göre kurulur. Elle eklenen modları kendin kontrol etmelisin.</div>
+      <div class="form-text">{{ _("İşlemden önce otomatik olarak <strong>tam yedek</strong> alınır. Ardından Java yeni sürüme göre seçilir, Modrinth'ten kurulan modlar yeni sürüme uygun olanlarla değiştirilir ve sunucu dosyası ilk başlatmada indirilir. Elle eklediğin modların yeni sürümle uyumunu kendin kontrol etmelisin.")|safe }}</div>
       <div class="mt-2">{{ progress_panel("up") }}</div>
       {% endif %}
     </div>
@@ -87,25 +87,25 @@
 
   <div class="card static mt-4" style="max-width: 760px">
     <div class="card-body">
-      <h2 class="h6">Sunucu simgesi</h2>
+      <h2 class="h6">{{ _("Sunucu simgesi") }}</h2>
       <div class="d-flex flex-wrap align-items-center gap-3">
         {{ server_icon(inst['id'], 64, "icon-current") }}
-        <canvas id="icon-preview" width="64" height="64" class="server-icon-preview d-none" title="Önizleme"></canvas>
+        <canvas id="icon-preview" width="64" height="64" class="server-icon-preview d-none" title="{{ _("Önizleme") }}"></canvas>
         <div class="d-flex flex-wrap gap-2">
-          <label class="btn btn-sm btn-outline-secondary mb-0"><i class="bi bi-image"></i> Resim seç<input id="icon-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp" hidden></label>
-          <button id="icon-save" class="btn btn-sm btn-primary d-none" type="button"><i class="bi bi-upload"></i> Yükle</button>
-          <button id="icon-remove" class="btn btn-sm btn-outline-danger" type="button"><i class="bi bi-x-lg"></i> Kaldır</button>
+          <label class="btn btn-sm btn-outline-secondary mb-0"><i class="bi bi-image"></i> {{ _("Resim seç") }}<input id="icon-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp" hidden></label>
+          <button id="icon-save" class="btn btn-sm btn-primary d-none" type="button"><i class="bi bi-upload"></i> {{ _("Yükle") }}</button>
+          <button id="icon-remove" class="btn btn-sm btn-outline-danger" type="button"><i class="bi bi-x-lg"></i> {{ _("Kaldır") }}</button>
         </div>
       </div>
-      <div class="form-text">Sunucu listesinde görünen simge. Seçtiğin resim ortadan kare kırpılıp 64×64 PNG'ye çevrilir. Oyunda görünmesi için sunucuyu yeniden başlat.</div>
+      <div class="form-text">{{ _("Oyundaki sunucu listesinde görünen resim. Seçtiğin görsel ortasından kare kırpılıp 64×64 PNG'ye çevrilir; oyunda görünmesi için sunucuyu yeniden başlat.") }}</div>
     </div>
   </div>
 
   <div class="card static border-danger mt-4" style="max-width: 760px">
     <div class="card-body">
-      <h2 class="h6 text-danger">Tehlikeli bölge</h2>
-      <p class="small text-body-secondary mb-2">Sunucuyu <strong>dünyası, modları ve tüm dosyalarıyla birlikte kalıcı olarak</strong> siler. Geri alınamaz. Önce yedek almanı öneririm.</p>
-      <button id="destroy-btn" class="btn btn-sm btn-outline-danger" type="button" {{ '' if stopped else 'disabled' }}><i class="bi bi-trash"></i> Sunucuyu ve dosyalarını sil</button>
+      <h2 class="h6 text-danger">{{ _("Tehlikeli bölge") }}</h2>
+      <p class="small text-body-secondary mb-2">{{ _("Sunucuyu <strong>dünyası, modları ve tüm dosyalarıyla birlikte kalıcı olarak</strong> siler; bu işlem geri alınamaz. Yedekler silinmez, yine de silmeden önce güncel bir yedek almanı öneririz.")|safe }}</p>
+      <button id="destroy-btn" class="btn btn-sm btn-outline-danger" type="button" {{ '' if stopped else 'disabled' }}><i class="bi bi-trash"></i> {{ _("Sunucuyu ve dosyalarını sil") }}</button>
     </div>
   </div>
 </div>
