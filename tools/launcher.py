@@ -8,12 +8,10 @@ Yalnızca standart kütüphaneyi kullanır (paketler kurulmadan önce çalışı
 """
 from __future__ import annotations
 
-import json
 import os
 import re
 import subprocess
 import sys
-import tempfile
 import threading
 import time
 from pathlib import Path
@@ -40,8 +38,8 @@ _EN = {
     "Sanal ortam oluşturulamadı.": "Couldn't create the virtual environment.",
     "Debian/Ubuntu'da şu paket gerekir:  sudo apt install python3-venv": "On Debian/Ubuntu you need:  sudo apt install python3-venv",
     "Paketler güncel": "Packages up to date",
-    "Kurulacak paketler belirleniyor": "Working out which packages to install",
     "Paketler": "Packages",
+    "{n} paket · {s} sn": "{n} packages · {s} s",
     "Kuruluyor": "Installing",
     "{n} paket kuruldu ({s} sn)": "{n} packages installed ({s} s)",
     "Paketler yüklenemedi. İnternet bağlantını kontrol edip yeniden dene.": "Couldn't install packages. Check your internet connection and try again.",
@@ -156,10 +154,12 @@ class Spinner:
         self._t = threading.Thread(target=self._run, daemon=True)
 
     def _run(self) -> None:
-        i = 0
+        i, t0 = 0, time.monotonic()
         while not self._stop.wait(0.08):
             if TTY:
-                sys.stdout.write(f"\r  {c(SPIN[i % len(SPIN)], SAND, bold=True)} {self.text}…\x1b[K" if COLOR else
+                secs = int(time.monotonic() - t0)
+                extra = c(f"  {secs} sn" if _LANG != "en" else f"  {secs} s", GREY) if secs >= 3 else ""
+                sys.stdout.write(f"\r  {c(SPIN[i % len(SPIN)], SAND, bold=True)} {self.text}…{extra}\x1b[K" if COLOR else
                                  f"\r  {SPIN[i % len(SPIN)]} {self.text}...")
                 sys.stdout.flush()
             i += 1
@@ -209,24 +209,9 @@ def ensure_venv() -> None:
     ok(T("Sanal ortam hazır"))
 
 
-def _plan() -> list[str] | None:
-    """Kurulacak paketlerin adları (pip --dry-run --report). Bilinmiyorsa None."""
-    fd, path = tempfile.mkstemp(suffix=".json")
-    os.close(fd)
-    try:
-        r = subprocess.run([str(VPY), "-m", "pip", "install", "--disable-pip-version-check", "--dry-run", "--quiet",
-                            "--report", path, "-r", str(REQ)], cwd=ROOT, capture_output=True, text=True)
-        if r.returncode != 0:
-            return None
-        data = json.loads(Path(path).read_text(encoding="utf-8") or "{}")
-        return [str(i.get("metadata", {}).get("name", "?")) for i in data.get("install", [])]
-    except (OSError, ValueError):
-        return None
-    finally:
-        try:
-            os.unlink(path)
-        except OSError:
-            pass
+# Yaklaşık paket sayısı (bağımlılıklar dahil). Yalnızca ilk kurulumda ilerleme çubuğunu ölçeklemek için;
+# pip "Installing collected packages" satırını yazınca gerçek sayı kullanılır.
+ESTIMATED_PACKAGES = 28
 
 
 def install_deps() -> None:
@@ -237,19 +222,12 @@ def install_deps() -> None:
     except OSError:
         pass
 
-    with Spinner(T("Kurulacak paketler belirleniyor")):
-        plan = _plan()
-    total = len(plan) if plan is not None else 0
-    if plan == []:
-        MARK.write_bytes(REQ.read_bytes())
-        ok(T("Paketler güncel"))
-        return
-
     started = time.monotonic()
-    state = {"done": 0, "name": "", "phase": "collect", "lines": []}
-    p = subprocess.Popen([str(VPY), "-m", "pip", "install", "--disable-pip-version-check", "--progress-bar", "off",
-                          "-r", str(REQ)], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                         text=True, encoding="utf-8", errors="replace")
+    state = {"done": 0, "name": "", "phase": "collect", "lines": [], "total": 0, "installed": 0}
+    # stdin kapalı + --no-input: pip bir şey sorarsa beklemek yerine hata verir (pencere donmuş gibi kalmasın)
+    p = subprocess.Popen([str(VPY), "-m", "pip", "install", "--disable-pip-version-check", "--no-input",
+                          "--progress-bar", "off", "-r", str(REQ)], cwd=ROOT, stdin=subprocess.DEVNULL,
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace")
 
     def reader() -> None:
         for line in p.stdout:
@@ -261,18 +239,24 @@ def install_deps() -> None:
             elif line.startswith("Installing collected packages"):
                 state["phase"] = "install"
                 state["name"] = ""
+                state["installed"] = len([x for x in line.split(":", 1)[-1].split(",") if x.strip()])
+            elif line.lstrip().startswith(("Downloading", "Using cached")) and state["phase"] == "collect":
+                if m := re.search(r"([A-Za-z0-9_.]+?)-\d[\w.+!-]*\.(?:whl|tar\.gz|zip)", line):
+                    state["name"] = m.group(1)
 
     t = threading.Thread(target=reader, daemon=True)
     t.start()
     i = 0
     last_plain = -1
     while t.is_alive() or p.poll() is None:
+        secs = int(time.monotonic() - started)
+        total = max(ESTIMATED_PACKAGES, state["done"] + 1)
         if state["phase"] == "install":
             frac, label = 0.9, T("Kuruluyor")
         else:
-            frac = (min(state["done"], total) / total * 0.85) if total else 0.0
+            frac = state["done"] / total * 0.85
             label = state["name"]
-        count = f"{min(state['done'], total)}/{total}" if total else str(state["done"])
+        count = T("{n} paket · {s} sn", n=state["done"], s=secs)
         if TTY:
             spin = SPIN[i % len(SPIN)]
             line = (f"\r  {c(spin, SAND, bold=True)} {T('Paketler'):<9} {bar(frac)} {c(f'{int(frac * 100):>3}%', SAND, bold=True)}"
@@ -295,7 +279,7 @@ def install_deps() -> None:
             print("    " + c(line, GREY))
         sys.exit(1)
     MARK.write_bytes(REQ.read_bytes())
-    n = total or state["done"]
+    n = state["installed"] or state["done"]
     ok(f"{T('Paketler'):<9} {bar(1.0)} {c('100%', GREEN, bold=True)}")
     ok(T("{n} paket kuruldu ({s} sn)", n=n, s=int(time.monotonic() - started)))
 
