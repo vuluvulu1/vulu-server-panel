@@ -20,6 +20,7 @@ import httpx
 from .download import download_file
 from .http import new_client
 from .jobs import Job, JobError, JobManager
+from ..i18n import _t
 
 CHANNEL_ORDER = ["RECOMMENDED", "STABLE", "BETA", "ALPHA"]
 RELEASE_RE = re.compile(r"^\d+\.\d+(\.\d+)?$")
@@ -49,16 +50,16 @@ class PaperManager:
             async with new_client() as c:
                 r = await c.get(self.api + path)
         except httpx.HTTPError:
-            raise PaperError("PaperMC'ye ulaşılamadı. İnternet bağlantını kontrol et.")
+            raise PaperError(_t("PaperMC'ye ulaşılamadı. İnternet bağlantını kontrol et."))
         if r.status_code == 403:
-            raise PaperError("PaperMC isteği reddetti (403). .env dosyana PANEL_CONTACT=<e-posta veya site adresin> ekleyip paneli yeniden başlat.")
+            raise PaperError(_t("PaperMC isteği reddetti (403). Ayarlar → Panel ayarları → İletişim alanına e-posta ya da site adresini yazıp paneli yeniden başlat."))
         if r.status_code == 404:
-            raise PaperError("PaperMC'de bu sürüm bulunamadı.")
+            raise PaperError(_t("PaperMC'de bu sürüm bulunamadı."))
         try:
             r.raise_for_status()
             return r.json()
         except (httpx.HTTPError, ValueError):
-            raise PaperError("PaperMC yanıtı okunamadı.")
+            raise PaperError(_t("PaperMC yanıtı okunamadı."))
 
     # ---------- sürümler ----------
     async def versions(self) -> dict:
@@ -67,7 +68,7 @@ class PaperManager:
         data = await self._get("/projects/paper")
         groups = (data or {}).get("versions") if isinstance(data, dict) else None
         if not isinstance(groups, dict):
-            raise PaperError("PaperMC sürüm listesi okunamadı.")
+            raise PaperError(_t("PaperMC sürüm listesi okunamadı."))
         ids = [v for vs in groups.values() for v in vs if RELEASE_RE.match(v)]   # en yeni başta; -pre/-rc elenir
         result = {"latest": ids[0] if ids else None,
                   "versions": [{"id": v, "type": "release", "released": ""} for v in ids]}
@@ -77,12 +78,12 @@ class PaperManager:
     # ---------- build seçimi ----------
     async def resolve(self, version: str) -> dict:
         if not re.fullmatch(r"[0-9A-Za-z._+-]{1,40}", version):
-            raise PaperError("Geçersiz sürüm.")
+            raise PaperError(_t("Geçersiz sürüm."))
         data = await self._get(f"/projects/paper/versions/{version}/builds")
         if isinstance(data, dict):                       # {"ok": false, "message": ...}
-            raise PaperError(str(data.get("message") or "PaperMC bu sürüm için build vermedi."))
+            raise PaperError(str(data.get("message") or _t("PaperMC bu sürüm için build vermedi.")))
         if not isinstance(data, list) or not data:
-            raise PaperError(f"Paper {version} için build bulunamadı.")
+            raise PaperError(_t('Paper {version} için build bulunamadı.', version=version))
 
         def rank(b: dict) -> tuple[int, int]:
             ch = b.get("channel", "")
@@ -92,7 +93,7 @@ class PaperManager:
         dls = best.get("downloads") or {}
         dl = dls.get("server:default") or next((d for d in dls.values() if str(d.get("name", "")).endswith(".jar")), None)
         if not dl or not dl.get("url"):
-            raise PaperError(f"Paper {version} build #{best.get('id')} için indirme bağlantısı yok.")
+            raise PaperError(_t('Paper {version} build #{v1} için indirme bağlantısı yok.', version=version, v1=best.get('id')))
         channel = best.get("channel", "?")
         return {
             "type": "paper", "label": f"Paper {version} · build #{int(best['id'])} ({channel})",
@@ -108,7 +109,7 @@ class PaperManager:
 
     # ---------- önbelleğe indirme işi ----------
     def ensure_cached_job(self, version: str, pin: str | None = None) -> Job:
-        return self.jobs.start("paper", f"Paper {version} indiriliyor", f"paper-{version}",
+        return self.jobs.start("paper", _t('Paper {version} indiriliyor', version=version), f"paper-{version}",
                                lambda j: self._cache(j, version))
 
     @staticmethod
@@ -120,7 +121,7 @@ class PaperManager:
         return h.hexdigest()
 
     async def _cache(self, job: Job, version: str) -> dict:
-        job.update(0, "resolve", "Paper build bilgisi alınıyor…")
+        job.update(0, "resolve", _t("Paper build bilgisi alınıyor…"))
         try:
             info = await self.resolve(version)
         except PaperError as e:
@@ -129,7 +130,7 @@ class PaperManager:
         path = self.cache / info["name"]
 
         if self.is_cached(info) and (not info["sha256"] or await asyncio.to_thread(self._sha256, path) == info["sha256"]):
-            job.update(95, "cache", "Önbellekte hazır")
+            job.update(95, "cache", _t("Önbellekte hazır"))
             return {**info, "path": str(path), "cached": True}
 
         part = self.cache / (info["name"] + ".part")

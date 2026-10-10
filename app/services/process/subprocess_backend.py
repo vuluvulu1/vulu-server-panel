@@ -23,6 +23,7 @@ from ...db import get_conn
 from ..crash import analyze, console_lines
 from ..jvm import LaunchError, build_command
 from .base import ProcessError
+from ...i18n import _t
 
 BUFFER_LINES = 1000
 DONE_RE = re.compile(r"Done \(\d+[.,]\d+s\)!")
@@ -128,7 +129,7 @@ class SubprocessBackend:
     async def start(self, inst: dict) -> None:
         iid = inst["id"]
         if self.is_running(iid):
-            raise ProcessError("Sunucu zaten çalışıyor.")
+            raise ProcessError(_t("Sunucu zaten çalışıyor."))
 
         path = Path(inst["path"])
         try:
@@ -142,7 +143,7 @@ class SubprocessBackend:
         if ch.status != "preparing":      # hazırlık (indirme) satırlarını koru, yoksa konsolu temizle
             ch.buffer.clear()
             ch.publish({"type": "clear"})
-        self._log(iid, "[panel] Başlatılıyor: " + " ".join(cmd))
+        self._log(iid, _t("[panel] Başlatılıyor: ") + " ".join(cmd))
 
         try:
             popen = subprocess.Popen(
@@ -153,11 +154,10 @@ class SubprocessBackend:
             )
         except FileNotFoundError:
             raise ProcessError(
-                f"Java bulunamadı: '{inst['java_path']}'. Java kurulu mu ve PATH'te mi? "
-                "(Terminalde `java -version` dene.)"
+                _t("Java bulunamadı: '{java_path}'. Java kurulu mu ve PATH'te mi? (Terminalde `java -version` dene.)", java_path=inst['java_path'])
             )
         except OSError as e:
-            raise ProcessError(f"Süreç başlatılamadı: {e}")
+            raise ProcessError(_t('Süreç başlatılamadı: {e}', e=e))
 
         managed = _Managed(popen, path)
         self._procs[iid] = managed
@@ -196,7 +196,7 @@ class SubprocessBackend:
         # Açılmadan (status hâlâ "starting") kendiliğinden kapanan sunucu da başarısız sayılır (örn. EULA)
         failed_start = self._channel(iid).status == "starting" and not m.stopping
         status = "stopped" if (m.stopping or (code == 0 and not failed_start)) else "crashed"
-        self._log(iid, f"[panel] Sunucu kapandı (çıkış kodu: {code})")
+        self._log(iid, _t('[panel] Sunucu kapandı (çıkış kodu: {code})', code=code))
         if status == "crashed":
             asyncio.get_running_loop().create_task(self._analyze_crash(iid, m))
         self.set_status(iid, status)
@@ -233,7 +233,7 @@ class SubprocessBackend:
         try:
             await asyncio.to_thread(m.popen.wait, timeout)
         except subprocess.TimeoutExpired:
-            self._log(iid, f"[panel] {timeout} sn içinde kapanmadı, zorla sonlandırılıyor.")
+            self._log(iid, _t('[panel] {timeout} sn içinde kapanmadı, zorla sonlandırılıyor.', timeout=timeout))
             await self.kill(iid)
 
     async def kill(self, iid: int) -> None:
@@ -259,7 +259,7 @@ class SubprocessBackend:
     async def send_command(self, iid: int, command: str) -> None:
         m = self._procs.get(iid)
         if not m or m.popen.poll() is not None:
-            raise ProcessError("Sunucu çalışmıyor.")
+            raise ProcessError(_t("Sunucu çalışmıyor."))
         command = command.replace("\r", " ").replace("\n", " ").strip()[:500]
         if not command:
             return
@@ -268,4 +268,4 @@ class SubprocessBackend:
             m.popen.stdin.write(command + "\n")
             m.popen.stdin.flush()
         except OSError:
-            raise ProcessError("Komut gönderilemedi (süreç kapanıyor olabilir).")
+            raise ProcessError(_t("Komut gönderilemedi (süreç kapanıyor olabilir)."))

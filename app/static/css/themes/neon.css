@@ -1,28 +1,31 @@
-/* name: Neon Cyberpunk | mode: dark */
+/* name: Neon | mode: dark */
+/* Gece mavisi zemin, camgöbeği vurgu, macenta ikincil; ışıltı ölçülü. */
 [data-theme="neon"] {
-  --bg: #07040f;
-  --surface: #0f0820;
-  --surface-2: #180c32;
-  --border: #2b1560;
-  --text: #e9e6ff;
-  --text-muted: #8f86c9;
+  --bg: #06070d;
+  --surface: #0c0e18;
+  --surface-2: #131628;
+  --border: #22264a;
+  --text: #e8ebff;
+  --text-muted: #8a90bf;
 
-  --accent: #00f0ff;
-  --accent-2: #ff2bd6;
-  --accent-hover: #6bf7ff;
-  --accent-contrast: #05010d;
-  --accent-rgb: 0, 240, 255;
+  --accent: #22e1ff;
+  --accent-hover: #7cefff;
+  --accent-contrast: #031015;
+  --accent-rgb: 34, 225, 255;
+  --accent-2: #ff3ec8;
 
-  --success: #39ff9c;
-  --warning: #ffe14d;
-  --danger: #ff3b6b;
+  --success: #3dffa8;
+  --warning: #ffd84d;
+  --danger: #ff4d7a;
 
   --radius: 4px;
   --radius-sm: 3px;
   --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --heading-weight: 700;
+  --heading-tracking: .02em;
 
-  --progress-glow: 0 0 10px rgba(0, 240, 255, .7);
-  --glow-text: 0 0 12px rgba(0, 240, 255, .55);
-  --card-shadow: 0 0 0 1px rgba(0, 240, 255, .06), 0 0 24px rgba(255, 43, 214, .07);
-  --card-hover-shadow: 0 0 0 1px rgba(0, 240, 255, .5), 0 0 28px rgba(0, 240, 255, .25);
+  --progress-glow: 0 0 8px rgba(34, 225, 255, .55);
+  --glow-text: 0 0 10px rgba(34, 225, 255, .35);
+  --card-shadow: 0 0 0 1px rgba(34, 225, 255, .04);
+  --card-hover-shadow: 0 0 0 1px rgba(34, 225, 255, .45), 0 0 22px rgba(255, 62, 200, .12);
 }

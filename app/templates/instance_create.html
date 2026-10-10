@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "components/ui.html" import page_header %}
+{% block title %}{{ _("Yeni sunucu") }} · {{ brand.name }} {{ brand.accent_word }}{% endblock %}
+
+{% block content %}
+{% set embed = request.query_params.get("embed") == "1" %}
+{% if not embed %}{{ page_header("Yeni sunucu", "Nasıl başlamak istersin?") }}{% endif %}
+<div class="wizard">
+  {% if embed %}<p class="wizard-lead">{{ _("Nasıl başlamak istersin?") }}</p>{% endif %}
+  <div class="choice-grid">
+    <a class="choice-card" href="/instances/new{{ '?embed=1' if embed }}">
+      <span class="choice-icon"><i class="bi bi-box"></i></span>
+      <span class="choice-title">{{ _("Boş sunucu") }}</span>
+      <span class="choice-text">{{ _("Minecraft sürümünü ve yükleyiciyi (Vanilla, Paper, Fabric, Forge, NeoForge) kendin seç. Modları sonra eklersin.") }}</span>
+    </a>
+    <a class="choice-card" href="/profiles{{ '?embed=1' if embed }}">
+      <span class="choice-icon"><i class="bi bi-box-seam"></i></span>
+      <span class="choice-title">{{ _("Profilden") }}</span>
+      <span class="choice-text">{{ _("Hazır ayar şablonu: sürüm, RAM, JVM ayarı, mod listesi ve server.properties tek seferde gelir.") }}</span>
+      <span class="choice-meta">{{ _("{n} profil", n=profile_count) }}</span>
+    </a>
+    <a class="choice-card" href="/modpacks{{ '?embed=1' if embed }}">
+      <span class="choice-icon"><i class="bi bi-boxes"></i></span>
+      <span class="choice-title">{{ _("Modpack'ten") }}</span>
+      <span class="choice-text">{{ _("Modrinth'teki bir modpack'i ara; sürüm, yükleyici ve tüm modlar paketten otomatik kurulur.") }}</span>
+      <span class="choice-meta">{{ _("Modrinth") }}</span>
+    </a>
+  </div>
+</div>
+{% endblock %}

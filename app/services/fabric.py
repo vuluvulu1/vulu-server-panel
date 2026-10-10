@@ -18,6 +18,7 @@ from .download import download_file
 from .http import new_client
 from .jobs import Job, JobError, JobManager
 from .paper import PaperError, PaperManager
+from ..i18n import _t
 
 RELEASE_RE = re.compile(r"^\d+\.\d+(\.\d+)?$")
 
@@ -43,7 +44,7 @@ class FabricManager:
                 r.raise_for_status()
                 data = r.json()
         except (httpx.HTTPError, ValueError):
-            raise FabricError("Fabric servisine ulaşılamadı. İnternet bağlantını kontrol et.")
+            raise FabricError(_t("Fabric servisine ulaşılamadı. İnternet bağlantını kontrol et."))
         self._memo[path] = (time.monotonic(), data)
         return data
 
@@ -55,23 +56,23 @@ class FabricManager:
 
     async def resolve(self, mc: str, pin: str | None = None) -> dict:
         if not re.fullmatch(r"[0-9A-Za-z._+-]{1,40}", mc):
-            raise FabricError("Geçersiz sürüm.")
+            raise FabricError(_t("Geçersiz sürüm."))
         if mc not in {v["id"] for v in (await self.versions())["versions"]}:
-            raise FabricError(f"Fabric {mc} sürümünü desteklemiyor.")
+            raise FabricError(_t('Fabric {mc} sürümünü desteklemiyor.', mc=mc))
         try:
             loaders = await self._get("/versions/loader")
             if pin:
                 if pin not in {x["version"] for x in loaders}:
-                    raise FabricError(f"Fabric loader {pin} bulunamadı.")
+                    raise FabricError(_t('Fabric loader {pin} bulunamadı.', pin=pin))
                 loader = pin
             else:
                 loader = next(x["version"] for x in loaders if x.get("stable"))
             installer = next(x["version"] for x in await self._get("/versions/installer") if x.get("stable"))
         except StopIteration:
-            raise FabricError("Fabric kararlı sürüm bilgisi alınamadı.")
+            raise FabricError(_t("Fabric kararlı sürüm bilgisi alınamadı."))
         for part in (loader, installer):
             if not re.fullmatch(r"[0-9A-Za-z._+-]{1,30}", part):
-                raise FabricError("Fabric sürüm bilgisi beklenmedik biçimde.")
+                raise FabricError(_t("Fabric sürüm bilgisi beklenmedik biçimde."))
         return {
             "type": "fabric", "version": mc, "build": loader, "channel": "STABLE", "stable": True,
             "label": f"Fabric {mc} · loader {loader}",
@@ -85,11 +86,11 @@ class FabricManager:
         return p.is_file() and p.stat().st_size > 10_000
 
     def ensure_cached_job(self, version: str, pin: str | None = None) -> Job:
-        return self.jobs.start("fabric", f"Fabric {version} indiriliyor", f"fabric-{version}-{pin or ''}",
+        return self.jobs.start("fabric", _t('Fabric {version} indiriliyor', version=version), f"fabric-{version}-{pin or ''}",
                                lambda j: self._cache(j, version, pin))
 
     async def _cache(self, job: Job, version: str, pin: str | None = None) -> dict:
-        job.update(0, "resolve", "Fabric sürüm bilgisi alınıyor…")
+        job.update(0, "resolve", _t("Fabric sürüm bilgisi alınıyor…"))
         try:
             info = await self.resolve(version, pin)
         except FabricError as e:
@@ -97,7 +98,7 @@ class FabricManager:
         self.cache.mkdir(parents=True, exist_ok=True)
         path = self.cache / info["name"]
         if self.is_cached(info):
-            job.update(95, "cache", "Önbellekte hazır")
+            job.update(95, "cache", _t("Önbellekte hazır"))
             return {**info, "path": str(path), "cached": True}
         part = self.cache / (info["name"] + ".part")
         try:
@@ -105,7 +106,7 @@ class FabricManager:
             with open(part, "rb") as f:
                 magic = f.read(2)
             if magic != b"PK" or part.stat().st_size < 10_000:
-                raise JobError("Fabric'ten geçerli bir sunucu jar'ı gelmedi. Biraz sonra tekrar dene.")
+                raise JobError(_t("Fabric'ten geçerli bir sunucu jar'ı gelmedi. Biraz sonra tekrar dene."))
             os.replace(part, path)
         finally:
             part.unlink(missing_ok=True)

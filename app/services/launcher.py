@@ -15,6 +15,7 @@ from .paper import PaperError, read_jar_info
 from .process import ProcessBackend, ProcessError
 from .profiles import get_profile
 from .properties import prepare_runtime
+from ..i18n import _t
 
 BUSY = ("preparing", "starting", "running", "stopping")
 
@@ -83,7 +84,7 @@ class InstanceLauncher:
         try:
             inst = prepare_runtime(inst)      # server-port + RCON'u server.properties'e yazar
         except (OSError, ValueError) as e:
-            raise ProcessError(f"server.properties hazırlanamadı: {e}")
+            raise ProcessError(_t('server.properties hazırlanamadı: {e}', e=e))
         warn: list[str] = []
         if inst.get("loader") in ("fabric", "quilt", "forge", "neoforge"):     # eksik bağımlılık / istemci modu uyarısı
             try:
@@ -99,13 +100,13 @@ class InstanceLauncher:
     async def start(self, inst: dict) -> dict:
         iid = inst["id"]
         if self.pm.status(iid) in BUSY:
-            raise ProcessError("Sunucu zaten çalışıyor ya da hazırlanıyor.")
+            raise ProcessError(_t("Sunucu zaten çalışıyor ya da hazırlanıyor."))
         if self.mods.jobs.find_running(f"restore-{iid}"):
-            raise ProcessError("Geri yükleme sürüyor, bitmesini bekle.")
+            raise ProcessError(_t("Geri yükleme sürüyor, bitmesini bekle."))
         if self.mods.jobs.find_running(f"upgrade-{iid}"):
-            raise ProcessError("Sürüm değiştirme sürüyor, bitmesini bekle.")
+            raise ProcessError(_t("Sürüm değiştirme sürüyor, bitmesini bekle."))
         if self.mods.jobs.find_running(f"mods-{iid}"):
-            raise ProcessError("Mod kurulumu sürüyor, bitmesini bekle.")
+            raise ProcessError(_t("Mod kurulumu sürüyor, bitmesini bekle."))
         self._check_memory(inst)
         inst = await self._fix_java(inst)
         if iid not in self._notes and not (self._needs_java(inst) or self._needs_loader(inst) or self._needs_mods(inst) or self._needs_modpack(inst)):
@@ -128,8 +129,7 @@ class InstanceLauncher:
         if int(major) >= need:
             return inst
         update_instance(inst["id"], java_major=need)
-        self._notes[inst["id"]] = (f"[panel] Minecraft {ver} en az Java {need} istiyor; sunucu Java {major} ile ayarlıydı. "
-                                   f"Java {need}'e geçildi.")
+        self._notes[inst["id"]] = (_t("[panel] Minecraft {ver} en az Java {need} istiyor; sunucu Java {major} ile ayarlıydı. Java {need}'e geçildi.", ver=ver, need=need, major=major))
         return {**inst, "java_major": need}
 
     @staticmethod
@@ -140,25 +140,24 @@ class InstanceLauncher:
         free_mb = psutil.virtual_memory().available // (1024 * 1024)
         if free_mb < need_mb:
             raise ProcessError(
-                f"Bilgisayarda yeterli boş bellek yok: {free_mb / 1024:.1f} GB boş, bu sunucu en az {need_mb / 1024:.1f} GB istiyor "
-                f"(RAM ayarı {int(inst['ram_mb']) / 1024:.0f} GB + Java payı). Diğer programları kapat ya da sunucunun RAM ayarını düşür."
+                _t('Bilgisayarda yeterli boş bellek yok: {v0:.1f} GB boş, bu sunucu en az {v1:.1f} GB istiyor (RAM ayarı {v2:.0f} GB + Java payı). Diğer programları kapat ya da sunucunun RAM ayarını düşür.', v0=free_mb / 1024, v1=need_mb / 1024, v2=int(inst['ram_mb']) / 1024)
             )
 
     async def update_jar(self, inst: dict) -> dict:
         """Jar'ı en yeni build'e günceller (Paper/Fabric). Sunucu kapalıyken çalışır."""
         iid = inst["id"]
         if self.pm.status(iid) in BUSY:
-            raise ProcessError("Güncellemek için önce sunucuyu durdur.")
+            raise ProcessError(_t("Güncellemek için önce sunucuyu durdur."))
         mgr = self._installer(inst)
         if not mgr:
-            raise ProcessError("Bu sunucunun jar'ı panel tarafından yönetilmiyor (yalnızca Paper ve Fabric).")
+            raise ProcessError(_t("Bu sunucunun jar'ı panel tarafından yönetilmiyor (yalnızca Paper ve Fabric)."))
         try:
             latest = await mgr.resolve(inst["mc_version"])
         except PaperError as e:
             raise ProcessError(str(e))
         cur = read_jar_info(Path(inst["path"]))
         if cur and cur.get("build") == latest["build"] and not self._needs_loader(inst):
-            return {"updated": False, "message": f"Zaten güncel ({latest['label']})."}
+            return {"updated": False, "message": _t('Zaten güncel ({label}).', label=latest['label'])}
         self.pm.set_status(iid, "preparing")
         self._prep[iid] = asyncio.create_task(self._prepare(inst, start=False, force_jar=True))
         return {"updated": True}
@@ -167,9 +166,9 @@ class InstanceLauncher:
         """Profildeki modları en yeni uyumlu sürümlere günceller. Sunucu kapalıyken çalışır."""
         iid = inst["id"]
         if self.pm.status(iid) in BUSY:
-            raise ProcessError("Güncellemek için önce sunucuyu durdur.")
+            raise ProcessError(_t("Güncellemek için önce sunucuyu durdur."))
         if not self._profile_mods(inst)[1]:
-            raise ProcessError("Bu sunucunun profilinde Modrinth mod listesi yok.")
+            raise ProcessError(_t("Bu sunucunun profilinde Modrinth mod listesi yok."))
         self.pm.set_status(iid, "preparing")
         self._prep[iid] = asyncio.create_task(self._prepare(inst, start=False, force_mods=True))
         return {"updated": True}
@@ -190,14 +189,14 @@ class InstanceLauncher:
 
             major = inst.get("java_major")
             if major and not self.java.find(major):
-                pm.log(iid, f"[panel] Java {major} kurulu değil, indiriliyor…")
+                pm.log(iid, _t('[panel] Java {major} kurulu değil, indiriliyor…', major=major))
                 job = self.java.ensure_job(major)
                 await self._follow(iid, job)
                 if job.status == "error":
-                    raise ProcessError(f"Java {major} kurulamadı: {job.error}")
+                    raise ProcessError(_t('Java {major} kurulamadı: {error}', major=major, error=job.error))
                 if not self.java.find(major):
-                    raise ProcessError(f"Java {major} kurulumu tamamlandı ama bulunamadı.")
-                pm.log(iid, f"[panel] Java {major} hazır.")
+                    raise ProcessError(_t('Java {major} kurulumu tamamlandı ama bulunamadı.', major=major))
+                pm.log(iid, _t('[panel] Java {major} hazır.', major=major))
 
             pack, pin = None, None
             if self._needs_modpack(inst):                      # 1) modpack paketini indir/oku → tam yükleyici sürümü
@@ -205,62 +204,63 @@ class InstanceLauncher:
                     info = await self.modpacks.version_info(inst["modpack_slug"], inst["modpack_version"])
                 except ModrinthError as e:
                     raise ProcessError(str(e))
-                pm.log(iid, f"[panel] Modpack indiriliyor: {info['title']} {info['version_number']}…")
+                pm.log(iid, _t('[panel] Modpack indiriliyor: {title} {version_number}…', title=info['title'], version_number=info['version_number']))
                 pj = self.modpacks.ensure_pack_job(iid, info)
                 await self._follow(iid, pj)
                 if pj.status == "error":
-                    raise ProcessError(f"Modpack alınamadı: {pj.error}")
+                    raise ProcessError(_t('Modpack alınamadı: {error}', error=pj.error))
                 pack = {**info, **pj.result}
                 pin = pack["loader_version"]
 
             mgr = self._installer(inst)
             if mgr and self._needs_loader(inst, force_jar):
                 name, v = inst["loader"].capitalize(), inst["mc_version"]
-                pm.log(iid, f"[panel] {name} {v} indiriliyor…")
+                pm.log(iid, _t('[panel] {name} {v} indiriliyor…', name=name, v=v))
                 job = mgr.ensure_cached_job(v, pin)
                 await self._follow(iid, job)
                 if job.status == "error":
-                    raise ProcessError(f"{name} indirilemedi: {job.error}")
+                    raise ProcessError(_t('{name} indirilemedi: {error}', name=name, error=job.error))
                 info = job.result
                 if getattr(mgr, "kind", "jar") == "installer":
-                    pm.log(iid, f"[panel] {info['label']} kuruluyor (internetten dosyalar iner, birkaç dakika sürebilir)…")
+                    pm.log(iid, _t('[panel] {label} kuruluyor (internetten dosyalar iner, birkaç dakika sürebilir)…', label=info['label']))
                     ij = mgr.ensure_install_job(iid, info, Path(inst["path"]), self._with_java(inst)["java_path"])
                     await self._follow(iid, ij)
                     if ij.status == "error":
-                        raise ProcessError(f"{name} kurulamadı: {ij.error}")
+                        raise ProcessError(_t('{name} kurulamadı: {error}', name=name, error=ij.error))
                     update_instance(iid, **ij.result["db"])
                     inst = {**inst, **ij.result["db"]}
-                    pm.log(iid, f"[panel] {info['label']} kuruldu.")
+                    pm.log(iid, _t('[panel] {label} kuruldu.', label=info['label']))
                 else:
                     await asyncio.to_thread(mgr.install, info, Path(inst["path"]), inst["jar_file"])
-                    pm.log(iid, f"[panel] {info['label']} → {inst['jar_file']} hazır.")
+                    pm.log(iid, _t('[panel] {label} → {jar_file} hazır.', label=info['label'], jar_file=inst['jar_file']))
                 if not info["stable"]:
-                    pm.log(iid, "[panel] Uyarı: bu sürüm için kararlı (STABLE) build yok; deneysel build kullanıldı.")
+                    pm.log(iid, _t("[panel] Uyarı: bu sürüm için kararlı (STABLE) build yok; deneysel build kullanıldı."))
                 if inst["loader"] == "fabric":
-                    pm.log(iid, "[panel] Not: Fabric ilk açılışta Minecraft sunucusunu ve kütüphaneleri indirir, bu biraz sürer.")
+                    pm.log(iid, _t("[panel] Not: Fabric ilk açılışta Minecraft sunucusunu ve kütüphaneleri indirir, bu biraz sürer."))
 
             if pack:                                           # 3) modpack dosyaları + ayarlar
-                pm.log(iid, f"[panel] {pack['title']} dosyaları kuruluyor…")
+                pm.log(iid, _t('[panel] {title} dosyaları kuruluyor…', title=pack['title']))
                 ij = self.modpacks.ensure_install_job(iid, Path(inst["path"]), pack)
                 await self._follow(iid, ij)
                 if ij.status == "error":
-                    raise ProcessError(f"Modpack kurulamadı: {ij.error}")
+                    raise ProcessError(_t('Modpack kurulamadı: {error}', error=ij.error))
                 r = ij.result
                 for w in r.get("warnings", []):
-                    pm.log(iid, f"[panel] Uyarı: {w}")
-                pm.log(iid, f"[panel] {pack['title']} kuruldu: {r['files']} dosya, {r['skipped']} istemci dosyası atlandı, {r['overrides']} ayar dosyası.")
+                    pm.log(iid, _t('[panel] Uyarı: {w}', w=w))
+                pm.log(iid, _t('[panel] {title} kuruldu: {files} dosya, {skipped} istemci dosyası atlandı, {overrides} ayar dosyası.', title=pack['title'], files=r['files'], skipped=r['skipped'], overrides=r['overrides']))
 
             _, mod_list = self._profile_mods(inst)
             if mod_list and (force_mods or self._needs_mods(inst)):
-                kind = "eklenti" if inst["loader"] == "paper" else "mod"
-                pm.log(iid, f"[panel] Modrinth'ten {len(mod_list)} {kind} (ve bağımlılıkları) kuruluyor…")
+                paper = inst["loader"] == "paper"
+                pm.log(iid, (_t("[panel] Modrinth'ten {n} eklenti (ve bağımlılıkları) kuruluyor…", n=len(mod_list)) if paper
+                             else _t("[panel] Modrinth'ten {n} mod (ve bağımlılıkları) kuruluyor…", n=len(mod_list))))
                 job = self.mods.ensure_install_job(iid, Path(inst["path"]), inst["mc_version"], inst["loader"], mod_list)
                 await self._follow(iid, job)
                 if job.status == "error":
-                    raise ProcessError(f"{kind.capitalize()}lar kurulamadı: {job.error}")
+                    raise ProcessError((_t('Eklentiler kurulamadı: {error}', error=job.error) if paper else _t('Modlar kurulamadı: {error}', error=job.error)))
                 for w in job.result.get("warnings", []):
-                    pm.log(iid, f"[panel] Uyarı: {w}")
-                pm.log(iid, f"[panel] {job.result['count']} {kind} hazır.")
+                    pm.log(iid, _t('[panel] Uyarı: {w}', w=w))
+                pm.log(iid, (_t('[panel] {count} eklenti hazır.', count=job.result['count']) if paper else _t('[panel] {count} mod hazır.', count=job.result['count'])))
 
             pm.emit(iid, {"type": "progress_end"})
             if start:
@@ -269,7 +269,7 @@ class InstanceLauncher:
                 pm.set_status(iid, "stopped")
         except asyncio.CancelledError:
             pm.emit(iid, {"type": "progress_end"})
-            pm.log(iid, "[panel] Hazırlık iptal edildi.")
+            pm.log(iid, _t("[panel] Hazırlık iptal edildi."))
             pm.set_status(iid, "stopped")
             raise
         except ProcessError as e:

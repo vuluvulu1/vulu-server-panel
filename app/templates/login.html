@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Giriş") }} · {{ brand.name }} {{ brand.accent_word }}{% endblock %}
+{% block content %}
+<div class="card static auth-card">
+  <div class="card-body p-4">
+    <div class="text-center mb-3"><span class="brand"><img class="brand-logo" src="/static/img/vl.svg" alt="">{{ brand.name }} <span class="accent">{{ brand.accent_word }}</span></span></div>
+    {% if error %}<div class="alert alert-danger py-2 small">{{ error }}</div>{% endif %}
+    <form method="post" action="/login">
+      <input type="hidden" name="next" value="{{ next }}">
+      <div class="mb-3">
+        <label class="form-label" for="username">{{ _("Kullanıcı adı") }}</label>
+        <input class="form-control" id="username" name="username" value="{{ username }}" autocomplete="username" maxlength="64" required autofocus>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="password">{{ _("Parola") }}</label>
+        <input class="form-control" id="password" name="password" type="password" autocomplete="current-password" maxlength="256" required>
+      </div>
+      <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="remember" name="remember" checked>
+        <label class="form-check-label" for="remember">{{ _("Beni hatırla (30 gün)") }}</label>
+      </div>
+      <button class="btn btn-primary w-100" type="submit">{{ _("Giriş yap") }}</button>
+    </form>
+  </div>
+  <div class="auth-lang">{% for code, name in langs.items() %}<button type="button" class="btn btn-link btn-sm p-0{{ ' fw-semibold' if lang() == code else ' text-body-secondary' }}" data-lang-pick="{{ code }}">{{ name }}</button>{% endfor %}</div>
+</div>
+{% endblock %}

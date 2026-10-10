@@ -1,6 +1,6 @@
 from fastapi.templating import Jinja2Templates
 
-from . import ui
+from . import __version__, i18n, ui
 from .config import BASE_DIR
 
 templates = Jinja2Templates(directory=BASE_DIR / "app" / "templates")
@@ -23,4 +23,10 @@ templates.env.globals.update(
     themes=ui.list_themes,
     default_theme=ui.DEFAULT_THEME,
     asset_v=asset_v,
+    version=__version__,
+    source_url=ui.SOURCE_URL,
+    _=i18n.gettext,
+    lang=i18n.get_lang,
+    langs=i18n.LANGS,
+    i18n_catalog=lambda: i18n.catalog(i18n.get_lang()),
 )

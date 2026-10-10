@@ -5,23 +5,23 @@
 {% block content %}
 {% call page_header(inst["name"], inst["path"], inst["id"]) %}
   <div class="power-group">
-    <button class="btn btn-primary" data-action="start"><i class="bi bi-play-fill"></i> Başlat</button>
-    <button class="btn btn-outline-secondary" data-action="stop"><i class="bi bi-stop-fill"></i> Durdur</button>
-    <button class="btn btn-outline-secondary" data-action="restart" title="Yeniden başlat"><i class="bi bi-arrow-repeat"></i><span class="label"> Yeniden başlat</span></button>
-    <button class="btn btn-outline-danger" data-action="kill" title="Zorla kapat"><i class="bi bi-x-octagon"></i><span class="label"> Zorla kapat</span></button>
+    <button class="btn btn-primary" data-action="start"><i class="bi bi-play-fill"></i> {{ _("Başlat") }}</button>
+    <button class="btn btn-outline-secondary" data-action="stop"><i class="bi bi-stop-fill"></i> {{ _("Durdur") }}</button>
+    <button class="btn btn-outline-secondary" data-action="restart" title="{{ _("Yeniden başlat") }}"><i class="bi bi-arrow-repeat"></i><span class="label"> {{ _("Yeniden başlat") }}</span></button>
+    <button class="btn btn-outline-danger" data-action="kill" title="{{ _("Zorla kapat") }}"><i class="bi bi-x-octagon"></i><span class="label"> {{ _("Zorla kapat") }}</span></button>
   </div>
 {% endcall %}
 
-<nav class="instance-tabs" aria-label="Sunucu araçları">
+<nav class="instance-tabs" aria-label="{{ _("Sunucu araçları") }}">
   {% if inst["mc_version"] and inst["loader"] in ("paper", "fabric", "forge", "neoforge") %}
-  <a href="/instances/{{ inst['id'] }}/mods" data-modal="{{ 'Eklentiler' if inst["loader"] == 'paper' else 'Modlar' }} · {{ inst['name'] }}"><i class="bi bi-puzzle"></i> {{ 'Eklentiler' if inst["loader"] == 'paper' else 'Modlar' }}</a>
+  <a href="/instances/{{ inst['id'] }}/mods" data-modal="{{ _('Eklentiler') if inst["loader"] == 'paper' else _('Modlar') }} · {{ inst['name'] }}"><i class="bi bi-puzzle"></i> {{ _('Eklentiler') if inst["loader"] == 'paper' else _('Modlar') }}</a>
   {% endif %}
-  <a href="/instances/{{ inst['id'] }}/players" data-modal="Oyuncular · {{ inst['name'] }}" data-modal-reload="0"><i class="bi bi-people"></i> Oyuncular</a>
-  <a href="/instances/{{ inst['id'] }}/files" data-modal="Dosyalar · {{ inst['name'] }}" data-modal-reload="0"><i class="bi bi-folder2-open"></i> Dosyalar</a>
-  <a href="/instances/{{ inst['id'] }}/backups" data-modal="Yedekler · {{ inst['name'] }}" data-modal-reload="0"><i class="bi bi-archive"></i> Yedekler</a>
-  <a href="/instances/{{ inst['id'] }}/schedules" data-modal="Zamanlama · {{ inst['name'] }}" data-modal-reload="0"><i class="bi bi-clock-history"></i> Zamanlama</a>
-  <a href="/instances/{{ inst['id'] }}/properties" data-modal="server.properties · {{ inst['name'] }}" data-modal-reload="0"><i class="bi bi-file-earmark-text"></i> server.properties</a>
-  <a href="/instances/{{ inst['id'] }}/settings" data-modal="Ayarlar · {{ inst['name'] }}" data-modal-reload="1"><i class="bi bi-sliders"></i> Ayarlar</a>
+  <a href="/instances/{{ inst['id'] }}/players" data-modal="{{ _("Oyuncular") }} · {{ inst['name'] }}" data-modal-reload="0"><i class="bi bi-people"></i> {{ _("Oyuncular") }}</a>
+  <a href="/instances/{{ inst['id'] }}/files" data-modal="{{ _("Dosyalar") }} · {{ inst['name'] }}" data-modal-reload="0"><i class="bi bi-folder2-open"></i> {{ _("Dosyalar") }}</a>
+  <a href="/instances/{{ inst['id'] }}/backups" data-modal="{{ _("Yedekler") }} · {{ inst['name'] }}" data-modal-reload="0"><i class="bi bi-archive"></i> {{ _("Yedekler") }}</a>
+  <a href="/instances/{{ inst['id'] }}/schedules" data-modal="{{ _("Zamanlama") }} · {{ inst['name'] }}" data-modal-reload="0"><i class="bi bi-clock-history"></i> {{ _("Zamanlama") }}</a>
+  <a href="/instances/{{ inst['id'] }}/properties" data-modal="server.properties · {{ inst['name'] }}" data-modal-reload="0"><i class="bi bi-file-earmark-text"></i> {{ _("server.properties") }}</a>
+  <a href="/instances/{{ inst['id'] }}/settings" data-modal="{{ _("Ayarlar") }} · {{ inst['name'] }}" data-modal-reload="1"><i class="bi bi-sliders"></i> {{ _("Ayarlar") }}</a>
 </nav>
 
 <div id="playit-strip" class="playit-strip mb-3" data-instance-id="{{ inst['id'] }}" hidden></div>
@@ -30,23 +30,23 @@
   <div class="d-flex justify-content-between align-items-center mb-2">
     {{ status_badge(inst["status"], "instance-status") }}
     <span class="text-body-secondary small">
-      {% if profile %}Profil {{ profile.name }} · {% endif %}{% if inst["mc_version"] %}MC {{ inst["mc_version"] }} · {{ inst["loader"] }} · {% endif %}<span id="meta-java">{% if inst["java_major"] %}Java {{ inst["java_major"] }} · {% endif %}</span>Port {{ inst["port"] }} · {{ inst["ram_mb"] // 1024 }} GB · {{ "argüman dosyası" if inst["launch_type"] == "args-file" else inst["jar_file"] }}
+      {% if profile %}{{ _("Profil") }} {{ profile.name }} · {% endif %}{% if inst["mc_version"] %}MC {{ inst["mc_version"] }} · {{ inst["loader"] }} · {% endif %}<span id="meta-java">{% if inst["java_major"] %}Java {{ inst["java_major"] }} · {% endif %}</span>Port {{ inst["port"] }} · {{ inst["ram_mb"] // 1024 }} GB · {{ _("argüman dosyası") if inst["launch_type"] == "args-file" else inst["jar_file"] }}
     </span>
   </div>
 
   {% if inst["loader"] in ("paper", "fabric", "forge", "neoforge") %}
   <div class="d-flex justify-content-between align-items-center mb-2 small">
     <span class="text-body-secondary">
-      {% if jar_info %}{{ jar_info.label or ('Paper ' ~ jar_info.version ~ ' · build #' ~ jar_info.build ~ ' (' ~ jar_info.channel ~ ')') }}{% else %}Jar henüz indirilmedi (ilk başlatmada otomatik indirilir){% endif %}
+      {% if jar_info %}{{ jar_info.label or ('Paper ' ~ jar_info.version ~ ' · build #' ~ jar_info.build ~ ' (' ~ jar_info.channel ~ ')') }}{% else %}{{ _("Jar henüz indirilmedi (ilk başlatmada otomatik indirilir)") }}{% endif %}
     </span>
-    <button id="paper-update-btn" class="btn btn-sm btn-outline-secondary" type="button"><i class="bi bi-arrow-repeat"></i> Jar'ı güncelle</button>
+    <button id="paper-update-btn" class="btn btn-sm btn-outline-secondary" type="button"><i class="bi bi-arrow-repeat"></i> {{ _("Jar'ı güncelle") }}</button>
   </div>
   {% endif %}
 
   {% if profile and profile.mods %}
   <div class="d-flex justify-content-between align-items-center mb-2 small">
-    <span class="text-body-secondary">Modrinth: profilde {{ profile.mods|length }} {{ 'eklenti' if inst["loader"] == "paper" else 'mod' }}{% if mods_info %} · kurulu (bağımlılıklarla): {{ mods_info.mods|length }}{% else %} · henüz kurulmadı (ilk başlatmada kurulur){% endif %}</span>
-    <button id="mods-update-btn" class="btn btn-sm btn-outline-secondary" type="button"><i class="bi bi-arrow-repeat"></i> Modları güncelle</button>
+    <span class="text-body-secondary">Modrinth: {{ _("profilde {n} eklenti", n=profile.mods|length) if inst["loader"] == "paper" else _("profilde {n} mod", n=profile.mods|length) }}{% if mods_info %} · {{ _("kurulu (bağımlılıklarla): {n}", n=mods_info.mods|length) }}{% else %} · {{ _("henüz kurulmadı (ilk başlatmada kurulur)") }}{% endif %}</span>
+    <button id="mods-update-btn" class="btn btn-sm btn-outline-secondary" type="button"><i class="bi bi-arrow-repeat"></i> {{ _("Modları güncelle") }}</button>
   </div>
   {% endif %}
 
@@ -68,15 +68,15 @@
   <div id="console-output" class="console"></div>
 
   <div class="input-group mt-2">
-    <span class="input-group-text">&gt;</span>
-    <input id="console-input" class="form-control font-monospace" placeholder="Komut yaz (örn. list, say merhaba)" autocomplete="off" disabled>
-    <button id="console-send" class="btn btn-primary" disabled>Gönder</button>
+    <span class="input-group-text">{{ _("&gt;") }}</span>
+    <input id="console-input" class="form-control font-monospace" placeholder="{{ _("Komut yaz (örn. list, say merhaba)") }}" autocomplete="off" disabled>
+    <button id="console-send" class="btn btn-primary" disabled>{{ _("Gönder") }}</button>
   </div>
 </div>
 
 <form method="post" action="/instances/{{ inst['id'] }}/delete" class="mt-5"
-      onsubmit="return confirm('Sunucu panelden kaldırılsın mı? Dosyalar diskte kalır, silinmez.')">
-  <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i> Panelden kaldır</button>
+      data-confirm="{{ _('Sunucu panelden kaldırılsın mı? Dosyalar diskte kalır, silinmez.') }}" onsubmit="return confirm(this.dataset.confirm)">
+  <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i> {{ _("Panelden kaldır") }}</button>
 </form>
 {% endblock %}
 

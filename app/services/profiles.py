@@ -13,6 +13,7 @@ from ..config import BASE_DIR
 from .jvm import PRESETS
 from .minecraft import LOADERS
 from .modrinth import SLUG
+from ..i18n import _t
 
 PROFILES_DIR = BASE_DIR / "profiles"
 # Bu anahtarları panel kendisi yönetir (her başlatmada yazar); profil ezemez
@@ -38,14 +39,14 @@ class Profile(BaseModel):
     def _loader(cls, v):
         v = v.get("type") if isinstance(v, dict) else v          # {"type": "forge"} biçimini de kabul et
         if v not in LOADERS:
-            raise ValueError(f"loader şunlardan biri olmalı: {', '.join(LOADERS)}")
+            raise ValueError(_t('loader şunlardan biri olmalı: {v0}', v0=', '.join(LOADERS)))
         return v
 
     @field_validator("jvm_preset")
     @classmethod
     def _preset(cls, v):
         if v not in PRESETS:
-            raise ValueError(f"jvm_preset şunlardan biri olmalı: {', '.join(PRESETS)}")
+            raise ValueError(_t('jvm_preset şunlardan biri olmalı: {v0}', v0=', '.join(PRESETS)))
         return v
 
     @field_validator("mods")
@@ -53,7 +54,7 @@ class Profile(BaseModel):
     def _mods(cls, v):
         for s in v:
             if not SLUG.match(s):
-                raise ValueError(f"mod adı geçersiz: {s!r}")
+                raise ValueError(_t('mod adı geçersiz: {s!r}', s=s))
         return list(dict.fromkeys(v))                   # tekrarları at
 
     @field_validator("server_properties")
@@ -61,9 +62,9 @@ class Profile(BaseModel):
     def _props(cls, d):
         for k, v in d.items():
             if not _KEY.match(k) or k in FORBIDDEN_PROPS:
-                raise ValueError(f"server_properties anahtarı kabul edilmedi: {k}")
+                raise ValueError(_t('server_properties anahtarı kabul edilmedi: {k}', k=k))
             if not _VAL.match(_as_str(v)):
-                raise ValueError(f"server_properties değeri kabul edilmedi: {k}")
+                raise ValueError(_t('server_properties değeri kabul edilmedi: {k}', k=k))
         return d
 
 
@@ -82,7 +83,7 @@ def load_profiles() -> tuple[list[Profile], list[str]]:
         try:
             p = Profile.model_validate(json.loads(f.read_text(encoding="utf-8")))
             if p.id in seen:
-                raise ValueError(f"id tekrar ediyor: {p.id}")
+                raise ValueError(_t('id tekrar ediyor: {id}', id=p.id))
             seen.add(p.id)
             profiles.append(p)
         except (OSError, ValueError) as e:

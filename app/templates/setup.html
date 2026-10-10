@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ _("İlk kurulum") }} · {{ brand.name }} {{ brand.accent_word }}{% endblock %}
+{% block content %}
+<div class="card static auth-card">
+  <div class="card-body p-4">
+    <div class="text-center mb-2"><span class="brand"><img class="brand-logo" src="/static/img/vl.svg" alt="">{{ brand.name }} <span class="accent">{{ brand.accent_word }}</span></span></div>
+    <p class="small text-body-secondary text-center">{{ _("Hoş geldin! Başlamadan önce paneli yönetecek hesabı oluşturalım.") }}</p>
+    {% if error %}<div class="alert alert-danger py-2 small">{{ error }}</div>{% endif %}
+    <form method="post" action="/setup">
+      <div class="mb-3">
+        <label class="form-label" for="code">{{ _("Kurulum kodu") }}</label>
+        <input class="form-control font-monospace text-uppercase" id="code" name="code" placeholder="{{ _("ABC123-DEF456-789ABC") }}" autocomplete="off" maxlength="40" required autofocus>
+        <div class="form-text">{{ _("Paneli başlattığın konsol penceresinde ve <code>data/setup-code.txt</code> dosyasında yazar. Bu kod, aynı ağdaki başka birinin hesabı senden önce oluşturmasını önler.")|safe }}</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="username">{{ _("Kullanıcı adı") }}</label>
+        <input class="form-control" id="username" name="username" value="{{ username }}" autocomplete="username" maxlength="32" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="password">{{ _("Parola") }}</label>
+        <input class="form-control" id="password" name="password" type="password" autocomplete="new-password" minlength="10" maxlength="256" required>
+        <div class="form-text">{{ _("En az 10 karakter. Başka bir yerde kullanmadığın bir parola seç.") }}</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="password2">{{ _("Parola (tekrar)") }}</label>
+        <input class="form-control" id="password2" name="password2" type="password" autocomplete="new-password" minlength="10" maxlength="256" required>
+      </div>
+      <button class="btn btn-primary w-100" type="submit">{{ _("Hesabı oluştur") }}</button>
+    </form>
+  </div>
+  <div class="auth-lang">{% for code, name in langs.items() %}<button type="button" class="btn btn-link btn-sm p-0{{ ' fw-semibold' if lang() == code else ' text-body-secondary' }}" data-lang-pick="{{ code }}">{{ name }}</button>{% endfor %}</div>
+</div>
+{% endblock %}

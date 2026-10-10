@@ -1,30 +1,30 @@
 {% extends "base.html" %}
 {% from "components/ui.html" import page_header %}
-{% block title %}Dosyalar · {{ inst["name"] }}{% endblock %}
+{% block title %}{{ _("Dosyalar") }} · {{ inst["name"] }}{% endblock %}
 
 {% block content %}
-{% call page_header("Dosyalar · " ~ inst["name"], inst["path"]) %}
-  <a class="btn btn-outline-secondary back-link" href="/instances/{{ inst['id'] }}"><i class="bi bi-arrow-left"></i> Sunucuya dön</a>
+{% call page_header(_("Dosyalar") ~ " · " ~ inst["name"], inst["path"]) %}
+  <a class="btn btn-outline-secondary back-link" href="/instances/{{ inst['id'] }}"><i class="bi bi-arrow-left"></i> {{ _("Sunucuya dön") }}</a>
 {% endcall %}
 
 <div id="files-root" data-instance-id="{{ inst['id'] }}" data-start="{{ start_path }}">
-  <div id="ro-note" class="alert alert-warning py-2 small d-none">Sunucu çalışıyor: dosyalar salt okunur. Değişiklik yapmak için önce sunucuyu durdur.</div>
+  <div id="ro-note" class="alert alert-warning py-2 small d-none">{{ _("Sunucu çalışıyor: dosyalar salt okunur. Değişiklik yapmak için önce sunucuyu durdur.") }}</div>
   <div id="notes"></div>
 
   <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-    <nav aria-label="Konum" class="flex-grow-1"><ol id="crumbs" class="breadcrumb mb-0"></ol></nav>
-    <button id="mkdir-btn" class="btn btn-sm btn-outline-secondary" type="button"><i class="bi bi-folder-plus"></i> Yeni klasör</button>
-    <button id="newfile-btn" class="btn btn-sm btn-outline-secondary" type="button"><i class="bi bi-file-earmark-plus"></i> Yeni dosya</button>
-    <label class="btn btn-sm btn-primary mb-0" id="upload-label"><i class="bi bi-upload"></i> Yükle<input id="upload-input" type="file" multiple hidden></label>
+    <nav aria-label="{{ _("Konum") }}" class="flex-grow-1"><ol id="crumbs" class="breadcrumb mb-0"></ol></nav>
+    <button id="mkdir-btn" class="btn btn-sm btn-outline-secondary" type="button"><i class="bi bi-folder-plus"></i> {{ _("Yeni klasör") }}</button>
+    <button id="newfile-btn" class="btn btn-sm btn-outline-secondary" type="button"><i class="bi bi-file-earmark-plus"></i> {{ _("Yeni dosya") }}</button>
+    <label class="btn btn-sm btn-primary mb-0" id="upload-label"><i class="bi bi-upload"></i> {{ _("Yükle") }}<input id="upload-input" type="file" multiple hidden></label>
     <div class="form-check form-check-inline small mb-0 ms-1">
-      <input class="form-check-input" type="checkbox" id="overwrite"><label class="form-check-label" for="overwrite">Üzerine yaz</label>
+      <input class="form-check-input" type="checkbox" id="overwrite"><label class="form-check-label" for="overwrite">{{ _("Üzerine yaz") }}</label>
     </div>
   </div>
 
   <div class="card static mb-3"><div class="card-body p-0"><div class="table-responsive">
     <table class="table align-middle mb-0 mods-table">
-      <thead><tr><th>Ad</th><th class="text-end">Boyut</th><th>Değiştirilme</th><th class="text-end">İşlemler</th></tr></thead>
-      <tbody id="file-body"><tr><td colspan="4" class="text-body-secondary">Yükleniyor…</td></tr></tbody>
+      <thead><tr><th>{{ _("Ad") }}</th><th class="text-end">{{ _("Boyut") }}</th><th>{{ _("Değiştirilme") }}</th><th class="text-end">{{ _("İşlemler") }}</th></tr></thead>
+      <tbody id="file-body"><tr><td colspan="4" class="text-body-secondary">{{ _("Yükleniyor…") }}</td></tr></tbody>
     </table>
   </div></div></div>
 

@@ -5,6 +5,7 @@ from ..services.container import installers, java, jobs, minecraft
 from ..services.java_manager import JavaError
 from ..services.minecraft import McError
 from ..services.paper import PaperError
+from ..i18n import _t
 
 router = APIRouter()
 
@@ -25,14 +26,14 @@ async def java_resolve(mc_version: str | None = None, loader: str = "vanilla", m
     """Gereken Java'yı tespit eder ve kurulu olup olmadığını/indirme boyutunu döndürür."""
     if major is None:
         if not mc_version:
-            raise HTTPException(400, "mc_version ya da major gerekli")
+            raise HTTPException(400, _t("mc_version ya da major gerekli"))
         try:
             r = await minecraft.java_for(mc_version, loader)
         except McError as e:
             raise HTTPException(400, str(e))
         major, reason = r["major"], r["reason"]
     else:
-        reason = f"Elle seçildi: Java {major}"
+        reason = _t('Elle seçildi: Java {major}', major=major)
     try:
         info = await java.info(major)
     except JavaError as e:

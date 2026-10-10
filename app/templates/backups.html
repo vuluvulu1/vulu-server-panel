@@ -1,26 +1,40 @@
 {% extends "base.html" %}
-{% from "components/ui.html" import page_header, empty_state %}
-{% block title %}Yedekler · {{ brand.name }} {{ brand.accent_word }}{% endblock %}
+{% from "components/ui.html" import page_header, empty_state, server_icon %}
+{% block title %}{{ _("Yedekler") }} · {{ brand.name }} {{ brand.accent_word }}{% endblock %}
 
+{% set LOADERS = {'vanilla': 'Vanilla', 'paper': 'Paper', 'fabric': 'Fabric', 'forge': 'Forge', 'neoforge': 'NeoForge'} %}
 {% block content %}
-{{ page_header("Yedekler", "Tüm sunucuların yedekleri") }}
+{{ page_header("Yedekler", "Her sunucunun yedek durumu tek bakışta") }}
 {% if rows %}
-<div class="card static"><div class="card-body p-0"><div class="table-responsive">
-  <table class="table align-middle mb-0 mods-table">
-    <thead><tr><th>Sunucu</th><th class="text-end">Yedek sayısı</th><th class="text-end">Toplam boyut</th><th>Son yedek</th><th></th></tr></thead>
-    <tbody>
-      {% for r in rows %}
-      <tr>
-        <td>{{ r.name }}</td>
-        <td class="text-end">{{ r.backup_count }}</td>
-        <td class="text-end">{{ '%.1f'|format(r.backup_size / 1048576) }} MB</td>
-        <td class="small text-body-secondary">{{ r.last_backup or '—' }}</td>
-        <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="/instances/{{ r.id }}/backups">Yönet</a></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div></div></div>
+<div class="row g-3">
+  {% for r in rows %}
+  <div class="col-md-6 col-xl-4">
+    <div class="card static backup-card h-100">
+      <div class="card-body d-flex flex-column">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          {{ server_icon(r.id, 52) }}
+          <div class="min-w-0">
+            <div class="fw-semibold text-truncate fs-6">{{ r.name }}</div>
+            <div class="small text-body-secondary">{{ LOADERS.get(r.loader, r.loader or '?') }}{% if r.mc_version %} · MC {{ r.mc_version }}{% endif %}</div>
+          </div>
+        </div>
+        <div class="backup-stats">
+          <div><span class="bs-value">{{ r.backup_count }}</span><span class="bs-label">{{ _("yedek") }}</span></div>
+          <div><span class="bs-value">{{ (r.backup_size / 1073741824)|round(1) if r.backup_size >= 1073741824 else (r.backup_size / 1048576)|round(0)|int }}</span>
+               <span class="bs-label">{{ 'GB' if r.backup_size >= 1073741824 else 'MB' }}</span></div>
+        </div>
+        <div class="d-flex align-items-end justify-content-between gap-2 mt-auto pt-3">
+          <div class="small text-body-secondary">
+            {% if r.last_backup %}<i class="bi bi-clock-history"></i> {{ _("Son:") }} {{ r.last_backup[8:10] }}.{{ r.last_backup[5:7] }}.{{ r.last_backup[:4] }} {{ r.last_backup[11:16] }}
+            {% else %}<i class="bi bi-exclamation-circle"></i> {{ _("Henüz yedek yok") }}{% endif %}
+          </div>
+          <a class="btn btn-sm btn-primary" href="/instances/{{ r.id }}/backups" data-modal="{{ _("Yedekler") }} · {{ r.name }}" data-modal-reload="1">{{ _("Yönet") }}</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
 {% else %}
   {{ empty_state("bi-archive", "Henüz sunucu yok.") }}
 {% endif %}

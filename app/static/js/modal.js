@@ -17,7 +17,7 @@ window.VuluModal = (function () {
     const title = el('div', 'vmodal-title', opts.title || '');
     const tools = el('div', 'vmodal-tools');
     (opts.actions || []).forEach(a => tools.appendChild(a));
-    const x = el('button', 'btn btn-sm btn-outline-secondary'); x.type = 'button'; x.title = 'Kapat (Esc)';
+    const x = el('button', 'btn btn-sm btn-outline-secondary'); x.type = 'button'; x.title = _t('Kapat (Esc)');
     x.appendChild(el('i', 'bi bi-x-lg')); tools.appendChild(x);
     head.append(title, tools);
     const body = el('div', 'vmodal-body');
@@ -74,7 +74,7 @@ window.VuluModal = (function () {
     else if (e.data.type === 'vulu-close') m.close();
     else if (e.data.type === 'vulu-toast' && typeof e.data.text === 'string') toast(e.data.text, e.data.kind);
     else if (e.data.type === 'vulu-saved') {        // kaydedildi: bildir ve pencereyi kapat
-      const text = typeof e.data.text === 'string' ? e.data.text : 'Kaydedildi.';
+      const text = typeof e.data.text === 'string' ? e.data.text : _t('Kaydedildi.');
       if (e.data.changed) m.markChanged();
       m.pendingToast = text;
       m.close(true);
@@ -93,6 +93,13 @@ window.VuluModal = (function () {
     const a = e.target.closest('a[data-modal]');
     if (!a || e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
     e.preventDefault();
+    if (embedded) {                               // pencere içindeyken iç içe pencere açma: aynı pencerede ilerle
+      const u = new URL(a.getAttribute('href'), location.href);
+      if (u.origin !== location.origin) return;
+      u.searchParams.set('embed', '1');
+      location.href = u.pathname + u.search;
+      return;
+    }
     open({ title: a.dataset.modal || a.textContent.trim(), url: a.getAttribute('href'), size: a.dataset.modalSize === 'md' ? 'md' : undefined,
            onClose: ({ changed, toast: msg }) => {
              if (changed && a.dataset.modalReload !== '0') {
@@ -112,7 +119,7 @@ window.VuluModal = (function () {
   // Pencere içinde bir işlem bitti ve ana sayfa başka bir sayfaya geçmeli (örn. yeni sunucu oluşturuldu).
   // Yalnızca aynı kaynaktaki geçerli sayfanın yolu kullanılır (dış adrese yönlendirme yok).
   if (embedded && new URLSearchParams(location.search).get('breakout') === '1') {
-    try { sessionStorage.setItem('vulu-toast', JSON.stringify({ text: 'Sunucu oluşturuldu.', kind: 'success' })); } catch (x) {}
+    try { sessionStorage.setItem('vulu-toast', JSON.stringify({ text: _t('Sunucu oluşturuldu.'), kind: 'success' })); } catch (x) {}
     window.top.location.href = location.pathname;
   }
 

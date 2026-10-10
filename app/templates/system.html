@@ -1,64 +1,155 @@
 {% extends "base.html" %}
 {% from "components/ui.html" import page_header, progress_panel %}
-{% block title %}Ayarlar · {{ brand.name }} {{ brand.accent_word }}{% endblock %}
+{% block title %}{{ _("Ayarlar") }} · {{ brand.name }} {{ brand.accent_word }}{% endblock %}
 
 {% block content %}
-{{ page_header("Ayarlar", "Disk kullanımı, Java sürümleri, playit.gg ve indirme önbelleği") }}
-<div id="system-root" style="max-width: 1000px">
+{{ page_header("Ayarlar", "Panelin kendisine ait ayarlar ve bakım araçları") }}
+<div id="system-root">
   <div id="notes"></div>
+
+  <div class="row g-3 mb-3" id="account-root">
+    <div class="col-lg-6"><div class="card static h-100">
+      <div class="card-header fw-semibold"><i class="bi bi-person-lock"></i> {{ _("Hesap") }}</div>
+      <div class="card-body">
+        <div class="small mb-2">{{ _("Giriş yapan:") }} <strong id="acc-user">…</strong></div>
+        <form id="pw-form" class="row g-2" onsubmit="return false">
+          <div class="col-12"><input class="form-control form-control-sm" type="password" id="pw-cur" placeholder="{{ _("Mevcut parola") }}" autocomplete="current-password" maxlength="256" required></div>
+          <div class="col-sm-6"><input class="form-control form-control-sm" type="password" id="pw-new" placeholder="{{ _("Yeni parola (en az 10)") }}" autocomplete="new-password" minlength="10" maxlength="256" required></div>
+          <div class="col-sm-6"><input class="form-control form-control-sm" type="password" id="pw-new2" placeholder="{{ _("Yeni parola (tekrar)") }}" autocomplete="new-password" minlength="10" maxlength="256" required></div>
+          <div class="col-12 d-flex flex-wrap gap-2">
+            <button class="btn btn-sm btn-primary" type="submit">{{ _("Parolayı değiştir") }}</button>
+            <button class="btn btn-sm btn-outline-secondary" type="button" id="logout-others">{{ _("Diğer oturumları kapat") }}</button>
+          </div>
+        </form>
+        <div class="small text-body-secondary mt-2" id="acc-sessions"></div>
+      </div>
+    </div></div>
+    <div class="col-lg-6"><div class="card static h-100">
+      <div class="card-header d-flex justify-content-between align-items-center gap-2">
+        <span class="fw-semibold"><i class="bi bi-sliders2"></i> {{ _("Panel ayarları") }}</span>
+        <span id="ps-restart-badge" class="badge text-bg-warning d-none">{{ _("Yeniden başlatma gerekli") }}</span>
+      </div>
+      <div class="card-body small">
+        <form id="ps-form" onsubmit="return false">
+          <div class="mb-2">
+            <div class="form-label mb-1">{{ _("Ağ erişimi") }}</div>
+            <div class="form-check"><input class="form-check-input" type="radio" name="host_mode" id="hm-local" value="local">
+              <label class="form-check-label" for="hm-local">{{ _("Yalnızca bu bilgisayar") }}</label></div>
+            <div class="form-check"><input class="form-check-input" type="radio" name="host_mode" id="hm-lan" value="lan">
+              <label class="form-check-label" for="hm-lan">{{ _("Ev ağı (aynı Wi-Fi'deki telefon ve bilgisayarlar)") }}</label></div>
+            <div id="ps-lan" class="mt-1"></div>
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-5"><label class="form-label mb-1" for="ps-port">{{ _("Port") }}</label>
+              <input class="form-control form-control-sm" id="ps-port" type="number" min="1024" max="65535" required></div>
+            <div class="col-7"><label class="form-label mb-1" for="ps-contact">{{ _("İletişim (PaperMC)") }}</label>
+              <input class="form-control form-control-sm" id="ps-contact" maxlength="120" placeholder="{{ _("e-posta ya da site") }}"></div>
+          </div>
+          <details class="mb-2"><summary class="text-body-secondary">{{ _("Gelişmiş: alan adları") }}</summary>
+            <label class="form-label mt-2 mb-1" for="ps-hosts">{{ _("Panele girilebilecek alan adları (virgülle)") }}</label>
+            <input class="form-control form-control-sm" id="ps-hosts" maxlength="1000" placeholder="{{ _("panel.alanadin.com") }}">
+            <div class="form-text">{{ _("Paneli bir sunucuda (VDS) kendi alan adınla açacaksan buraya ekle; evde kullanırken gerekmez.") }}</div>
+          </details>
+          <div class="mb-2 d-none" id="ps-pw-row">
+            <input class="form-control form-control-sm" type="password" id="ps-pw" placeholder="{{ _("Ağ ayarı değişikliği için mevcut parola") }}" autocomplete="current-password" maxlength="256">
+          </div>
+          <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-sm btn-primary" type="submit">{{ _("Kaydet") }}</button>
+            <button class="btn btn-sm btn-outline-warning" type="button" id="ps-restart">{{ _("Paneli yeniden başlat") }}</button>
+          </div>
+          <div class="form-text" id="ps-note">{{ _("Ayarlar <code>data/panel-settings.json</code> dosyasına kaydedilir ve <code>.env</code>'deki değerlerin yerine geçer. Ağ erişimi ve port değişiklikleri panel yeniden başlatılınca uygulanır.")|safe }}</div>
+        </form>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="card static mb-3" id="appearance-card">
+    <div class="card-header fw-semibold"><i class="bi bi-palette"></i> {{ _("Görünüm") }}</div>
+    <div class="card-body">
+      <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+        <span class="form-label mb-0"><i class="bi bi-translate"></i> {{ _("Dil") }}{% if lang() != "en" %} <span class="text-body-secondary">/ Language</span>{% endif %}</span>
+        <div class="btn-group btn-group-sm" role="group" aria-label="{{ _("Dil") }}">
+          {% for code, name in langs.items() %}
+          <button type="button" class="btn {{ 'btn-primary' if lang() == code else 'btn-outline-secondary' }}" data-lang-pick="{{ code }}" aria-pressed="{{ 'true' if lang() == code else 'false' }}">{{ name }}</button>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="form-label mb-2">{{ _("Tema") }}</div>
+      <div class="theme-grid">
+        {% for t in themes() %}
+        <button type="button" class="theme-card" data-theme-pick="{{ t.id }}">
+          <div class="theme-preview" data-theme="{{ t.id }}" data-bs-theme="{{ t.mode }}" aria-hidden="true">
+            <div class="tp-side"><span></span><span class="on"></span><span></span></div>
+            <div class="tp-main">
+              <div class="tp-title"></div>
+              <div class="tp-card"><i></i><b></b><b class="short"></b></div>
+              <div class="tp-btn"></div>
+            </div>
+          </div>
+          <div class="theme-name">{{ _(t.name) }}{% if t.id == default_theme %}<span class="theme-default">{{ _("varsayılan") }}</span>{% endif %}</div>
+        </button>
+        {% endfor %}
+      </div>
+      <div class="form-text mt-2">{{ _("Seçimin bu tarayıcıda saklanır; telefonda ve bilgisayarda farklı temalar kullanabilirsin.") }}</div>
+    </div>
+  </div>
 
   <div class="card static mb-3" id="playit-card">
     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-      <span class="fw-semibold"><i class="bi bi-globe2"></i> playit.gg — port yönlendirmesiz internete açma</span>
+      <span class="fw-semibold"><i class="bi bi-globe2"></i> {{ _("playit.gg — port yönlendirmesiz internete açma") }}</span>
       <span id="pg-badge" class="badge text-bg-secondary">…</span>
     </div>
     <div class="card-body">
-      <p class="small text-body-secondary mb-2">Sunucularını modem ayarı yapmadan arkadaşlarına açar. Panel resmi playit programını indirir, doğrular ve arka planda çalıştırır; yalnızca Minecraft portu açılır, panelin kendisi internete açılmaz.</p>
-      <div id="pg-body" class="small">Yükleniyor…</div>
+      <p class="small text-body-secondary mb-2">{{ _("Modemde port yönlendirmesi yapmadan sunucunu arkadaşlarınla paylaşmanı sağlar. Panel resmi playit programını indirip doğrular ve arka planda çalıştırır. Yalnızca Minecraft sunucusu internete açılır; panelin kendisi açılmaz.") }}</p>
+      <div id="pg-body" class="small">{{ _("Yükleniyor…") }}</div>
       <div class="mt-2">{{ progress_panel("pg") }}</div>
-      <details class="mt-2"><summary class="small text-body-secondary">playit çıktısı</summary><pre id="pg-log" class="console small mt-2" style="max-height: 220px"></pre></details>
+      <details class="mt-2"><summary class="small text-body-secondary">{{ _("playit çıktısı") }}</summary><pre id="pg-log" class="console small mt-2" style="max-height: 220px"></pre></details>
     </div>
   </div>
 
   <div class="card static mb-3">
-    <div class="card-header fw-semibold">Disk kullanımı</div>
+    <div class="card-header fw-semibold">{{ _("Disk kullanımı") }}</div>
     <div class="card-body">
       <div class="disk-bar mb-2" id="disk-bar"></div>
-      <div class="row g-2 small" id="disk-legend"><div class="col text-body-secondary">Hesaplanıyor…</div></div>
+      <div class="row g-2 small" id="disk-legend"><div class="col text-body-secondary">{{ _("Hesaplanıyor…") }}</div></div>
     </div>
   </div>
 
   <div class="card static mb-3">
     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-      <span class="fw-semibold">Java sürümleri</span>
+      <span class="fw-semibold">{{ _("Java sürümleri") }}</span>
       <form id="java-form" class="d-flex gap-2" onsubmit="return false">
         <select class="form-select form-select-sm" id="java-major" style="width: auto">
           {% for v in java_choices %}<option value="{{ v }}">Java {{ v }}</option>{% endfor %}
         </select>
-        <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-download"></i> Kur</button>
+        <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-download"></i> {{ _("Kur") }}</button>
       </form>
     </div>
     <div class="card-body pb-0">{{ progress_panel("java") }}</div>
     <div class="card-body p-0"><div class="table-responsive">
       <table class="table align-middle mb-0 mods-table">
-        <thead><tr><th>Sürüm</th><th>Paket</th><th class="text-end">Boyut</th><th>Kullanan sunucular</th><th></th></tr></thead>
-        <tbody id="java-body"><tr><td colspan="5" class="text-body-secondary">Yükleniyor…</td></tr></tbody>
+        <thead><tr><th>{{ _("Sürüm") }}</th><th>{{ _("Paket") }}</th><th class="text-end">{{ _("Boyut") }}</th><th>{{ _("Kullanan sunucular") }}</th><th></th></tr></thead>
+        <tbody id="java-body"><tr><td colspan="5" class="text-body-secondary">{{ _("Yükleniyor…") }}</td></tr></tbody>
       </table>
     </div></div>
-    <div class="card-footer form-text m-0">Java'lar panelin <code>runtimes/</code> klasörüne kurulur. Bir sunucunun kullandığı Java'yı silersen, sunucu bir sonraki başlatılışında otomatik olarak yeniden indirilir.</div>
+    <div class="card-footer form-text m-0">{{ _("Java sürümleri panelin <code>runtimes/</code> klasörüne kurulur ve sistemdeki Java'yı etkilemez. Bir sunucunun kullandığı sürümü silersen, sunucu bir sonraki açılışında onu yeniden indirir.")|safe }}</div>
   </div>
 
   <div class="card static mb-3">
-    <div class="card-header fw-semibold">İndirme önbelleği</div>
+    <div class="card-header fw-semibold">{{ _("İndirme önbelleği") }}</div>
     <div class="card-body p-0"><div class="table-responsive">
       <table class="table align-middle mb-0 mods-table">
-        <thead><tr><th>Tür</th><th class="text-end">Dosya</th><th class="text-end">Boyut</th><th></th></tr></thead>
+        <thead><tr><th>{{ _("Tür") }}</th><th class="text-end">{{ _("Dosya") }}</th><th class="text-end">{{ _("Boyut") }}</th><th></th></tr></thead>
         <tbody id="cache-body"></tbody>
       </table>
     </div></div>
-    <div class="card-footer form-text m-0">Aynı jar'ın tekrar indirilmemesi için tutulur. Temizlemek güvenlidir: gerektiğinde yeniden indirilir. Sunucu klasörlerindeki dosyalara dokunulmaz.</div>
+    <div class="card-footer form-text m-0">{{ _("Aynı dosyaların tekrar tekrar indirilmemesi için saklanan kopyalar. Temizlemek güvenlidir; gerektiğinde yeniden indirilir. Sunucu klasörlerine dokunulmaz.") }}</div>
   </div>
+  <p class="text-center small text-body-secondary mt-4 mb-2">
+    {{ brand.name }} {{ brand.accent_word }} v{{ version }} · <a href="{{ source_url }}/blob/main/LICENSE" target="_blank" rel="noopener" class="link-secondary">AGPL-3.0</a> ·
+    <a href="{{ source_url }}" target="_blank" rel="noopener" class="link-secondary"><i class="bi bi-github"></i> {{ _("Kaynak kodu") }}</a>
+  </p>
 </div>
 {% endblock %}
 
-{% block scripts %}<script src="/static/js/system.js?v={{ asset_v() }}"></script><script src="/static/js/playit.js?v={{ asset_v() }}"></script>{% endblock %}
+{% block scripts %}<script src="/static/js/system.js?v={{ asset_v() }}"></script><script src="/static/js/playit.js?v={{ asset_v() }}"></script><script src="/static/js/account.js?v={{ asset_v() }}"></script>{% endblock %}

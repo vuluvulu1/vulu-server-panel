@@ -13,7 +13,7 @@
   async function api(path, opts) {
     const r = await fetch(`/api/instances/${id}/files/${path}`, opts);
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(j.detail || ('Hata ' + r.status));
+    if (!r.ok) throw new Error(j.detail || (_t('Hata ') + r.status));
     return j;
   }
   const post = (path, data) => api(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
@@ -47,11 +47,11 @@
       renderCrumbs();
       body.replaceChildren();
       if (cwd) {
-        const tr = el('tr'), td = el('td', '', ''), a = el('a', '', '.. (üst klasör)'); a.href = '#';
+        const tr = el('tr'), td = el('td', '', ''), a = el('a', '', _t('.. (üst klasör)')); a.href = '#';
         a.addEventListener('click', (e) => { e.preventDefault(); open(cwd.split('/').slice(0, -1).join('/')); });
         td.appendChild(a); td.colSpan = 4; tr.appendChild(td); body.appendChild(tr);
       }
-      if (!j.items.length) { const tr = el('tr'), td = el('td', 'text-body-secondary', 'Klasör boş.'); td.colSpan = 4; tr.appendChild(td); body.appendChild(tr); }
+      if (!j.items.length) { const tr = el('tr'), td = el('td', 'text-body-secondary', _t('Klasör boş.')); td.colSpan = 4; tr.appendChild(td); body.appendChild(tr); }
       j.items.forEach(it => {
         const p = join(cwd, it.name), tr = el('tr'), name = el('td');
         name.appendChild(el('i', 'bi me-2 ' + (it.dir ? 'bi-folder-fill text-warning' : it.text ? 'bi-file-earmark-text' : 'bi-file-earmark')));
@@ -63,19 +63,19 @@
         if (it.locked) name.appendChild(el('span', 'badge text-bg-secondary ms-2', 'panel'));
         tr.appendChild(name);
         tr.appendChild(el('td', 'text-end small text-body-secondary', it.dir ? '' : size(it.size)));
-        tr.appendChild(el('td', 'small text-body-secondary', new Date(it.mtime * 1000).toLocaleString('tr-TR')));
+        tr.appendChild(el('td', 'small text-body-secondary', new Date(it.mtime * 1000).toLocaleString(VULU_LANG)));
         const act = el('td', 'text-end text-nowrap');
         if (!it.dir) {
-          const dl = el('a', 'btn btn-sm btn-outline-secondary'); dl.title = 'İndir';
+          const dl = el('a', 'btn btn-sm btn-outline-secondary'); dl.title = _t('İndir');
           dl.href = `/api/instances/${id}/files/download?path=${encodeURIComponent(p)}`; dl.appendChild(el('i', 'bi bi-download'));
           act.appendChild(dl);
         }
-        act.appendChild(iconBtn('bi-pencil', 'Yeniden adlandır', 'btn-outline-secondary ms-1', async () => {
-          const n = prompt('Yeni ad:', it.name); if (!n || n === it.name) return;
+        act.appendChild(iconBtn('bi-pencil', _t('Yeniden adlandır'), 'btn-outline-secondary ms-1', async () => {
+          const n = prompt(_t('Yeni ad:'), it.name); if (!n || n === it.name) return;
           await post('rename', { path: p, name: n }); open(cwd);
         }, !writable || it.locked));
-        act.appendChild(iconBtn('bi-trash', 'Sil', 'btn-outline-danger ms-1', async () => {
-          if (!confirm(`${it.dir ? 'Klasör (içindekilerle birlikte)' : 'Dosya'} kalıcı olarak silinsin mi?\n${p}`)) return;
+        act.appendChild(iconBtn('bi-trash', _t('Sil'), 'btn-outline-danger ms-1', async () => {
+          if (!confirm(_t(`{v0} kalıcı olarak silinsin mi?\n{p}`, {v0: it.dir ? _t('Klasör (içindekilerle birlikte)') : _t('Dosya'), p}))) return;
           await post('delete', { path: p }); open(cwd);
         }, !writable || it.locked));
         tr.appendChild(act); body.appendChild(tr);
@@ -91,20 +91,20 @@
     let saved = j.content;
     const ta = el('textarea', 'form-control file-editor'); ta.spellcheck = false; ta.value = j.content; ta.readOnly = ro;
     ta.setAttribute('autocomplete', 'off'); ta.setAttribute('autocapitalize', 'off'); ta.wrap = 'off';
-    const status = el('span', 'editor-status me-2', ro ? (j.locked ? 'panel yönetir · salt okunur' : 'sunucu çalışıyor · salt okunur') : 'Ctrl+S: kaydet · Esc: kapat');
-    const save = el('button', 'btn btn-sm btn-primary', 'Kaydet'); save.type = 'button'; save.disabled = true; save.hidden = ro;
+    const status = el('span', 'editor-status me-2', ro ? (j.locked ? _t('panel yönetir · salt okunur') : _t('sunucu çalışıyor · salt okunur')) : _t('Ctrl+S: kaydet · Esc: kapat'));
+    const save = el('button', 'btn btn-sm btn-primary', _t('Kaydet')); save.type = 'button'; save.disabled = true; save.hidden = ro;
     const dirty = () => ta.value !== saved;
     const refresh = () => { save.disabled = !dirty(); m.title.textContent = (dirty() ? '● ' : '') + j.path; };
     async function doSave() {
       if (ro || !dirty()) return;
-      save.disabled = true; status.textContent = 'Kaydediliyor…';
-      try { await post('write', { path: j.path, content: ta.value }); saved = ta.value; status.textContent = 'Kaydedildi ✓ ' + new Date().toLocaleTimeString('tr-TR'); open(cwd); }
+      save.disabled = true; status.textContent = _t('Kaydediliyor…');
+      try { await post('write', { path: j.path, content: ta.value }); saved = ta.value; status.textContent = _t('Kaydedildi ✓ ') + new Date().toLocaleTimeString(VULU_LANG); open(cwd); }
       catch (e) { status.textContent = String(e.message || e); }
       refresh();
     }
     const m = VuluModal.open({
       title: j.path, body: ta, actions: [status, save],
-      beforeClose: () => !dirty() || confirm('Kaydedilmemiş değişiklikler kaybolacak. Kapatılsın mı?'),
+      beforeClose: () => !dirty() || confirm(_t('Kaydedilmemiş değişiklikler kaybolacak. Kapatılsın mı?')),
     });
     ta.addEventListener('input', refresh);
     ta.addEventListener('keydown', (e) => {
@@ -120,24 +120,24 @@
   }
 
   $('mkdir-btn').addEventListener('click', guard(async () => {
-    const n = prompt('Klasör adı:'); if (!n) return; await post('mkdir', { path: cwd, name: n }); open(cwd);
+    const n = prompt(_t('Klasör adı:')); if (!n) return; await post('mkdir', { path: cwd, name: n }); open(cwd);
   }));
   $('newfile-btn').addEventListener('click', guard(async () => {
-    const n = prompt('Dosya adı (örn. notlar.txt):'); if (!n) return;
+    const n = prompt(_t('Dosya adı (örn. notlar.txt):')); if (!n) return;
     await post('write', { path: join(cwd, n), content: '' }); await open(cwd); edit(join(cwd, n));
   }));
   $('upload-input').addEventListener('change', guard(async (ev) => {
     const files = [...ev.target.files]; ev.target.value = '';
     let ok = 0;
     for (const f of files) {
-      note('info', `Yükleniyor: ${f.name} (${size(f.size)})…`);
+      note('info', _t("Yükleniyor: {name} ({v1})…", {name: f.name, v1: size(f.size)}));
       const fd = new FormData(); fd.append('file', f); fd.append('path', cwd); fd.append('overwrite', $('overwrite').checked ? 'true' : 'false');
       const r = await fetch(`/api/instances/${id}/files/upload`, { method: 'POST', body: fd });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) { note('danger', `${f.name}: ${j.detail || 'Hata ' + r.status}`); open(cwd); return; }
       ok++;
     }
-    note('success', `${ok} dosya yüklendi.`); open(cwd);
+    note('success', _t("{ok} dosya yüklendi.", {ok})); open(cwd);
   }));
 
   open(cwd);

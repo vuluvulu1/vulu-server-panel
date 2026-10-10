@@ -35,6 +35,7 @@ import httpx
 from .download import download_file
 from .http import new_client
 from .jobs import Job, JobError, JobManager
+from ..i18n import _t
 
 PLAYIT_VERSION = "0.17.1"
 RELEASE_URL = "https://github.com/playit-cloud/playit-agent/releases/download/v{v}/{asset}"
@@ -135,19 +136,19 @@ class PlayitManager:
         if auth:
             s = self._secret()
             if not s:
-                raise PlayitError("playit bağlı değil.")
+                raise PlayitError(_t("playit bağlı değil."))
             headers["Authorization"] = f"Agent-Key {s}"
         try:
             async with new_client() as c:
                 r = await c.post(self.api + path, json=body, headers=headers, timeout=20)
         except httpx.HTTPError:
-            raise PlayitError("playit.gg'ye ulaşılamadı. İnternet bağlantını kontrol et.")
+            raise PlayitError(_t("playit.gg'ye ulaşılamadı. İnternet bağlantını kontrol et."))
         if r.status_code == 429:
-            raise PlayitError("playit.gg istek sınırına takıldı, biraz sonra tekrar dene.")
+            raise PlayitError(_t("playit.gg istek sınırına takıldı, biraz sonra tekrar dene."))
         try:
             j = r.json()
         except ValueError:
-            raise PlayitError(f"playit.gg yanıtı okunamadı (HTTP {r.status_code}).")
+            raise PlayitError(_t('playit.gg yanıtı okunamadı (HTTP {status_code}).', status_code=r.status_code))
         st = j.get("status") if isinstance(j, dict) else None
         if st == "success":
             return j.get("data")
@@ -155,17 +156,17 @@ class PlayitManager:
             raise PlayitError(f"playit: {json.dumps(j.get('data'))[:200]}")
         if st == "error":
             d = j.get("data") or {}
-            raise PlayitError(f"playit hata: {d.get('type', '?')} {json.dumps(d.get('message'))[:200]}")
-        raise PlayitError(f"playit.gg beklenmeyen yanıt (HTTP {r.status_code}).")
+            raise PlayitError(_t('playit hata: {v0} {v1}', v0=d.get('type', '?'), v1=json.dumps(d.get('message'))[:200]))
+        raise PlayitError(_t('playit.gg beklenmeyen yanıt (HTTP {status_code}).', status_code=r.status_code))
 
     # ---------- kurulum ----------
     def ensure_install_job(self) -> Job:
-        return self.jobs.start("playit", "playit kuruluyor", "playit-install", self._install)
+        return self.jobs.start("playit", _t("playit kuruluyor"), "playit-install", self._install)
 
     async def _install(self, job: Job) -> dict:
         a = self.asset
         if not a:
-            raise JobError("Bu işletim sistemi/işlemci için playit desteklenmiyor (Windows x64 ve Linux x64).")
+            raise JobError(_t("Bu işletim sistemi/işlemci için playit desteklenmiyor (Windows x64 ve Linux x64)."))
         self.runtime_dir.mkdir(parents=True, exist_ok=True)
         dest = self.runtime_dir / a[0]
         if dest.is_file() and await asyncio.to_thread(_sha256, dest) == a[1]:
@@ -179,13 +180,13 @@ class PlayitManager:
             part.unlink(missing_ok=True)
         if os.name != "nt":
             dest.chmod(0o755)
-        job.update(100, "done", "playit hazır")
+        job.update(100, "done", _t("playit hazır"))
         return {"path": str(dest)}
 
     # ---------- bağlama ----------
     def start_claim(self) -> dict:
         if self.linked():
-            raise PlayitError("playit zaten bağlı.")
+            raise PlayitError(_t("playit zaten bağlı."))
         if self._claim and self._claim["state"] in ("waiting", "accepted"):
             return self.claim_info()
         code = secrets.token_hex(5)
@@ -219,18 +220,18 @@ class PlayitManager:
                     c["state"] = "accepted"
                     break
                 if res == "UserRejected":
-                    c["state"], c["error"] = "rejected", "Bağlantı playit.gg'de reddedildi."
+                    c["state"], c["error"] = "rejected", _t("Bağlantı playit.gg'de reddedildi.")
                     return
                 await asyncio.sleep(2)
             else:
-                c["state"], c["error"] = "expired", "Süre doldu, tekrar dene."
+                c["state"], c["error"] = "expired", _t("Süre doldu, tekrar dene.")
                 return
             for _ in range(30):
                 try:
                     data = await self._call("/claim/exchange", {"code": code})
                     secret = str((data or {}).get("secret_key", "")).strip()
                     if not SECRET_RE.match(secret):
-                        raise PlayitError("playit geçersiz anahtar döndürdü.")
+                        raise PlayitError(_t("playit geçersiz anahtar döndürdü."))
                     self._write_secret(secret)
                     break
                 except PlayitError as e:
@@ -263,11 +264,11 @@ class PlayitManager:
 
     async def start_agent(self) -> None:
         if not self.linked():
-            raise PlayitError("Önce playit hesabını bağla.")
+            raise PlayitError(_t("Önce playit hesabını bağla."))
         if not self.installed():
-            raise PlayitError("playit kurulu değil.")
+            raise PlayitError(_t("playit kurulu değil."))
         if await asyncio.to_thread(_sha256, self.exe) != self.asset[1]:
-            raise PlayitError("playit dosyası doğrulanamadı (değiştirilmiş olabilir). Ayarlar'dan yeniden kur.")
+            raise PlayitError(_t("playit dosyası doğrulanamadı (değiştirilmiş olabilir). Ayarlar'dan yeniden kur."))
         self._want_running = True
         if self.running():
             return
@@ -277,7 +278,7 @@ class PlayitManager:
 
     def _spawn(self) -> None:
         cmd = [str(self.exe), "--secret_path", str(self.secret_file.resolve()), "-s", "start"]
-        self._log(f"[panel] playit {PLAYIT_VERSION} başlatılıyor")
+        self._log(_t('[panel] playit {PLAYIT_VERSION} başlatılıyor', PLAYIT_VERSION=PLAYIT_VERSION))
         self._proc = subprocess.Popen(
             cmd, cwd=self.data_dir, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             text=True, encoding="utf-8", errors="replace", bufsize=1,
@@ -299,13 +300,13 @@ class PlayitManager:
             await asyncio.sleep(3)
             if self._want_running and not self.running() and self.linked():
                 code = self._proc.poll() if self._proc else None
-                self._log(f"[panel] playit kapandı (çıkış kodu: {code}); {delay} sn sonra yeniden başlatılıyor")
+                self._log(_t('[panel] playit kapandı (çıkış kodu: {code}); {delay} sn sonra yeniden başlatılıyor', code=code, delay=delay))
                 await asyncio.sleep(delay)
                 if self._want_running and not self.running():
                     try:
                         self._spawn()
                     except OSError as e:
-                        self._log(f"[panel] playit başlatılamadı: {e}")
+                        self._log(_t('[panel] playit başlatılamadı: {e}', e=e))
                 delay = min(delay * 2, 120)
             elif self.running():
                 delay = 5
@@ -338,7 +339,7 @@ class PlayitManager:
             return self._rundata[1]
         data = await self._call("/agents/rundata", {}, auth=True)
         if not isinstance(data, dict):
-            raise PlayitError("playit beklenmeyen yanıt verdi.")
+            raise PlayitError(_t("playit beklenmeyen yanıt verdi."))
         self._rundata = (time.time(), data)
         return data
 
@@ -367,7 +368,7 @@ class PlayitManager:
             return t
         agent_id = str(rd.get("agent_id") or "")
         if not UUID_RE.match(agent_id):
-            raise PlayitError("playit ajan kimliği okunamadı.")
+            raise PlayitError(_t("playit ajan kimliği okunamadı."))
         safe = re.sub(r"[^A-Za-z0-9 _-]", "", f"vulu {name}")[:30] or "vulu"
         await self._call("/tunnels/create", {
             "name": safe, "tunnel_type": "minecraft-java", "port_type": "tcp", "port_count": 1,
@@ -379,7 +380,7 @@ class PlayitManager:
             self._rundata = None
             if (t := await self.tunnel_for(port)):
                 return t
-        raise PlayitError("Tünel oluşturuldu ama adresi henüz atanmadı; birkaç saniye sonra sayfayı yenile.")
+        raise PlayitError(_t("Tünel oluşturuldu ama adresi henüz atanmadı; birkaç saniye sonra sayfayı yenile."))
 
     async def delete_tunnel(self, port: int) -> None:
         t = await self.tunnel_for(port)

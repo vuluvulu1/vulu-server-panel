@@ -8,6 +8,7 @@ import logging
 import re
 
 from ..db import get_conn, get_instance
+from ..i18n import _t
 
 log = logging.getLogger("vulu.scheduler")
 TIME_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
@@ -67,7 +68,7 @@ class Scheduler:
                 continue
             if not (start_at <= now < target + dt.timedelta(minutes=2)):
                 continue
-            self._mark(s["id"], slot, "çalışıyor…")
+            self._mark(s["id"], slot, _t("çalışıyor…"))
             self._running.add(s["id"])
             t = asyncio.create_task(self._run(s, target, slot))
             self._tasks.add(t)
@@ -89,11 +90,11 @@ class Scheduler:
             res = await (self._restart(inst, s, target) if s["kind"] == "restart" else self._backup(inst, s))
             self._mark(s["id"], None, res)
         except asyncio.CancelledError:
-            self._mark(s["id"], None, "panel kapandığı için yarıda kaldı")
+            self._mark(s["id"], None, _t("panel kapandığı için yarıda kaldı"))
             raise
         except Exception as e:
             log.exception("zamanlanmış görev")
-            self._mark(s["id"], None, f"hata: {e}")
+            self._mark(s["id"], None, _t('hata: {e}', e=e))
         finally:
             self._running.discard(s["id"])
 
@@ -107,7 +108,7 @@ class Scheduler:
     async def _restart(self, inst: dict, s: dict, target: dt.datetime) -> str:
         iid = inst["id"]
         if self.pm.status(iid) != "running":
-            return "atlandı: sunucu çalışmıyordu"
+            return _t("atlandı: sunucu çalışmıyordu")
         steps = [w for w in WARN_STEPS if w <= int(s["warn_minutes"])]
         for w in steps:                                   # geri sayım duyuruları
             at = target - dt.timedelta(minutes=w)
@@ -119,12 +120,12 @@ class Scheduler:
         delay = (target - dt.datetime.now()).total_seconds() - 10
         if delay > 0:
             await asyncio.sleep(delay)
-        await self._say(iid, "Sunucu 10 saniye icinde yeniden baslatiliyor...")
+        await self._say(iid, _t("Sunucu 10 saniye icinde yeniden baslatiliyor..."))
         await asyncio.sleep(10 if steps else 0)
         if self.pm.status(iid) != "running":
-            return "atlandı: sunucu bu arada durdurulmuş"
+            return _t("atlandı: sunucu bu arada durdurulmuş")
         await self.launcher.restart(get_instance(iid) or inst)
-        return "yeniden başlatıldı"
+        return _t("yeniden başlatıldı")
 
     async def _backup(self, inst: dict, s: dict) -> str:
         job = self.backups.ensure_create_job(inst, s["backup_mode"], AUTO_NOTE)
@@ -132,6 +133,6 @@ class Scheduler:
             if snap["status"] != "running":
                 break
         if job.status != "done":
-            return f"yedek başarısız: {job.error}"
+            return _t('yedek başarısız: {error}', error=job.error)
         removed = self.backups.prune(inst, AUTO_NOTE, int(s["keep"]))
-        return f"yedek alındı ({job.result.get('file')})" + (f", {removed} eski yedek silindi" if removed else "")
+        return _t('yedek alındı ({v0})', v0=job.result.get('file')) + (_t(', {removed} eski yedek silindi', removed=removed) if removed else "")

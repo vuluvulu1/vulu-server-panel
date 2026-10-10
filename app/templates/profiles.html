@@ -1,13 +1,15 @@
 {% extends "base.html" %}
-{% from "components/ui.html" import page_header, empty_state %}
-{% block title %}Profiller · {{ brand.name }} {{ brand.accent_word }}{% endblock %}
+{% from "components/ui.html" import page_header, empty_state, wizard_back %}
+{% block title %}{{ _("Profiller") }} · {{ brand.name }} {{ brand.accent_word }}{% endblock %}
 
 {% block content %}
-{{ page_header("Profiller", "Hazır ayar şablonlarından tek tıkla sunucu oluştur") }}
+{% set embed = request.query_params.get("embed") == "1" %}
+{% if embed %}{{ wizard_back("/instances/create", "Başlangıç seçimi") }}<p class="wizard-lead">{{ _("Bir profil seç") }}</p>
+{% else %}{{ page_header("Profiller", "Sık kullandığın kurulumları şablon olarak sakla ve tekrar kullan") }}{% endif %}
 
 {% if errors %}
 <div class="alert alert-warning">
-  <strong>Bazı profil dosyaları okunamadı:</strong>
+  <strong>{{ _("Bazı profil dosyaları okunamadı:") }}</strong>
   <ul class="mb-0 small">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
 </div>
 {% endif %}
@@ -15,19 +17,19 @@
 {% if profiles %}
 <div class="row g-3">
   {% for p in profiles %}
-  <div class="col-md-6 col-xl-4">
+  <div class="{{ 'col-md-6' if embed else 'col-md-6 col-xl-4' }}">
     <div class="card h-100 static">
       <div class="card-body d-flex flex-column">
         <h2 class="h5">{{ p.name }}</h2>
         <p class="text-body-secondary small">{{ p.description }}</p>
         <div class="d-flex flex-wrap gap-2 mb-3 small">
           <span class="badge text-bg-secondary">{{ p.loader }}</span>
-          <span class="badge text-bg-secondary">MC {{ 'en yeni' if p.mc_version == 'latest' else p.mc_version }}</span>
+          <span class="badge text-bg-secondary">MC {{ _('en yeni') if p.mc_version == 'latest' else p.mc_version }}</span>
           <span class="badge text-bg-secondary">{{ p.default_ram_gb }} GB</span>
           <span class="badge text-bg-secondary">{{ p.jvm_preset }}</span>
           {% if p.mods %}<span class="badge text-bg-info">{{ p.mods|length }} {{ 'eklenti' if p.loader == 'paper' else 'mod' }}</span>{% endif %}
         </div>
-        <a class="btn btn-primary mt-auto" href="/instances/new?profile={{ p.id }}" data-modal="Yeni sunucu · {{ p.name }}" data-modal-size="md"><i class="bi bi-plus-lg"></i> Bu profille sunucu oluştur</a>
+        <a class="btn btn-primary mt-auto" href="/instances/new?profile={{ p.id }}" data-modal="{{ _("Yeni sunucu") }} · {{ p.name }}" data-modal-size="md"><i class="bi bi-arrow-right"></i> {{ _("Bu profili kullan") }}</a>
       </div>
     </div>
   </div>

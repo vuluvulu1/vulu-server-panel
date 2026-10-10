@@ -1,21 +1,27 @@
 /* name: Açık | mode: light */
+/* vulu paletinin gündüz hali: krem zemin, beyaz kartlar, kahve vurgu. */
 [data-theme="light"] {
-  --bg: #f4f5f9;
+  --bg: #f5f1ec;
   --surface: #ffffff;
-  --surface-2: #eef0f6;
-  --border: #dcdfea;
-  --text: #1d2030;
-  --text-muted: #6a7088;
+  --surface-2: #f1ebe4;
+  --border: #e2d7cc;
+  --text: #241a13;
+  --text-muted: #7b6a5d;
 
-  --accent: #5b3df5;
-  --accent-hover: #4a2ed8;
+  --accent: #8a5a36;
+  --accent-hover: #74482a;
   --accent-contrast: #ffffff;
-  --accent-rgb: 91, 61, 245;
+  --accent-rgb: 138, 90, 54;
+  --accent-2: #c9a992;
 
-  --success: #12a66a;
-  --warning: #d98200;
-  --danger: #d6334a;
+  --success: #2f8f4e;
+  --warning: #b86e00;
+  --danger: #c43d32;
 
-  --card-shadow: 0 1px 3px rgba(20, 24, 50, .06);
-  --card-hover-shadow: 0 6px 20px rgba(91, 61, 245, .15);
+  --radius: 8px;
+  --radius-sm: 6px;
+  --heading-weight: 750;
+
+  --card-shadow: 0 1px 2px rgba(60, 40, 20, .06);
+  --card-hover-shadow: 0 6px 20px rgba(60, 40, 20, .12);
 }

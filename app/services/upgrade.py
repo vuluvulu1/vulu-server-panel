@@ -13,6 +13,7 @@ from .minecraft import McError
 from .modrinth import read_mods_info, target_dir
 from .paper import INFO_FILE, PaperError
 from .profiles import get_profile
+from ..i18n import _t
 
 NOTE = "auto:surum-oncesi"
 
@@ -26,27 +27,27 @@ class Upgrader:
         self.installers, self.mc, self.backups, self.mods, self.jobs, self.pm = installers, minecraft, backups, mods, jobs, pm
 
     def ensure_job(self, inst: dict, new_ver: str) -> Job:
-        return self.jobs.start("upgrade", f"{inst['name']}: Minecraft {new_ver} sürümüne geçiliyor", f"upgrade-{inst['id']}",
+        return self.jobs.start("upgrade", _t('{name}: Minecraft {new_ver} sürümüne geçiliyor', name=inst['name'], new_ver=new_ver), f"upgrade-{inst['id']}",
                                lambda j: self._run(j, inst, new_ver))
 
     async def check(self, inst: dict, new_ver: str) -> dict:
         """Ön kontrol (hata varsa JobError). Arayüz onay penceresi için özet döndürür."""
         if inst.get("modpack_slug"):
-            raise JobError("Bu sunucu bir modpack'ten kuruldu; sürümü modpack belirler, buradan değiştirilemez.")
+            raise JobError(_t("Bu sunucu bir modpack'ten kuruldu; sürümü modpack belirler, buradan değiştirilemez."))
         loader = inst.get("loader") or "vanilla"
         mgr = self.installers.get(loader)
         if not mgr:
-            raise JobError("Bu yükleyici için sürüm değiştirme desteklenmiyor.")
+            raise JobError(_t("Bu yükleyici için sürüm değiştirme desteklenmiyor."))
         if not re.fullmatch(r"[0-9A-Za-z._+-]{1,40}", new_ver or ""):
-            raise JobError("Geçersiz sürüm.")
+            raise JobError(_t("Geçersiz sürüm."))
         if new_ver == inst.get("mc_version"):
-            raise JobError("Sunucu zaten bu sürümde.")
+            raise JobError(_t("Sunucu zaten bu sürümde."))
         try:
             known = {v["id"] for v in (await mgr.versions())["versions"]}
         except PaperError as e:
             raise JobError(str(e))
         if new_ver not in known:
-            raise JobError(f"{loader.capitalize()} {new_ver} sürümünü desteklemiyor.")
+            raise JobError(_t('{v0} {new_ver} sürümünü desteklemiyor.', v0=loader.capitalize(), new_ver=new_ver))
         java_major = inst.get("java_major")
         if java_major:                                       # panelin yönettiği Java: yeni sürüme göre belirle
             try:
@@ -70,13 +71,13 @@ class Upgrader:
             if s["status"] != "running":
                 break
         if sub.status != "done":
-            raise JobError(f"{prefix} başarısız: {sub.error}")
+            raise JobError(_t('{prefix} başarısız: {error}', prefix=prefix, error=sub.error))
 
     async def _run(self, job: Job, inst: dict, new_ver: str) -> dict:
         iid = inst["id"]
         if self.pm.status(iid) not in ("stopped", "crashed"):
-            raise JobError("Sürümü değiştirmek için önce sunucuyu durdur.")
-        job.update(1, "check", "Kontrol ediliyor…")
+            raise JobError(_t("Sürümü değiştirmek için önce sunucuyu durdur."))
+        job.update(1, "check", _t("Kontrol ediliyor…"))
         plan = await self.check(inst, new_ver)
         folder = Path(inst["path"])
 
@@ -86,7 +87,7 @@ class Upgrader:
         backup_file = bj.result.get("file")
 
         # 2) eski yükleyici kaydı/jar'ı → yeni sürüm ilk başlatmada kurulur
-        job.update(62, "loader", "Eski sunucu dosyası kaldırılıyor…")
+        job.update(62, "loader", _t("Eski sunucu dosyası kaldırılıyor…"))
         (folder / INFO_FILE).unlink(missing_ok=True)
         if (inst.get("launch_type") or "jar") == "jar":
             jar = folder / inst["jar_file"]
@@ -104,7 +105,7 @@ class Upgrader:
             prof = get_profile(inst.get("profile_id"))
             slugs = list(prof.mods) if prof and prof.mods else []
             mj = self.mods.ensure_install_job(iid, folder, new_ver, inst.get("loader") or "vanilla", slugs)
-            await self._follow(job, mj, 65, 98, "Modlar")
+            await self._follow(job, mj, 65, 98, _t("Modlar"))
             result["mod_warnings"] = (mj.result or {}).get("warnings", [])
-        job.update(99, "done", "Tamamlandı")
+        job.update(99, "done", _t("Tamamlandı"))
         return result

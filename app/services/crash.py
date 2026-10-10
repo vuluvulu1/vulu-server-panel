@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 import time
 from pathlib import Path
+from ..i18n import _t
 
 REPORT_MAX = 512 * 1024           # crash raporundan okunacak en fazla bayt
 CONSOLE_LINES = 600                # konsolun son kaç satırı incelenir
@@ -59,41 +60,41 @@ def analyze(folder: Path, console: list[str], started_at: float | None = None) -
     # --- Java sürümü ---
     if m := re.search(r"UnsupportedClassVersionError.*?class file version (\d+)\.0", text):
         need = int(m.group(1)) - 44
-        add("java", f"Java {need} gerekiyor",
-            f"Sunucu dosyası Java {need} ile derlenmiş, ama daha eski bir Java ile başlatıldı.",
-            f"Ayarlar → Java'dan \"Otomatik\" ya da Java {need} seç.")
+        add("java", _t('Java {need} gerekiyor', need=need),
+            _t('Sunucu dosyası Java {need} ile derlenmiş, ama daha eski bir Java ile başlatıldı.', need=need),
+            _t('Ayarlar → Java\'dan "Otomatik" ya da Java {need} seç.', need=need))
 
     # --- bellek ---
     if "insufficient memory for the Java Runtime" in text or "Could not reserve enough space for object heap" in text:
-        add("ram-start", "Bilgisayarda yeterli boş bellek yok",
-            "Java, ayarlanan RAM'i işletim sisteminden alamadı.",
-            "Diğer programları kapat ya da sunucunun RAM ayarını düşür.")
+        add("ram-start", _t("Bilgisayarda yeterli boş bellek yok"),
+            _t("Java, ayarlanan RAM'i işletim sisteminden alamadı."),
+            _t("Diğer programları kapat ya da sunucunun RAM ayarını düşür."))
     elif re.search(r"java\.lang\.OutOfMemoryError: (Java heap space|GC overhead)", text):
-        add("ram-heap", "Sunucunun belleği doldu",
-            "Oyun sırasında ayrılan RAM yetmedi (çok mod, geniş görüş mesafesi ya da çok oyuncu).",
-            "Ayarlar'dan RAM'i artır ya da server.properties'te view-distance/simulation-distance değerlerini düşür.")
+        add("ram-heap", _t("Sunucunun belleği doldu"),
+            _t("Oyun sırasında ayrılan RAM yetmedi (çok mod, geniş görüş mesafesi ya da çok oyuncu)."),
+            _t("Ayarlar'dan RAM'i artır ya da server.properties'te view-distance/simulation-distance değerlerini düşür."))
 
     # --- port ---
     if re.search(r"FAILED TO BIND TO PORT|BindException|Address already in use", text):
-        add("port", "Port kullanımda",
-            "Sunucunun portunu başka bir program (ya da başka bir sunucu) kullanıyor.",
-            "Diğer sunucuyu kapat ya da Ayarlar'dan farklı bir port seç.")
+        add("port", _t("Port kullanımda"),
+            _t("Sunucunun portunu başka bir program (ya da başka bir sunucu) kullanıyor."),
+            _t("Diğer sunucuyu kapat ya da Ayarlar'dan farklı bir port seç."))
 
     # --- EULA ---
     if "You need to agree to the EULA" in text:
-        add("eula", "EULA kabul edilmemiş",
-            "Minecraft sunucusu eula.txt içinde eula=true görmeden açılmaz.",
-            "Dosyalar'dan eula.txt'yi aç ve eula=true yap (Minecraft EULA'sını kabul etmiş olursun).")
+        add("eula", _t("EULA kabul edilmemiş"),
+            _t("Minecraft sunucusu eula.txt içinde eula=true görmeden açılmaz."),
+            _t("Dosyalar'dan eula.txt'yi aç ve eula=true yap (Minecraft EULA'sını kabul etmiş olursun)."))
 
     # --- dünya kilidi / bozuk dünya ---
     if "session.lock" in text and ("already locked" in text or "LevelStorageException" in text):
-        add("lock", "Dünya başka bir süreç tarafından kullanılıyor",
-            "Aynı dünya klasörünü kullanan başka bir sunucu ya da kapanmamış eski bir Java süreci var.",
-            "Görev Yöneticisi'nde kalan java.exe süreçlerini kapat ve yeniden dene.")
+        add("lock", _t("Dünya başka bir süreç tarafından kullanılıyor"),
+            _t("Aynı dünya klasörünü kullanan başka bir sunucu ya da kapanmamış eski bir Java süreci var."),
+            _t("Görev Yöneticisi'nde kalan java.exe süreçlerini kapat ve yeniden dene."))
     if re.search(r"(Failed to load level|Exception reading .*level\.dat|Corrupted chunk)", text):
-        add("world", "Dünya verisi okunamadı",
-            "level.dat ya da bazı bölge dosyaları bozuk olabilir.",
-            "Yedekler'den son sağlam yedeği geri yükle.")
+        add("world", _t("Dünya verisi okunamadı"),
+            _t("level.dat ya da bazı bölge dosyaları bozuk olabilir."),
+            _t("Yedekler'den son sağlam yedeği geri yükle."))
 
     # --- eksik bağımlılık: Fabric ---
     fab = []
@@ -105,46 +106,46 @@ def analyze(folder: Path, console: list[str], started_at: float | None = None) -
     # --- eksik bağımlılık: Forge / NeoForge ---
     forge = re.findall(r"Mod ID: '(" + _ID + r")', Requested by: '(" + _ID + r")'", text)
     forge += re.findall(r"Missing (?:mandatory )?dependenc(?:y|ies)[^\n]{0,40}?'?(" + _ID + r")'?[^\n]{0,40}?(?:for|required by) '?(" + _ID + r")'?", text)
-    missing = _uniq([f"{dep} (isteyen: {who.strip()})" for who, dep in fab] + [f"{dep} (isteyen: {who})" for dep, who in forge])
+    missing = _uniq([_t('{dep} (isteyen: {v1})', dep=dep, v1=who.strip()) for who, dep in fab] + [_t('{dep} (isteyen: {who})', dep=dep, who=who) for dep, who in forge])
     if missing or re.search(r"Incompatible mods? found|Missing or unsupported mandatory dependencies", text):
-        add("deps", "Eksik ya da uyumsuz mod bağımlılığı",
-            ("Eksik: " + "; ".join(missing)) if missing else "Bazı modlar, bulunmayan ya da yanlış sürümdeki başka modları istiyor.",
-            "Modlar penceresinde eksik bağımlılık listesine bak; eksik modu Modrinth'ten kur ya da sürümü uyumlu olanla değiştir.")
+        add("deps", _t("Eksik ya da uyumsuz mod bağımlılığı"),
+            (_t("Eksik: ") + "; ".join(missing)) if missing else _t("Bazı modlar, bulunmayan ya da yanlış sürümdeki başka modları istiyor."),
+            _t("Modlar penceresinde eksik bağımlılık listesine bak; eksik modu Modrinth'ten kur ya da sürümü uyumlu olanla değiştir."))
 
     # --- istemci modu sunucuda ---
     if re.search(r"(Attempted to load class net/minecraft/client|for invalid dist DEDICATED_SERVER|"
                  r"Environment type CLIENT is not allowed|net/minecraft/client/Minecraft)", text):
         files = _uniq(re.findall(r"Mod File: (?:.*[/\\])?([^/\\\n]{1,120}\.jar)", report))
-        add("client", "İstemciye özel bir mod sunucuda yüklenmeye çalıştı",
-            ("Şüpheli: " + ", ".join(files)) if files else "Bir mod yalnızca oyuncu tarafında çalışan kodu sunucuda çağırdı.",
-            "Bu modu Modlar penceresinden kapat (sunucuda gerekmez).")
+        add("client", _t("İstemciye özel bir mod sunucuda yüklenmeye çalıştı"),
+            (_t("Şüpheli: ") + ", ".join(files)) if files else _t("Bir mod yalnızca oyuncu tarafında çalışan kodu sunucuda çağırdı."),
+            _t("Bu modu Modlar penceresinden kapat (sunucuda gerekmez)."))
 
     # --- mixin ---
     mix = _uniq(re.findall(r"Mixin apply (?:for mod|failed) ([A-Za-z0-9_.\-]{1,64})", text) +
                 re.findall(r"from mod ([a-z0-9_.\-]{1,64})\]?", text) if "Mixin" in text else [])
     if re.search(r"MixinApplyError|Mixin apply failed|InvalidMixinException|MixinTransformerError", text):
-        add("mixin", "Modlar arasında uyumsuzluk (Mixin hatası)",
-            ("İlgili mod(lar): " + ", ".join(mix)) if mix else "Bir mod, oyunun ya da başka bir modun kodunu değiştiremedi.",
-            "Bu modun sunucu sürümüne (MC ve yükleyici) uygun sürümünü kur ya da modu geçici olarak kapatıp dene.")
+        add("mixin", _t("Modlar arasında uyumsuzluk (Mixin hatası)"),
+            (_t("İlgili mod(lar): ") + ", ".join(mix)) if mix else _t("Bir mod, oyunun ya da başka bir modun kodunu değiştiremedi."),
+            _t("Bu modun sunucu sürümüne (MC ve yükleyici) uygun sürümünü kur ya da modu geçici olarak kapatıp dene."))
 
     # --- aynı mod iki kez ---
     if re.search(r"[Dd]uplicate mods? found|DuplicateModsFoundException|Found a duplicate mod", text):
         dups = _uniq(re.findall(r"(?:Mod ID|mod) '(" + _ID + r")'[^\n]{0,40}from mod files?", text))
-        add("dup", "Aynı mod iki kez kurulu",
-            ("Mod: " + ", ".join(dups)) if dups else "mods klasöründe aynı modun iki farklı dosyası var.",
-            "Modlar penceresinden eski sürümü sil.")
+        add("dup", _t("Aynı mod iki kez kurulu"),
+            (_t("Mod: ") + ", ".join(dups)) if dups else _t("mods klasöründe aynı modun iki farklı dosyası var."),
+            _t("Modlar penceresinden eski sürümü sil."))
 
     # --- donma ---
     if re.search(r"A single server tick took [\d.,]+ seconds|ServerHangWatchdog", text):
-        add("watchdog", "Sunucu dondu ve kendini kapattı",
-            "Tek bir oyun döngüsü 60 saniyeden uzun sürdü (çok yük, sonsuz döngüye giren bir mod ya da yavaş disk).",
-            "Son eklenen modları kontrol et; gerekirse server.properties'te max-tick-time=-1 yapılabilir (sorunu gizler, çözmez).")
+        add("watchdog", _t("Sunucu dondu ve kendini kapattı"),
+            _t("Tek bir oyun döngüsü 60 saniyeden uzun sürdü (çok yük, sonsuz döngüye giren bir mod ya da yavaş disk)."),
+            _t("Son eklenen modları kontrol et; gerekirse server.properties'te max-tick-time=-1 yapılabilir (sorunu gizler, çözmez)."))
 
     # --- crash raporunun "Suspected Mods" satırı ---
     if m := re.search(r"Suspected Mods?: ([^\n]{1,300})", report):
         s = m.group(1).strip()
         if s and s.lower() not in ("none", "unknown"):
-            add("suspect", "Raporun şüphelendiği mod(lar)", s, "Bu modu kapatıp sunucuyu yeniden başlatarak dene.")
+            add("suspect", _t("Raporun şüphelendiği mod(lar)"), s, _t("Bu modu kapatıp sunucuyu yeniden başlatarak dene."))
 
     desc = ""
     if m := re.search(r"^Description: ([^\n]{1,200})", report, re.M):
@@ -158,7 +159,7 @@ def console_lines(res: dict) -> list[str]:
         out.append(f"[panel] Crash raporu: crash-reports/{res['report']}" + (f" ({res['description']})" if res.get("description") else ""))
     for f in res["items"]:
         out.append(f"[panel] Neden: {f['title']}. {f['detail']}")
-        out.append(f"[panel]   Öneri: {f['fix']}")
+        out.append(_t('[panel]   Öneri: {fix}', fix=f['fix']))
     if not res["items"]:
-        out.append("[panel] Bilinen bir çökme nedeni bulunamadı; konsolun son satırlarına ve crash-reports klasörüne bak.")
+        out.append(_t("[panel] Bilinen bir çökme nedeni bulunamadı; konsolun son satırlarına ve crash-reports klasörüne bak."))
     return out

@@ -10,7 +10,7 @@
   async function api(path, data) {
     const r = await fetch('/api/' + path, data ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) } : undefined);
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(typeof j.detail === 'string' ? j.detail : ('Hata ' + r.status));
+    if (!r.ok) throw new Error(typeof j.detail === 'string' ? j.detail : (_t('Hata ') + r.status));
     return j;
   }
   function btn(icon, text, cls, fn) {
@@ -19,7 +19,7 @@
     b.addEventListener('click', fn); return b;
   }
 
-  const PARTS = [['instances', 'Sunucular', 'var(--accent)'], ['backups', 'Yedekler', 'var(--warning)'], ['runtimes', 'Java', 'var(--success)'], ['cache', 'Önbellek', 'var(--accent-2)']];
+  const PARTS = [['instances', _t('Sunucular'), 'var(--accent)'], ['backups', _t('Yedekler'), 'var(--warning)'], ['runtimes', 'Java', 'var(--success)'], ['cache', _t('Önbellek'), 'var(--accent-2)']];
   function renderDisk(d) {
     const bar = $('disk-bar'); bar.replaceChildren();
     const other = Math.max(0, d.used - Object.values(d.parts).reduce((a, b) => a + b, 0));
@@ -31,27 +31,27 @@
       const col = el('div', 'col-6 col-md'), dot = el('span', 'legend-dot'); dot.style.background = c;
       col.append(dot, document.createTextNode(` ${label}: ${fmt(d.parts[k])}`)); lg.appendChild(col);
     });
-    const free = el('div', 'col-12 col-md text-md-end ' + (d.free < 5 * 1073741824 ? 'text-warning' : 'text-body-secondary'), `Boş: ${fmt(d.free)} / ${fmt(d.total)}`);
+    const free = el('div', 'col-12 col-md text-md-end ' + (d.free < 5 * 1073741824 ? 'text-warning' : 'text-body-secondary'), _t("Boş: {v0} / {v1}", {v0: fmt(d.free), v1: fmt(d.total)}));
     lg.appendChild(free);
   }
 
   function renderJava(j) {
     const body = $('java-body'); body.replaceChildren();
-    if (!j.java.length) { const tr = el('tr'), td = el('td', 'text-body-secondary', 'Panel henüz hiç Java kurmadı.'); td.colSpan = 5; tr.appendChild(td); body.appendChild(tr); }
+    if (!j.java.length) { const tr = el('tr'), td = el('td', 'text-body-secondary', _t('Panel henüz hiç Java kurmadı.')); td.colSpan = 5; tr.appendChild(td); body.appendChild(tr); }
     j.java.forEach(r => {
       const tr = el('tr');
-      tr.appendChild(el('td', 'fw-semibold', `Java ${r.major}`));
+      tr.appendChild(el('td', 'fw-semibold', _t("Java {major}", {major: r.major})));
       tr.appendChild(el('td', 'small text-body-secondary', [r.vendor, r.image_type && r.image_type.toUpperCase(), r.version].filter(Boolean).join(' · ')));
       tr.appendChild(el('td', 'text-end small', fmt(r.size)));
       const users = el('td', 'small');
-      if (!r.used_by.length) users.appendChild(el('span', 'text-body-secondary', 'kullanılmıyor'));
+      if (!r.used_by.length) users.appendChild(el('span', 'text-body-secondary', _t('kullanılmıyor')));
       r.used_by.forEach(u => { const a = el('a', 'badge text-bg-secondary me-1 text-decoration-none', u.name + (u.status === 'running' ? ' ●' : '')); a.href = '/instances/' + u.id; users.appendChild(a); });
       tr.appendChild(users);
       const act = el('td', 'text-end');
       act.appendChild(btn('bi-trash', '', 'btn-outline-danger', async () => {
         const who = r.used_by.map(u => u.name).join(', ');
-        if (!confirm(`Java ${r.major} silinsin mi?` + (who ? `\nKullanan sunucular: ${who}\nBu sunucular bir sonraki başlatılışta Java'yı yeniden indirir.` : ''))) return;
-        try { await api('system/java/delete', { major: r.major }); VuluModal.toast(`Java ${r.major} silindi.`, 'success'); load(); }
+        if (!confirm(_t("Java {major} silinsin mi?", {major: r.major}) + (who ? _t(`\nKullanan sunucular: {who}\nBu sunucular bir sonraki başlatılışta Java'yı yeniden indirir.`, {who}) : ''))) return;
+        try { await api('system/java/delete', { major: r.major }); VuluModal.toast(_t("Java {major} silindi.", {major: r.major}), 'success'); load(); }
         catch (e) { note('danger', String(e.message || e)); }
       }));
       tr.appendChild(act); body.appendChild(tr);
@@ -59,7 +59,7 @@
     Object.entries(j.missing_for || {}).forEach(([m, users]) => {
       if (j.java.some(x => String(x.major) === m)) return;
       const tr = el('tr', 'opacity-75');
-      tr.appendChild(el('td', '', `Java ${m}`)); tr.appendChild(el('td', 'small text-warning', 'kurulu değil (ilk başlatmada iner)'));
+      tr.appendChild(el('td', '', _t("Java {m}", {m}))); tr.appendChild(el('td', 'small text-warning', _t('kurulu değil (ilk başlatmada iner)')));
       tr.appendChild(el('td')); tr.appendChild(el('td', 'small', users.map(u => u.name).join(', '))); tr.appendChild(el('td'));
       body.appendChild(tr);
     });
@@ -73,9 +73,9 @@
       tr.appendChild(el('td', 'text-end small', String(c.files)));
       tr.appendChild(el('td', 'text-end small', fmt(c.size)));
       const act = el('td', 'text-end');
-      const b = btn('bi-eraser', 'Temizle', 'btn-outline-secondary', async () => {
-        if (!confirm(`${c.label} önbelleği temizlensin mi? (${fmt(c.size)})`)) return;
-        try { const r = await api('system/cache/clear', { kind: c.kind }); VuluModal.toast(`${r.removed} dosya silindi.`, 'success'); load(); }
+      const b = btn('bi-eraser', _t('Temizle'), 'btn-outline-secondary', async () => {
+        if (!confirm(_t("{label} önbelleği temizlensin mi? ({v1})", {label: c.label, v1: fmt(c.size)}))) return;
+        try { const r = await api('system/cache/clear', { kind: c.kind }); VuluModal.toast(_t('{n} dosya silindi.', {n: r.removed}), 'success'); load(); }
         catch (e) { note('danger', String(e.message || e)); }
       });
       b.disabled = !c.files; act.appendChild(b); tr.appendChild(act); body.appendChild(tr);
@@ -88,8 +88,8 @@
       prog.show(s);
       if (s.status === 'running') return;
       watching.delete(jobId);
-      if (s.status === 'done') { VuluModal.toast(`Java ${major} kuruldu.`, 'success'); setTimeout(() => prog.hide(), 1200); }
-      else note('danger', s.error || 'Kurulum başarısız oldu.');
+      if (s.status === 'done') { VuluModal.toast(_t("Java {major} kuruldu.", {major}), 'success'); setTimeout(() => prog.hide(), 1200); }
+      else note('danger', s.error || _t('Kurulum başarısız oldu.'));
       load();
     });
   }
@@ -105,7 +105,7 @@
     const major = Number($('java-major').value);
     try {
       const r = await api('java/install', { major });
-      if (r.installed) { VuluModal.toast(`Java ${major} zaten kurulu.`, 'success'); return; }
+      if (r.installed) { VuluModal.toast(_t("Java {major} zaten kurulu.", {major}), 'success'); return; }
       watchInstall(r.job_id, major);
     } catch (e) { note('danger', String(e.message || e)); }
   });

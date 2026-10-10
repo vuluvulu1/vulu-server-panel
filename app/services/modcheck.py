@@ -15,6 +15,7 @@ import re
 import tomllib
 import zipfile
 from pathlib import Path
+from ..i18n import _t
 
 META_MAX = 1024 * 1024             # tek üst veri dosyası en fazla 1 MB
 NESTED_MAX = 32 * 1024 * 1024      # iç içe jar en fazla 32 MB (belleğe okunur)
@@ -159,12 +160,12 @@ def summary_lines(res: dict, limit: int = 15) -> list[str]:
     """Konsola yazılacak kısa uyarı satırları."""
     lines = []
     if res["missing"]:
-        lines.append(f"[panel] Uyarı: {len(res['missing'])} zorunlu bağımlılık eksik, sunucu açılmayabilir:")
+        lines.append(_t('[panel] Uyarı: {n} zorunlu bağımlılık eksik, sunucu açılmayabilir:', n=len(res['missing'])))
         for m in res["missing"][:limit]:
-            lines.append(f"[panel]   - {m['id']} (isteyen: {', '.join(m['required_by'][:3])})")
+            lines.append(_t('[panel]   - {id} (isteyen: {v1})', id=m['id'], v1=', '.join(m['required_by'][:3])))
         if len(res["missing"]) > limit:
-            lines.append(f"[panel]   … ve {len(res['missing']) - limit} tane daha. Ayrıntı: Modlar penceresi.")
+            lines.append(_t('[panel]   … ve {v0} tane daha. Ayrıntı: Modlar penceresi.', v0=len(res['missing']) - limit))
     if res["client_only"]:
         names = ", ".join(c["name"] for c in res["client_only"][:5])
-        lines.append(f"[panel] Uyarı: istemciye özel mod(lar) sunucuda: {names}. Sunucuyu çökertebilir; Modlar penceresinden kapatabilirsin.")
+        lines.append(_t('[panel] Uyarı: istemciye özel mod(lar) sunucuda: {names}. Sunucuyu çökertebilir; Modlar penceresinden kapatabilirsin.', names=names))
     return lines

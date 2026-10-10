@@ -7,6 +7,7 @@ from ..db import get_conn
 from ..services import system as S
 from ..services.container import java, jobs, launcher
 from ..templating import templates
+from ..i18n import _t
 
 router = APIRouter()
 JAVA_CHOICES = (8, 11, 17, 21, 25)
@@ -49,19 +50,19 @@ async def java_delete(b: MajorBody):
     users = _java_usage().get(b.major, [])
     busy = [u["name"] for u in users if u["status"] not in ("stopped", "crashed")]
     if busy:
-        raise HTTPException(409, f"Java {b.major} şu an çalışan sunucular tarafından kullanılıyor: {', '.join(busy)}. Önce onları durdur.")
+        raise HTTPException(409, _t('Java {major} şu an çalışan sunucular tarafından kullanılıyor: {v1}. Önce onları durdur.', major=b.major, v1=', '.join(busy)))
     if jobs.find_running(f"java-{b.major}"):
-        raise HTTPException(409, "Bu Java sürümü şu an kuruluyor.")
+        raise HTTPException(409, _t("Bu Java sürümü şu an kuruluyor."))
     try:
         d = S.java_dir(b.major)
     except ValueError as e:
         raise HTTPException(400, str(e))
     if not d.is_dir():
-        raise HTTPException(404, "Bu Java sürümü kurulu değil.")
+        raise HTTPException(404, _t("Bu Java sürümü kurulu değil."))
     try:
         await asyncio.to_thread(S.rmtree, d)
     except OSError as e:
-        raise HTTPException(409, f"Silinemedi (dosya kullanımda olabilir): {e.strerror or e}")
+        raise HTTPException(409, _t('Silinemedi (dosya kullanımda olabilir): {v0}', v0=e.strerror or e))
     return {"ok": True, "used_by": [u["name"] for u in users]}
 
 
@@ -72,7 +73,7 @@ class CacheBody(BaseModel):
 @router.post("/api/system/cache/clear")
 async def cache_clear(b: CacheBody):
     if any(j.status == "running" and j.kind in ("vanilla", "paper", "fabric", "forge", "neoforge", "modpack", "upgrade") for j in jobs._jobs.values()):
-        raise HTTPException(409, "Şu an bir indirme/kurulum sürüyor; bitince tekrar dene.")
+        raise HTTPException(409, _t("Şu an bir indirme/kurulum sürüyor; bitince tekrar dene."))
     try:
         n = await asyncio.to_thread(S.clear_cache, b.kind)
     except ValueError as e:

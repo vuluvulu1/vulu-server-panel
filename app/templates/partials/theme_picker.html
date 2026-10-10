@@ -1,8 +1,0 @@
-<div>
-  <label for="theme-select" class="form-label small text-body-secondary mb-1">Tema</label>
-  <select id="theme-select" class="form-select form-select-sm" data-default="{{ default_theme }}">
-    {% for t in themes() %}
-    <option value="{{ t.id }}" data-mode="{{ t.mode }}">{{ t.name }}</option>
-    {% endfor %}
-  </select>
-</div>

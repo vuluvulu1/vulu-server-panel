@@ -24,6 +24,7 @@ import httpx
 from .download import download_file
 from .http import new_client
 from .jobs import Job, JobError, JobManager
+from ..i18n import _t
 
 EXE = "java.exe" if os.name == "nt" else "java"
 META = ".vulu-java.json"
@@ -38,12 +39,12 @@ def platform_names() -> tuple[str, str]:
     system = platform.system().lower()
     os_ = {"windows": "windows", "linux": "linux", "darwin": "mac"}.get(system)
     if not os_:
-        raise JavaError(f"Bu işletim sistemi desteklenmiyor: {platform.system()}")
+        raise JavaError(_t('Bu işletim sistemi desteklenmiyor: {v0}', v0=platform.system()))
     if os_ == "linux" and Path("/etc/alpine-release").exists():
         os_ = "alpine-linux"
     arch = {"amd64": "x64", "x86_64": "x64", "arm64": "aarch64", "aarch64": "aarch64"}.get(platform.machine().lower())
     if not arch:
-        raise JavaError(f"Bu işlemci mimarisi desteklenmiyor: {platform.machine()}")
+        raise JavaError(_t('Bu işlemci mimarisi desteklenmiyor: {v0}', v0=platform.machine()))
     return os_, arch
 
 
@@ -110,8 +111,8 @@ class JavaManager:
                             self._pkg_cache[major] = (time.monotonic(), result)
                             return result
         except (httpx.HTTPError, ValueError):
-            raise JavaError("Adoptium'a ulaşılamadı. İnternet bağlantını kontrol et.")
-        raise JavaError(f"Java {major} için bu sistemde indirilebilir paket bulunamadı.")
+            raise JavaError(_t("Adoptium'a ulaşılamadı. İnternet bağlantını kontrol et."))
+        raise JavaError(_t('Java {major} için bu sistemde indirilebilir paket bulunamadı.', major=major))
 
     async def info(self, major: int) -> dict:
         out: dict = {"major": major, "installed": False, "path": None, "version": None, "package": None, "error": None}
@@ -128,10 +129,10 @@ class JavaManager:
 
     # ---------- kurulum işi ----------
     def ensure_job(self, major: int) -> Job:
-        return self.jobs.start("java", f"Java {major} kuruluyor", f"java-{major}", lambda j: self._install(j, major))
+        return self.jobs.start("java", _t('Java {major} kuruluyor', major=major), f"java-{major}", lambda j: self._install(j, major))
 
     async def _install(self, job: Job, major: int) -> dict:
-        job.update(0, "resolve", "Paket bilgisi alınıyor…")
+        job.update(0, "resolve", _t("Paket bilgisi alınıyor…"))
         try:
             pkg = await self.resolve_package(major)
         except JavaError as e:
@@ -150,16 +151,16 @@ class JavaManager:
             part.replace(archive)
 
             def on_extract(fraction: float) -> None:
-                loop.call_soon_threadsafe(job.update, 82 + 14 * fraction, "extract", f"Çıkarılıyor… %{int(fraction * 100)}")
+                loop.call_soon_threadsafe(job.update, 82 + 14 * fraction, "extract", _t('Çıkarılıyor… %{v0}', v0=int(fraction * 100)))
 
-            job.update(82, "extract", "Çıkarılıyor…")
+            job.update(82, "extract", _t("Çıkarılıyor…"))
             await asyncio.to_thread(self._extract, archive, tmp, on_extract)
             home = self._find_home(tmp)
 
-            job.update(96, "check", "Java test ediliyor…")
+            job.update(96, "check", _t("Java test ediliyor…"))
             version = await asyncio.to_thread(self._probe, home, major)
 
-            job.update(99, "finalize", "Yerleştiriliyor…")
+            job.update(99, "finalize", _t("Yerleştiriliyor…"))
             await asyncio.to_thread(self._place, home, self._dir(major))
             (self._dir(major) / META).write_text(json.dumps({
                 "version": version, "vendor": "Eclipse Temurin", "image_type": pkg["image_type"],
@@ -174,7 +175,7 @@ class JavaManager:
     async def _download(self, job: Job, pkg: dict, dest: Path) -> None:
         await download_file(
             job, pkg["link"], dest, expected_sha256=pkg["checksum"], size_hint=pkg["size"],
-            start_pct=3, span_pct=77, label="İndiriliyor",
+            start_pct=3, span_pct=77, label=_t("İndiriliyor"),
         )
 
     # ---------- arşivden çıkarma (thread içinde) ----------
@@ -190,7 +191,7 @@ class JavaManager:
                 for info in infos:
                     target = (dest / info.filename).resolve()
                     if not target.is_relative_to(dest):
-                        raise JobError("Arşiv güvenli değil (geçersiz dosya yolu).")
+                        raise JobError(_t("Arşiv güvenli değil (geçersiz dosya yolu)."))
                     zf.extract(info, dest)
                     done += info.file_size
                     progress(min(done / total, 1.0))
@@ -203,17 +204,17 @@ class JavaManager:
                     else:
                         target = (dest / member.name).resolve()
                         if not target.is_relative_to(dest) or member.issym() or member.islnk():
-                            raise JobError("Arşiv güvenli değil (geçersiz dosya yolu).")
+                            raise JobError(_t("Arşiv güvenli değil (geçersiz dosya yolu)."))
                         tf.extract(member, dest)
                     progress(min(raw.tell() / size, 1.0))
         else:
-            raise JobError(f"Desteklenmeyen arşiv türü: {archive.name}")
+            raise JobError(_t('Desteklenmeyen arşiv türü: {name}', name=archive.name))
 
     @staticmethod
     def _find_home(root: Path) -> Path:
         for exe in root.rglob(f"bin/{EXE}"):
             return exe.parent.parent
-        raise JobError("Arşivin içinde java bulunamadı.")
+        raise JobError(_t("Arşivin içinde java bulunamadı."))
 
     @staticmethod
     def _probe(home: Path, major: int) -> str:
@@ -224,14 +225,14 @@ class JavaManager:
                 creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
             )
         except (OSError, subprocess.TimeoutExpired) as e:
-            raise JobError(f"Kurulan Java çalıştırılamadı: {e}")
+            raise JobError(_t('Kurulan Java çalıştırılamadı: {e}', e=e))
         m = re.search(r'version "([^"]+)"', r.stderr + r.stdout)
         if not m:
-            raise JobError("Kurulan Java'nın sürümü okunamadı.")
+            raise JobError(_t("Kurulan Java'nın sürümü okunamadı."))
         v = m[1]
         got = int(v.split(".")[1]) if v.startswith("1.") else int(re.match(r"\d+", v)[0])
         if got != major:
-            raise JobError(f"Beklenen Java {major} yerine Java {got} kuruldu.")
+            raise JobError(_t('Beklenen Java {major} yerine Java {got} kuruldu.', major=major, got=got))
         return v
 
     @staticmethod
@@ -244,5 +245,5 @@ class JavaManager:
                 return
             except PermissionError:
                 if attempt == 5:
-                    raise JobError("Java klasörü yerleştirilemedi (dosya kilitli). Birkaç saniye sonra tekrar dene.")
+                    raise JobError(_t("Java klasörü yerleştirilemedi (dosya kilitli). Birkaç saniye sonra tekrar dene."))
                 time.sleep(0.5)

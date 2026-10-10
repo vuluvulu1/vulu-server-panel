@@ -26,6 +26,17 @@ CREATE TABLE IF NOT EXISTS users (
     created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS sessions (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    token_hash    TEXT NOT NULL UNIQUE,
+    user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    remember      INTEGER NOT NULL DEFAULT 0,
+    expires_at    TEXT NOT NULL,
+    last_seen     TEXT NOT NULL,
+    ip            TEXT,
+    user_agent    TEXT,
+    created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 CREATE TABLE IF NOT EXISTS instances (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     name          TEXT NOT NULL UNIQUE,

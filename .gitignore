@@ -39,3 +39,5 @@ dist/
 *.tmp
 *.temp
 *.swp
+# Release paketleri (tools/build_release.py)
+dist/

@@ -11,7 +11,7 @@
   const updBtn = document.getElementById('paper-update-btn');
   const modsBtn = document.getElementById('mods-update-btn');
 
-  const LABELS = { running: 'Çalışıyor', stopped: 'Durdu', preparing: 'Hazırlanıyor', starting: 'Başlıyor', stopping: 'Durduruluyor', crashed: 'Çöktü' };
+  const LABELS = { running: _t('Çalışıyor'), stopped: _t('Durdu'), preparing: _t('Hazırlanıyor'), starting: _t('Başlıyor'), stopping: _t('Durduruluyor'), crashed: _t('Çöktü') };
   const prog = VuluProgress.attach('prep');
   const MAX_LINES = 2000;
   const ANSI = /\x1b\[[0-9;]*[A-Za-z]/g;
@@ -25,16 +25,16 @@
     const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
     const box = mk('div', 'alert alert-danger crash-card mb-2');
     const head = mk('div', 'd-flex justify-content-between align-items-start gap-2');
-    const h = mk('div', 'fw-semibold'); h.appendChild(mk('i', 'bi bi-bug me-1')); h.appendChild(document.createTextNode('Çökme analizi'));
-    const x = mk('button', 'btn-close btn-sm'); x.type = 'button'; x.title = 'Gizle'; x.addEventListener('click', () => crashBox.replaceChildren());
+    const h = mk('div', 'fw-semibold'); h.appendChild(mk('i', 'bi bi-bug me-1')); h.appendChild(document.createTextNode(_t('Çökme analizi')));
+    const x = mk('button', 'btn-close btn-sm'); x.type = 'button'; x.title = _t('Gizle'); x.addEventListener('click', () => crashBox.replaceChildren());
     head.append(h, x); box.appendChild(head);
-    if (c.report) box.appendChild(mk('div', 'small text-body-secondary mb-1', 'Rapor: crash-reports/' + c.report + (c.description ? ' — ' + c.description : '')));
-    if (!c.items.length) box.appendChild(mk('div', 'small', 'Bilinen bir neden bulunamadı. Konsolun son satırlarına ve crash raporuna bak.'));
+    if (c.report) box.appendChild(mk('div', 'small text-body-secondary mb-1', _t('Rapor: crash-reports/') + c.report + (c.description ? ' — ' + c.description : '')));
+    if (!c.items.length) box.appendChild(mk('div', 'small', _t('Bilinen bir neden bulunamadı. Konsolun son satırlarına ve crash raporuna bak.')));
     c.items.forEach(f => {
       const d = mk('div', 'crash-item');
       d.appendChild(mk('div', 'fw-semibold small', f.title));
       d.appendChild(mk('div', 'small', f.detail));
-      d.appendChild(mk('div', 'small text-body-secondary', 'Öneri: ' + f.fix));
+      d.appendChild(mk('div', 'small text-body-secondary', _t('Öneri: ') + f.fix));
       box.appendChild(d);
     });
     crashBox.appendChild(box);
@@ -104,7 +104,7 @@
       else if (m.type === 'status') setStatus(m.status);
       else if (m.type === 'clear') out.replaceChildren();
       else if (m.type === 'meta' && Number.isInteger(m.java_major)) {
-        const j = document.getElementById('meta-java'); if (j) j.textContent = 'Java ' + m.java_major + ' · ';
+        const j = document.getElementById('meta-java'); if (j) j.textContent = _t('Java ') + m.java_major + ' · ';
       }
       else if (m.type === 'error') addLines(['[panel] ' + m.message]);
     };
@@ -133,15 +133,15 @@
 
   buttons.forEach(b => b.addEventListener('click', async () => {
     const a = b.dataset.action;
-    if (a === 'kill' && !confirm('Süreç zorla sonlandırılsın mı? Kaydedilmemiş dünya verisi kaybolabilir.')) return;
+    if (a === 'kill' && !confirm(_t('Süreç zorla sonlandırılsın mı? Kaydedilmemiş dünya verisi kaybolabilir.'))) return;
     try {
       const r = await fetch(`/api/instances/${id}/${a}`, { method: 'POST' });
       if (!r.ok) {
         const j = await r.json().catch(() => ({}));
-        addLines(['[panel] ' + (j.detail || 'Hata: ' + r.status)]);
+        addLines(['[panel] ' + (j.detail || _t('Hata: ') + r.status)]);
       }
     } catch (e) {
-      addLines(['[panel] Panele ulaşılamadı.']);
+      addLines([_t('[panel] Panele ulaşılamadı.')]);
     }
   }));
 
@@ -149,10 +149,10 @@
     try {
       const r = await fetch(`/api/instances/${id}/paper/update`, { method: 'POST' });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) addLines(['[panel] ' + (j.detail || 'Hata: ' + r.status)]);
+      if (!r.ok) addLines(['[panel] ' + (j.detail || _t('Hata: ') + r.status)]);
       else if (j.message) addLines(['[panel] ' + j.message]);
     } catch (e) {
-      addLines(['[panel] Panele ulaşılamadı.']);
+      addLines([_t('[panel] Panele ulaşılamadı.')]);
     }
   });
 
@@ -160,9 +160,9 @@
     try {
       const r = await fetch(`/api/instances/${id}/mods/update`, { method: 'POST' });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) addLines(['[panel] ' + (j.detail || 'Hata: ' + r.status)]);
+      if (!r.ok) addLines(['[panel] ' + (j.detail || _t('Hata: ') + r.status)]);
     } catch (e) {
-      addLines(['[panel] Panele ulaşılamadı.']);
+      addLines([_t('[panel] Panele ulaşılamadı.')]);
     }
   });
 

@@ -1,147 +1,187 @@
 {% extends "base.html" %}
-{% from "components/ui.html" import page_header, progress_panel %}
+{% from "components/ui.html" import page_header, progress_panel, wizard_back %}
 
 {% block content %}
 {% set embed = request.query_params.get("embed") == "1" %}
-{% if not embed %}{{ page_header("Yeni sunucu", "Sunucu klasörü instances/ altında oluşturulur") }}{% endif %}
+{% if not embed %}{{ page_header("Yeni sunucu", "Yükleyiciyi ve sürümü seç, ardından sunucuyu adlandır") }}{% endif %}
 <div id="new-root">
-
-{% if errors %}
-<div class="alert alert-danger"><ul class="mb-0">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
+{% if embed %}
+  {% if values.modpack_slug %}{{ wizard_back("/modpacks", "Modpack seçimi") }}
+  {% elif profile %}{{ wizard_back("/profiles", "Profil seçimi") }}
+  {% else %}{{ wizard_back("/instances/create", "Başlangıç seçimi") }}{% endif %}
 {% endif %}
 
-<form id="instance-form" method="post" action="/instances{{ '?embed=1' if embed }}" class="card static" style="max-width: 760px">
-  <div class="card-body">
-    {% if profile %}
-    <input type="hidden" name="profile_id" value="{{ profile.id }}">
-    <div class="alert alert-info py-2 small">Profil: <strong>{{ profile.name }}</strong>{% if profile.description %} · {{ profile.description }}{% endif %}</div>
-    {% endif %}
-    {% if values.modpack_slug %}
-    <input type="hidden" name="modpack_slug" value="{{ values.modpack_slug }}">
-    <input type="hidden" name="modpack_version" value="{{ values.modpack_version }}">
-    <div class="alert alert-info py-2 small">Modrinth modpack: <strong>{{ values.modpack_label }}</strong> · Minecraft sürümü ve yükleyici modpack'e göre belirlenir; modlar ve ayarlar ilk başlatmada kurulur.</div>
-    {% endif %}
-    <div class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label" for="name">Sunucu adı</label>
-        <input class="form-control" id="name" name="name" value="{{ values.name }}" placeholder="steampunk" required>
-        <div class="form-text">Klasör adı olarak da kullanılır.</div>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label" for="port">Port</label>
-        <input class="form-control" id="port" name="port" value="{{ values.port }}" inputmode="numeric">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label" for="ram_gb">RAM (GB)</label>
-        <input class="form-range" type="range" id="ram_gb" name="ram_gb" min="1" max="{{ [[sys_ram_gb, 64]|min, 2]|max }}" step="1" value="{{ values.ram_gb }}" data-total="{{ sys_ram_gb }}">
-        <div class="form-text"><output id="ram_out">{{ values.ram_gb }}</output> GB · toplam {{ sys_ram_gb }} GB <span id="ram_warn" class="text-warning"></span></div>
-      </div>
+{% set LOADER_INFO = {
+  'vanilla': ('Vanilla', _('Saf Minecraft, mod yok.'), 'bi-box'),
+  'paper': ('Paper', _('Eklentiler (plugin) ve yüksek performans.'), 'bi-lightning-charge'),
+  'fabric': ('Fabric', _('Hafif ve hızlı; güncel sürümlerde çok mod.'), 'bi-feather'),
+  'forge': ('Forge', _("Klasik büyük modpack'ler (eski sürümler)."), 'bi-hammer'),
+  'neoforge': ('NeoForge', _("Forge'un yeni nesli (1.20.2+)."), 'bi-gem'),
+} %}
+{% set fixed = values.modpack_slug %}
+{% set start_step = 2 if (errors or profile or fixed) else 1 %}
+<form id="instance-form" method="post" action="/instances{{ '?embed=1' if embed }}" class="nf" data-step="{{ start_step }}" data-fixed="{{ '1' if fixed else '' }}">
+  {% if profile %}<input type="hidden" name="profile_id" value="{{ profile.id }}">{% endif %}
+  {% if fixed %}
+  <input type="hidden" name="modpack_slug" value="{{ values.modpack_slug }}">
+  <input type="hidden" name="modpack_version" value="{{ values.modpack_version }}">
+  {% endif %}
 
+  {% if not fixed %}
+  <ol class="nf-steps">
+    <li data-goto="1"><span>1</span> {{ _("Sürüm ve yükleyici") }}</li>
+    <li data-goto="2"><span>2</span> {{ _("Sunucu ayarları") }}</li>
+  </ol>
+  {% endif %}
+
+  {# ---------------- 1. adım ---------------- #}
+  <section class="nf-step" data-step="1">
+    <div class="form-label">{{ _("Yükleyici") }}</div>
+    <div class="loader-grid" role="radiogroup" aria-label="{{ _("Yükleyici") }}">
+      {% for l in loaders %}{% set li = LOADER_INFO[l] %}
+      <button type="button" class="loader-card{{ ' active' if values.loader == l else '' }}" data-loader="{{ l }}" role="radio" aria-checked="{{ 'true' if values.loader == l else 'false' }}">
+        <i class="bi {{ li[2] }}"></i><span class="lc-name">{{ li[0] }}</span><span class="lc-text">{{ li[1] }}</span>
+      </button>
+      {% endfor %}
+    </div>
+    <select class="d-none" id="loader" name="loader" tabindex="-1" aria-hidden="true">
+      {% for l in loaders %}<option value="{{ l }}" {{ 'selected' if values.loader == l else '' }}>{{ LOADER_INFO[l][0] }}</option>{% endfor %}
+    </select>
+
+    <div class="row g-3 mt-1">
       <div class="col-md-6">
-        <label class="form-label" for="mc_version">Minecraft sürümü</label>
+        <label class="form-label" for="mc_version">{{ _("Minecraft sürümü") }}</label>
         <select class="form-select" id="mc_version" name="mc_version" data-selected="{{ values.mc_version }}">
-          <option value="">Yükleniyor…</option>
+          <option value="">{{ _("Yükleniyor…") }}</option>
         </select>
       </div>
-      <div class="col-md-6">
-        <label class="form-label" for="loader">Mod yükleyici</label>
-        <select class="form-select" id="loader" name="loader">
-          {% for l in loaders %}
-          <option value="{{ l }}" {{ 'selected' if values.loader == l else '' }}>{{ {'vanilla': 'Vanilla', 'paper': 'Paper', 'fabric': 'Fabric', 'forge': 'Forge', 'neoforge': 'NeoForge'}[l] }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
       <div class="col-12 d-none" id="paper-section">
         <div id="paper-status" class="java-status d-none">
           <div class="d-flex justify-content-between align-items-center gap-2">
-            <div>
-              <div id="paper-status-text"></div>
-              <div id="paper-status-reason" class="small text-body-secondary"></div>
-            </div>
-            <button type="button" id="paper-install-btn" class="btn btn-sm btn-outline-secondary d-none">
-              <i class="bi bi-download"></i> Şimdi indir
-            </button>
+            <div><div id="paper-status-text"></div><div id="paper-status-reason" class="small text-body-secondary"></div></div>
+            <button type="button" id="paper-install-btn" class="btn btn-sm btn-outline-secondary d-none"><i class="bi bi-download"></i> {{ _("Şimdi indir") }}</button>
           </div>
         </div>
         <div class="mt-2">{{ progress_panel("paper") }}</div>
-        <div class="form-text">Sunucu jar'ı resmi kaynaktan indirilir. İndirmezsen sunucuyu ilk başlattığında otomatik indirilir.</div>
       </div>
+    </div>
+    <div id="step1-error" class="text-danger small mt-2"></div>
+  </section>
 
-      <div class="col-12">
-        <label class="form-label" for="java_mode">Java</label>
-        <select class="form-select" id="java_mode" name="java_mode">
-          <option value="auto"   {{ 'selected' if values.java_mode == 'auto' else '' }}>Otomatik (önerilen) — sürüme göre seçilir ve kurulur</option>
-          {% for v in ['8', '11', '17', '21', '25'] %}
-          <option value="{{ v }}" {{ 'selected' if values.java_mode == v else '' }}>Java {{ v }} (otomatik kurulur)</option>
-          {% endfor %}
-          <option value="custom" {{ 'selected' if values.java_mode == 'custom' else '' }}>Özel yol (gelişmiş)</option>
-        </select>
+  {# ---------------- 2. adım ---------------- #}
+  <section class="nf-step" data-step="2">
+    {% if errors %}
+    <div class="alert alert-danger py-2"><ul class="mb-0 small">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
+    {% endif %}
+    <div class="nf-summary">
+      <i class="bi bi-box-seam"></i>
+      <div class="flex-grow-1">
+        {% if fixed %}<div class="fw-semibold">{{ values.modpack_label }}</div>
+        <div class="small text-body-secondary">Modrinth modpack · <span id="sum-loader">{{ LOADER_INFO.get(values.loader, (values.loader,))[0] }}</span> <span id="sum-version">{{ values.mc_version }}</span> · {{ _("sürüm, yükleyici ve modlar paketten gelir") }}</div>
+        {% else %}<div class="fw-semibold"><span id="sum-loader">{{ LOADER_INFO.get(values.loader, (values.loader,))[0] }}</span> <span id="sum-version">{{ values.mc_version }}</span></div>
+        <div class="small text-body-secondary">{% if profile %}{{ _("Profil") }}: {{ profile.name }}{% if profile.description %} · {{ profile.description }}{% endif %}{% else %}{{ _("Seçtiğin yükleyici ve Minecraft sürümü") }}{% endif %}</div>{% endif %}
+      </div>
+      {% if not fixed %}<button type="button" class="btn btn-sm btn-outline-secondary" data-goto="1">{{ _("Değiştir") }}</button>{% endif %}
+    </div>
 
-        <div id="java-custom-box" class="mt-2 d-none">
-          <input class="form-control" id="java_path" name="java_path" value="{{ values.java_path }}">
-          <div class="form-text">PATH'teki <code>java</code> ya da tam yol (örn. <code>C:\Program Files\Java\jdk-21\bin\java.exe</code>).</div>
+    <div class="row g-3">
+      <div class="col-auto">
+        <div class="form-label">{{ _("Resim") }}</div>
+        <div class="icon-pick">
+          <button type="button" class="icon-pick-btn" id="icon-pick" title="{{ _("Sunucu resmi seç") }}">
+            <img id="icon-img" src="{{ ('data:image/png;base64,' ~ values.icon_data) if values.icon_data else '/static/img/default-icon.png' }}" alt="" width="64" height="64">
+            <span class="icon-pick-overlay"><i class="bi bi-camera"></i></span>
+          </button>
+          <button type="button" class="btn btn-link btn-sm p-0 small{{ '' if values.icon_data else ' d-none' }}" id="icon-reset">{{ _("Varsayılan") }}</button>
         </div>
-
-        <div id="java-status" class="java-status mt-2 d-none">
+        <input type="file" id="icon-file" accept="image/png,image/jpeg,image/webp,image/gif" class="d-none">
+        <input type="hidden" name="icon_data" id="icon_data" value="{{ values.icon_data or '' }}">
+        <canvas id="icon-canvas" width="64" height="64" class="d-none"></canvas>
+      </div>
+      <div class="col">
+        <label class="form-label" for="name">{{ _("Sunucu adı") }}</label>
+        <input class="form-control" id="name" name="name" value="{{ values.name }}" placeholder="steampunk" maxlength="32" required>
+        <div class="form-text">{{ _("Sunucunun klasör adı da olur; harf, rakam, tire ve alt çizgi kullanabilirsin. Resim oyundaki sunucu listesinde görünür; seçmezsen vulu simgesi kullanılır.") }}</div>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="port">{{ _("Port") }}</label>
+        <input class="form-control" id="port" name="port" value="{{ values.port }}" inputmode="numeric">
+      </div>
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-baseline">
+          <label class="form-label mb-0" for="ram_gb">{{ _("Bellek (RAM)") }}</label>
+          <span class="ram-value"><output id="ram_out">{{ values.ram_gb }}</output> GB <span class="text-body-secondary small">/ {{ sys_ram_gb }} GB</span></span>
+        </div>
+        <input class="form-range" type="range" id="ram_gb" name="ram_gb" min="1" max="{{ [[sys_ram_gb, 64]|min, 2]|max }}" step="1" value="{{ values.ram_gb }}" data-total="{{ sys_ram_gb }}">
+        <div class="form-text" id="ram_hint">{{ _("Vanilla, Paper ve Fabric için 2-4 GB çoğu zaman yeterlidir.") }} <span id="ram_warn" class="text-warning"></span></div>
+      </div>
+      <div class="col-12">
+        <div id="java-status" class="java-status d-none">
           <div class="d-flex justify-content-between align-items-center gap-2">
-            <div>
-              <div id="java-status-text"></div>
-              <div id="java-status-reason" class="small text-body-secondary"></div>
-            </div>
-            <button type="button" id="java-install-btn" class="btn btn-sm btn-outline-secondary d-none">
-              <i class="bi bi-download"></i> Şimdi kur
-            </button>
+            <div><div id="java-status-text"></div><div id="java-status-reason" class="small text-body-secondary"></div></div>
+            <button type="button" id="java-install-btn" class="btn btn-sm btn-outline-secondary d-none"><i class="bi bi-download"></i> {{ _("Şimdi kur") }}</button>
           </div>
         </div>
         <div class="mt-2">{{ progress_panel("java") }}</div>
-        <div class="form-text">Kurmazsan sunucuyu ilk başlattığında Java otomatik indirilir (hafif Temurin JRE paketi).</div>
-      </div>
-
-      <div class="col-md-6">
-        <label class="form-label" for="jvm_preset">JVM ayarı</label>
-        <select class="form-select" id="jvm_preset" name="jvm_preset">
-          {% for k, label in presets.items() %}<option value="{{ k }}" {{ 'selected' if values.jvm_preset == k else '' }}>{{ label }}</option>{% endfor %}
-        </select>
-        <div class="form-text">Aikar bayrakları Paper ve çoğu sunucuda çöp toplama takılmalarını azaltır.</div>
-      </div>
-      <div class="col-md-6">
-        <label class="form-label" for="launch_type">Başlatma türü</label>
-        <select class="form-select" id="launch_type" name="launch_type">
-          <option value="auto" {{ 'selected' if values.launch_type == 'auto' else '' }}>Otomatik (yükleyiciye göre)</option>
-          <option value="jar" {{ 'selected' if values.launch_type == 'jar' else '' }}>Jar dosyası (-jar)</option>
-          <option value="args-file" {{ 'selected' if values.launch_type == 'args-file' else '' }}>Argüman dosyası (Forge / NeoForge)</option>
-        </select>
-      </div>
-      <div class="col-12 d-none" id="args-box">
-        <label class="form-label" for="args_file">Argüman dosyası (boş bırakırsan otomatik bulunur)</label>
-        <input class="form-control font-monospace" id="args_file" name="args_file" value="{{ values.args_file }}" placeholder="libraries/net/minecraftforge/forge/SÜRÜM/{platform}_args.txt">
-        <div class="form-text">Forge/NeoForge kurucusunu sunucu klasöründe çalıştırdıktan sonra panel dosyayı kendisi bulur. <code>{platform}</code>, Windows'ta <code>win</code>, Linux'ta <code>unix</code> olur.</div>
-      </div>
-
-      <div class="col-md-6">
-        <label class="form-label" for="jar_file">Jar dosyası</label>
-        <input class="form-control" id="jar_file" name="jar_file" value="{{ values.jar_file }}">
-        <div class="form-text">Sunucu klasörünün içinde olmalı.</div>
-      </div>
-      <div class="col-md-6">
-        <label class="form-label" for="jvm_args">Ek JVM argümanları (isteğe bağlı)</label>
-        <input class="form-control font-monospace" id="jvm_args" name="jvm_args" value="{{ values.jvm_args }}" placeholder="-XX:+UseG1GC">
-        <div class="form-text">-Xms/-Xmx RAM alanından otomatik eklenir.</div>
-      </div>
-      <div class="col-12">
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="accept_eula" name="accept_eula" checked>
-          <label class="form-check-label" for="accept_eula">
-            <a href="https://aka.ms/MinecraftEULA" target="_blank" rel="noopener">Minecraft EULA</a>'yı okudum ve kabul ediyorum (eula.txt oluşturulur)
-          </label>
-        </div>
       </div>
     </div>
-  </div>
-  <div class="card-footer d-flex gap-2">
-    <button class="btn btn-primary" type="submit">Oluştur</button>
-    <a class="btn btn-outline-secondary" href="/" data-modal-close>Vazgeç</a>
+
+    <details class="nf-advanced"{{ ' open' if values.java_mode == 'custom' or values.jvm_args or values.args_file else '' }}>
+      <summary>{{ _("Gelişmiş ayarlar") }} <span class="text-body-secondary small">{{ _("— Java, JVM, başlatma") }}</span></summary>
+      <div class="row g-3 pt-2">
+        <div class="col-12">
+          <label class="form-label" for="java_mode">{{ _("Java") }}</label>
+          <select class="form-select" id="java_mode" name="java_mode">
+            <option value="auto" {{ 'selected' if values.java_mode == 'auto' else '' }}>{{ _("Otomatik (önerilen) — sürüme göre seçilir ve kurulur") }}</option>
+            {% for v in ['8', '11', '17', '21', '25'] %}<option value="{{ v }}" {{ 'selected' if values.java_mode == v else '' }}>{{ _("Java {v} (otomatik kurulur)", v=v) }}</option>{% endfor %}
+            <option value="custom" {{ 'selected' if values.java_mode == 'custom' else '' }}>{{ _("Özel yol") }}</option>
+          </select>
+          <div id="java-custom-box" class="mt-2 d-none">
+            <input class="form-control" id="java_path" name="java_path" value="{{ values.java_path }}">
+            <div class="form-text">{{ _("Sistemdeki <code>java</code> komutu ya da bir <code>java.exe</code> dosyasının tam yolu (ör. <code>C:\\Program Files\\Java\\jdk-21\\bin\\java.exe</code>).")|safe }}</div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="jvm_preset">{{ _("JVM ayarı") }}</label>
+          <select class="form-select" id="jvm_preset" name="jvm_preset">
+            {% for k, label in presets.items() %}<option value="{{ k }}" {{ 'selected' if values.jvm_preset == k else '' }}>{{ _(label) }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="launch_type">{{ _("Başlatma türü") }}</label>
+          <select class="form-select" id="launch_type" name="launch_type">
+            <option value="auto" {{ 'selected' if values.launch_type == 'auto' else '' }}>{{ _("Otomatik (yükleyiciye göre)") }}</option>
+            <option value="jar" {{ 'selected' if values.launch_type == 'jar' else '' }}>{{ _("Jar dosyası (-jar)") }}</option>
+            <option value="args-file" {{ 'selected' if values.launch_type == 'args-file' else '' }}>{{ _("Argüman dosyası (Forge / NeoForge)") }}</option>
+          </select>
+        </div>
+        <div class="col-12 d-none" id="args-box">
+          <label class="form-label" for="args_file">{{ _("Argüman dosyası (boş = otomatik bul)") }}</label>
+          <input class="form-control font-monospace" id="args_file" name="args_file" value="{{ values.args_file }}" placeholder="libraries/net/minecraftforge/forge/{{ _('SÜRÜM') }}/{platform}_args.txt">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="jar_file">{{ _("Jar dosyası") }}</label>
+          <input class="form-control" id="jar_file" name="jar_file" value="{{ values.jar_file }}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="jvm_args">{{ _("Ek JVM argümanları") }}</label>
+          <input class="form-control font-monospace" id="jvm_args" name="jvm_args" value="{{ values.jvm_args }}" placeholder="-XX:+UseG1GC">
+        </div>
+      </div>
+    </details>
+
+    <div class="form-check mt-3">
+      <input class="form-check-input" type="checkbox" id="accept_eula" name="accept_eula" checked>
+      <label class="form-check-label" for="accept_eula">{{ _("<a href=\"https://aka.ms/MinecraftEULA\" target=\"_blank\" rel=\"noopener\">Minecraft EULA</a>'yı okudum ve kabul ediyorum")|safe }}</label>
+    </div>
+  </section>
+
+  <div class="nf-footer">
+    <a class="btn btn-outline-secondary" href="/" data-modal-close>{{ _("Vazgeç") }}</a>
+    <span class="flex-grow-1"></span>
+    <button class="btn btn-outline-secondary nf-only-2{{ ' d-none' if fixed else '' }}" type="button" data-goto="1"><i class="bi bi-arrow-left"></i> {{ _("Geri") }}</button>
+    <button class="btn btn-primary nf-only-1" type="button" id="nf-next">{{ _("Devam") }} <i class="bi bi-arrow-right"></i></button>
+    <button class="btn btn-primary nf-only-2" type="submit"><i class="bi bi-check2"></i> {{ _("Oluştur") }}</button>
   </div>
 </form>
 </div>

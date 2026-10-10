@@ -11,6 +11,7 @@ import shlex
 from pathlib import Path
 
 from ..security import validate_java_path, validate_jvm_args
+from ..i18n import _t
 
 
 class LaunchError(Exception):
@@ -66,7 +67,7 @@ def validate_args_file(raw: str) -> str | None:
     if not raw:
         return None                      # boş = otomatik bul
     if not _ARGS_RE.match(raw) or raw.startswith("/") or ".." in raw.split("/") or "{" in raw.replace("{platform}", ""):
-        return "Argüman dosyası yolu geçersiz (sunucu klasörüne göre göreli olmalı, '..' ve özel karakter olamaz)."
+        return _t("Argüman dosyası yolu geçersiz (sunucu klasörüne göre göreli olmalı, '..' ve özel karakter olamaz).")
     return None
 
 
@@ -91,8 +92,7 @@ def resolve_args_file(inst: dict) -> str:
         if c.is_file() and c.is_relative_to(root):
             return c.relative_to(root).as_posix()
     raise LaunchError(
-        "Argüman dosyası bulunamadı. Forge/NeoForge kurucusunu sunucu klasöründe çalıştırdın mı? "
-        f"(Aranan: {raw or _AUTO_PATTERNS.get(inst.get('loader') or '', '?')})"
+        _t('Argüman dosyası bulunamadı. Forge/NeoForge kurucusunu sunucu klasöründe çalıştırdın mı? (Aranan: {v0})', v0=raw or _AUTO_PATTERNS.get(inst.get('loader') or '', '?'))
     )
 
 
@@ -107,9 +107,9 @@ def build_command(inst: dict) -> list[str]:
         try:
             (root / "user_jvm_args.txt").write_text("\n".join(flags) + "\n", encoding="utf-8")
         except OSError as e:
-            raise LaunchError(f"user_jvm_args.txt yazılamadı: {e}")
+            raise LaunchError(_t('user_jvm_args.txt yazılamadı: {e}', e=e))
         return [inst["java_path"], "@user_jvm_args.txt", f"@{rel}", "nogui"]
     jar = root / inst["jar_file"]
     if not jar.is_file():
-        raise LaunchError(f"Jar dosyası bulunamadı: {jar}")
+        raise LaunchError(_t('Jar dosyası bulunamadı: {jar}', jar=jar))
     return [inst["java_path"], *flags, "-jar", inst["jar_file"], "nogui"]

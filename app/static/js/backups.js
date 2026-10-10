@@ -10,7 +10,7 @@
   async function api(path, opts) {
     const r = await fetch(`/api/instances/${id}/backups/${path}`, opts);
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(j.detail || ('Hata ' + r.status));
+    if (!r.ok) throw new Error(j.detail || (_t('Hata ') + r.status));
     return j;
   }
   const post = (path, data) => api(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
@@ -31,7 +31,7 @@
         VuluModal.changed();
         note('success', doneMsg(s.result || {}));
         setTimeout(() => prog.hide(), 1200);
-      } else note('danger', s.error || 'İşlem başarısız oldu.');
+      } else note('danger', s.error || _t('İşlem başarısız oldu.'));
       load();
     });
   }
@@ -43,34 +43,34 @@
       if (!limitTouched) { $('limit-on').checked = j.limit > 0; if (j.limit > 0) $('limit-max').value = j.limit; limitUI(); }
       $('limit-help').dataset.count = j.items.length;
       body.replaceChildren();
-      if (!j.items.length) { const tr = el('tr'), td = el('td', 'text-body-secondary', 'Henüz yedek yok.'); td.colSpan = 5; tr.appendChild(td); body.appendChild(tr); }
+      if (!j.items.length) { const tr = el('tr'), td = el('td', 'text-body-secondary', _t('Henüz yedek yok.')); td.colSpan = 5; tr.appendChild(td); body.appendChild(tr); }
       const stopped = status === 'stopped' || status === 'crashed';
       j.items.forEach(b => {
         const tr = el('tr');
         tr.appendChild(el('td', 'small', b.created));
-        tr.appendChild(el('td', '', b.broken ? 'bozuk' : b.mode === 'world' ? 'Dünya' : b.mode === 'full' ? 'Tam' : b.mode));
-        tr.appendChild(el('td', 'small text-body-secondary', b.note.replace(/^auto:/, 'otomatik: ')));
+        tr.appendChild(el('td', '', b.broken ? _t('bozuk') : b.mode === 'world' ? _t('Dünya') : b.mode === 'full' ? _t('Tam') : b.mode));
+        tr.appendChild(el('td', 'small text-body-secondary', b.note.replace(/^auto:/, _t('otomatik: '))));
         tr.appendChild(el('td', 'text-end small', (b.size / 1048576).toFixed(1) + ' MB'));
         const act = el('td', 'text-end text-nowrap');
-        const dl = el('a', 'btn btn-sm btn-outline-secondary'); dl.title = 'İndir'; dl.appendChild(el('i', 'bi bi-download'));
+        const dl = el('a', 'btn btn-sm btn-outline-secondary'); dl.title = _t('İndir'); dl.appendChild(el('i', 'bi bi-download'));
         dl.href = `/api/instances/${id}/backups/download?file=${encodeURIComponent(b.file)}`; act.appendChild(dl);
-        const rs = el('button', 'btn btn-sm btn-outline-primary ms-1'); rs.type = 'button'; rs.title = stopped ? 'Geri yükle' : 'Önce sunucuyu durdur';
+        const rs = el('button', 'btn btn-sm btn-outline-primary ms-1'); rs.type = 'button'; rs.title = stopped ? _t('Geri yükle') : _t('Önce sunucuyu durdur');
         rs.dataset.needStopped = '1'; rs.disabled = !stopped || b.broken; rs.appendChild(el('i', 'bi bi-arrow-counterclockwise'));
         rs.addEventListener('click', async () => {
-          const what = b.mode === 'world' ? 'Dünya klasörleri' : 'Sunucunun tüm dosyaları (loglar hariç)';
-          if (!confirm(`${what} bu yedekteki hâliyle DEĞİŞTİRİLECEK (${b.created}).\nÖnce mevcut durumun otomatik yedeği alınır. Devam edilsin mi?`)) return;
-          try { const r = await post('restore', { file: b.file }); watch(r.job_id, (x) => 'Geri yüklendi.' + (x.safety ? ` Önceki durumun yedeği: ${x.safety}` : '')); }
+          const what = b.mode === 'world' ? _t('Dünya klasörleri') : _t('Sunucunun tüm dosyaları (loglar hariç)');
+          if (!confirm(_t(`{what} bu yedekteki hâliyle DEĞİŞTİRİLECEK ({created}).\nÖnce mevcut durumun otomatik yedeği alınır. Devam edilsin mi?`, {what, created: b.created}))) return;
+          try { const r = await post('restore', { file: b.file }); watch(r.job_id, (x) => _t('Geri yüklendi.') + (x.safety ? _t(" Önceki durumun yedeği: {safety}", {safety: x.safety}) : '')); }
           catch (e) { note('danger', String(e.message || e)); }
         });
         act.appendChild(rs);
-        const del = el('button', 'btn btn-sm btn-outline-danger ms-1'); del.type = 'button'; del.title = 'Sil'; del.appendChild(el('i', 'bi bi-trash'));
+        const del = el('button', 'btn btn-sm btn-outline-danger ms-1'); del.type = 'button'; del.title = _t('Sil'); del.appendChild(el('i', 'bi bi-trash'));
         del.addEventListener('click', async () => {
-          if (!confirm(`Bu yedek kalıcı olarak silinsin mi?\n${b.file}`)) return;
+          if (!confirm(_t(`Bu yedek kalıcı olarak silinsin mi?\n{file}`, {file: b.file}))) return;
           try { await post('delete', { file: b.file }); load(); } catch (e) { note('danger', String(e.message || e)); }
         });
         act.appendChild(del); tr.appendChild(act); body.appendChild(tr);
       });
-      if (j.job_id && !busy) watch(j.job_id, () => 'İşlem tamamlandı.');
+      if (j.job_id && !busy) watch(j.job_id, () => _t('İşlem tamamlandı.'));
       setBusy(busy);
     } catch (e) { note('danger', String(e.message || e)); }
   }
@@ -84,13 +84,13 @@
   });
   $('limit-form').addEventListener('submit', async () => {
     const on = $('limit-on').checked, max = Math.floor(Number($('limit-max').value));
-    if (on && !(max >= 1 && max <= 500)) { note('danger', 'En fazla yedek sayısı 1 ile 500 arasında bir sayı olmalı.'); $('limit-max').focus(); return; }
+    if (on && !(max >= 1 && max <= 500)) { note('danger', _t('En fazla yedek sayısı 1 ile 500 arasında bir sayı olmalı.')); $('limit-max').focus(); return; }
     const count = Number($('limit-help').dataset.count || 0);
-    if (on && count > max && !confirm(`Şu an ${count} yedek var. Bir sonraki yedekten sonra en eski ${count - max + 1} tanesi silinecek. Devam edilsin mi?`)) return;
+    if (on && count > max && !confirm(_t("Şu an {count} yedek var. Bir sonraki yedekten sonra en eski {v1} tanesi silinecek. Devam edilsin mi?", {count, v1: count - max + 1}))) return;
     try {
       await post('limit', { enabled: on, max });
       limitTouched = false;
-      VuluModal.toast(on ? `Otomatik temizleme açık: en fazla ${max} yedek tutulacak.` : 'Otomatik temizleme kapalı: yedekler birikmeye devam edecek.', 'success');
+      VuluModal.toast(on ? _t("Otomatik temizleme açık: en fazla {max} yedek tutulacak.", {max}) : _t('Otomatik temizleme kapalı: yedekler birikmeye devam edecek.'), 'success');
       load();
     } catch (e) { note('danger', String(e.message || e)); }
   });
@@ -99,7 +99,7 @@
     if (busy) return;
     try {
       const r = await post('create', { mode: $('mode').value, note: $('note').value });
-      watch(r.job_id, (x) => `Yedek alındı: ${x.file} (${((x.size || 0) / 1048576).toFixed(1)} MB, ${x.files} dosya)` + (x.pruned ? ` · ${x.pruned} eski yedek silindi` : ''));
+      watch(r.job_id, (x) => _t("Yedek alındı: {file} ({v1} MB, {files} dosya)", {file: x.file, v1: ((x.size || 0) / 1048576).toFixed(1), files: x.files}) + (x.pruned ? _t(' · {n} eski yedek silindi', {n: x.pruned}) : ''));
       $('note').value = '';
     } catch (e) { note('danger', String(e.message || e)); }
   });

@@ -1,19 +1,25 @@
 <aside class="sidebar">
-  <a class="brand" href="/">{{ brand.name }} <span class="accent">{{ brand.accent_word }}</span></a>
+  <a class="brand" href="/"><img class="brand-logo" src="/static/img/vl.svg" alt="">{{ brand.name }} <span class="accent">{{ brand.accent_word }}</span></a>
 
   <ul class="nav-list">
     {% for item in nav_items %}
     <li class="nav-item">
       {% if item.soon %}
-        <span class="disabled"><i class="bi {{ item.icon }}"></i>{{ item.label }}<span class="soon">yakında</span></span>
+        <span class="disabled"><i class="bi {{ item.icon }}"></i>{{ _(item.label) }}<span class="soon">{{ _("yakında") }}</span></span>
       {% else %}
         <a href="{{ item.href }}" class="{{ 'active' if request.url.path == item.href else '' }}">
-          <i class="bi {{ item.icon }}"></i>{{ item.label }}
+          <i class="bi {{ item.icon }}"></i>{{ _(item.label) }}
         </a>
       {% endif %}
     </li>
     {% endfor %}
   </ul>
 
-  {% include "partials/theme_picker.html" %}
+  {% set u = request.scope.get("state", {}).get("user") %}
+  {% if u %}
+  <form method="post" action="/logout" class="sidebar-user">
+    <span class="text-truncate"><i class="bi bi-person-circle"></i> {{ u.username }}</span>
+    <button class="btn btn-sm btn-link p-0" type="submit" title="{{ _("Çıkış yap") }}"><i class="bi bi-box-arrow-right"></i></button>
+  </form>
+  {% endif %}
 </aside>

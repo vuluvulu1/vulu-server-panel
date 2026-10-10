@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% from "components/ui.html" import page_header %}
-{% block title %}Oyuncular · {{ inst["name"] }}{% endblock %}
+{% block title %}{{ _("Oyuncular") }} · {{ inst["name"] }}{% endblock %}
 
 {% block content %}
-{% call page_header("Oyuncular · " ~ inst["name"], "Beyaz liste, OP ve yasaklar") %}
-  <a class="btn btn-outline-secondary back-link" href="/instances/{{ inst['id'] }}"><i class="bi bi-arrow-left"></i> Sunucuya dön</a>
+{% call page_header(_("Oyuncular") ~ " · " ~ inst["name"], "Kimin girebileceğini ve kimin yetkili olduğunu buradan yönet") %}
+  <a class="btn btn-outline-secondary back-link" href="/instances/{{ inst['id'] }}"><i class="bi bi-arrow-left"></i> {{ _("Sunucuya dön") }}</a>
 {% endcall %}
 
 <div id="players-root" data-instance-id="{{ inst['id'] }}">
@@ -13,13 +13,13 @@
   <div class="card static mb-3"><div class="card-body">
     <form id="pl-form" class="row g-2 align-items-end" onsubmit="return false">
       <div class="col-sm-5">
-        <label class="form-label" for="pl-name">Oyuncu adı</label>
-        <input class="form-control" id="pl-name" maxlength="16" placeholder="Steve" autocomplete="off" pattern="[A-Za-z0-9_]{1,16}">
+        <label class="form-label" for="pl-name">{{ _("Oyuncu adı") }}</label>
+        <input class="form-control" id="pl-name" maxlength="16" placeholder="{{ _("Steve") }}" autocomplete="off" pattern="[A-Za-z0-9_]{1,16}">
       </div>
       <div class="col-sm-7 d-flex flex-wrap gap-2">
-        <button class="btn btn-primary" type="submit" data-act="whitelist_add"><i class="bi bi-person-check"></i> Beyaz listeye ekle</button>
-        <button class="btn btn-outline-warning" type="button" data-act="op"><i class="bi bi-star"></i> OP yap</button>
-        <button class="btn btn-outline-danger" type="button" data-act="ban"><i class="bi bi-slash-circle"></i> Yasakla</button>
+        <button class="btn btn-primary" type="submit" data-act="whitelist_add"><i class="bi bi-person-check"></i> {{ _("Beyaz listeye ekle") }}</button>
+        <button class="btn btn-outline-warning" type="button" data-act="op"><i class="bi bi-star"></i> {{ _("OP yap") }}</button>
+        <button class="btn btn-outline-danger" type="button" data-act="ban"><i class="bi bi-slash-circle"></i> {{ _("Yasakla") }}</button>
       </div>
     </form>
     <div class="form-text" id="pl-help"></div>
@@ -28,22 +28,22 @@
   <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
     <div class="form-check form-switch m-0">
       <input class="form-check-input" type="checkbox" role="switch" id="wl-switch">
-      <label class="form-check-label" for="wl-switch">Beyaz liste açık (yalnızca listedekiler girebilir)</label>
+      <label class="form-check-label" for="wl-switch">{{ _("Beyaz liste açık (yalnızca listedekiler girebilir)") }}</label>
     </div>
     <span id="pl-mode" class="small text-body-secondary"></span>
   </div>
 
   <div class="row g-3">
     <div class="col-lg-6">
-      <h2 class="h6">Çevrimiçi <span class="badge text-bg-secondary" id="c-online">0</span></h2>
+      <h2 class="h6">{{ _("Çevrimiçi") }} <span class="badge text-bg-secondary" id="c-online">0</span></h2>
       <ul class="list-group mb-3" id="l-online"></ul>
-      <h2 class="h6">Beyaz liste <span class="badge text-bg-secondary" id="c-whitelist">0</span></h2>
+      <h2 class="h6">{{ _("Beyaz liste") }} <span class="badge text-bg-secondary" id="c-whitelist">0</span></h2>
       <ul class="list-group mb-3" id="l-whitelist"></ul>
     </div>
     <div class="col-lg-6">
-      <h2 class="h6">OP <span class="badge text-bg-secondary" id="c-ops">0</span></h2>
+      <h2 class="h6">{{ _("OP") }} <span class="badge text-bg-secondary" id="c-ops">0</span></h2>
       <ul class="list-group mb-3" id="l-ops"></ul>
-      <h2 class="h6">Yasaklı <span class="badge text-bg-secondary" id="c-bans">0</span></h2>
+      <h2 class="h6">{{ _("Yasaklı") }} <span class="badge text-bg-secondary" id="c-bans">0</span></h2>
       <ul class="list-group mb-3" id="l-bans"></ul>
     </div>
   </div>

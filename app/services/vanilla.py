@@ -11,6 +11,7 @@ from .http import new_client
 from .jobs import Job, JobError, JobManager
 from .minecraft import McError
 from .paper import PaperError, PaperManager
+from ..i18n import _t
 
 MOJANG_HOSTS = {"piston-data.mojang.com", "launcher.mojang.com", "piston-meta.mojang.com"}
 
@@ -34,23 +35,23 @@ class VanillaManager:
 
     async def resolve(self, mc: str, pin: str | None = None) -> dict:
         if not re.fullmatch(r"[0-9A-Za-z._+-]{1,40}", mc):
-            raise VanillaError("Geçersiz sürüm.")
+            raise VanillaError(_t("Geçersiz sürüm."))
         try:
             entry = next((v for v in (await self.mc.manifest()).get("versions", []) if v.get("id") == mc), None)
         except McError as e:
             raise VanillaError(str(e))
         if not entry:
-            raise VanillaError(f"Minecraft {mc} sürümü bulunamadı.")
+            raise VanillaError(_t('Minecraft {mc} sürümü bulunamadı.', mc=mc))
         try:
             async with new_client() as c:
                 r = await c.get(entry["url"])
                 r.raise_for_status()
                 srv = ((r.json().get("downloads") or {}).get("server")) or {}
         except (httpx.HTTPError, ValueError):
-            raise VanillaError("Mojang sürüm bilgisine ulaşılamadı.")
+            raise VanillaError(_t("Mojang sürüm bilgisine ulaşılamadı."))
         url, sha1 = srv.get("url", ""), str(srv.get("sha1", "")).lower()
         if not url or not re.fullmatch(r"[0-9a-f]{40}", sha1):
-            raise VanillaError(f"Minecraft {mc} için resmi sunucu jar'ı yok.")
+            raise VanillaError(_t("Minecraft {mc} için resmi sunucu jar'ı yok.", mc=mc))
         u = urlparse(url)
         if (u.hostname or "") not in self.hosts or (u.scheme != "https" and (u.hostname or "") in MOJANG_HOSTS):
             raise VanillaError("Beklenmeyen indirme adresi reddedildi.")
@@ -63,11 +64,11 @@ class VanillaManager:
         return p.is_file() and (not info["size"] or p.stat().st_size == info["size"])
 
     def ensure_cached_job(self, version: str, pin: str | None = None) -> Job:
-        return self.jobs.start("vanilla", f"Minecraft {version} sunucusu indiriliyor", f"vanilla-{version}",
+        return self.jobs.start("vanilla", _t('Minecraft {version} sunucusu indiriliyor', version=version), f"vanilla-{version}",
                                lambda j: self._cache(j, version))
 
     async def _cache(self, job: Job, version: str) -> dict:
-        job.update(0, "resolve", "Mojang sürüm bilgisi alınıyor…")
+        job.update(0, "resolve", _t("Mojang sürüm bilgisi alınıyor…"))
         try:
             info = await self.resolve(version)
         except VanillaError as e:
@@ -75,7 +76,7 @@ class VanillaManager:
         self.cache.mkdir(parents=True, exist_ok=True)
         path = self.cache / info["name"]
         if self.is_cached(info):
-            job.update(95, "cache", "Önbellekte hazır")
+            job.update(95, "cache", _t("Önbellekte hazır"))
             return {**info, "path": str(path), "cached": True}
         part = self.cache / (info["name"] + ".part")
         try:
