@@ -14,6 +14,7 @@
   <a href="https://github.com/vuluvulu1/vulu-server-panel/releases"><img src="https://img.shields.io/github/downloads/vuluvulu1/vulu-server-panel/total?label=indirme&color=9c704c&labelColor=1a1410" alt="İndirme"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/lisans-AGPL--3.0-654127?labelColor=1a1410" alt="Lisans: AGPL-3.0"></a>
   <img src="https://img.shields.io/badge/python-3.11%2B-c9a992?logo=python&logoColor=white&labelColor=1a1410" alt="Python 3.11+">
+  <img src="https://img.shields.io/badge/Minecraft-Java%20Edition-9c704c?labelColor=1a1410" alt="Minecraft Java Edition">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-654127?labelColor=1a1410" alt="Windows, Linux, macOS">
 </p>
 
@@ -101,14 +102,13 @@ Panel varsayılan olarak http://127.0.0.1:8000 adresinde açılır. İlk açıl�
 
 ### Yapılandırma
 
-Adres, port, iletişim bilgisi ve alan adları panelden de değiştirilebilir: *Ayarlar → Panel ayarları* (kayıt `data/panel-settings.json`, `.env`'deki değerlerin yerine geçer; ağ ayarları parola onayı ister, *Paneli yeniden başlat* düğmesiyle uygulanır). `.env` ilk değerler için kullanılır:
+Adres, port, iletişim bilgisi ve alan adları panelden de değiştirilebilir: *Ayarlar → Panel ayarları* (kayıt `data/panel-settings.json`, `.env`'deki değerlerin yerine geçer; ağ ayarları parola onayı ister, *Paneli yeniden başlat* düğmesiyle uygulanır). `.env` dosyasını doldurmak zorunlu değildir; yalnızca ilk değerler için kullanılır:
 
 | Değişken | Açıklama |
 |---|---|
-| `PANEL_CONTACT` | **Gereklidir.** PaperMC ve Modrinth, istek başlığında iletişim bilgisi bekler: e-posta adresi veya proje/GitHub adresi. |
+| `PANEL_CONTACT` | İsteğe bağlı. PaperMC ve Modrinth'e istek başlığında iletişim bilgisi olarak gönderilir; boşsa projenin GitHub adresi kullanılır. |
 | `PANEL_HOST` / `PANEL_PORT` | Dinlenen adres ve port (varsayılan `127.0.0.1:8000`). Aynı Wi-Fi'deki cihazlardan (ör. telefon) yönetmek için `PANEL_HOST=0.0.0.0`; bu durumda yalnızca özel ağ adresleriyle (192.168.x.x vb.) girilebilir. |
 | `PANEL_ALLOWED_HOSTS` | Panele hangi alan adlarıyla erişilebileceği (virgülle ayrılmış). Yerelde boş bırakılır. |
-| `PANEL_SECRET_KEY` | Şimdilik kullanılmıyor. |
 
 ## Hızlı başlangıç
 
