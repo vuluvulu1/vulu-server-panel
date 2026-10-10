@@ -14,7 +14,6 @@
   <a href="https://github.com/vuluvulu1/vulu-server-panel/releases"><img src="https://img.shields.io/github/downloads/vuluvulu1/vulu-server-panel/total?label=indirme&color=9c704c&labelColor=1a1410" alt="İndirme"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/lisans-AGPL--3.0-654127?labelColor=1a1410" alt="Lisans: AGPL-3.0"></a>
   <img src="https://img.shields.io/badge/python-3.11%2B-c9a992?logo=python&logoColor=white&labelColor=1a1410" alt="Python 3.11+">
-  <img src="https://img.shields.io/badge/Minecraft-Java%20Edition-9c704c?labelColor=1a1410" alt="Minecraft Java Edition">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-654127?labelColor=1a1410" alt="Windows, Linux, macOS">
 </p>
 
