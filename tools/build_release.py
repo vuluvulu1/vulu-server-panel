@@ -13,7 +13,6 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-TOP = "vulu-panel"                                   # zip içindeki klasör adı
 
 INCLUDE_FILES = ["baslat.bat", "baslat.sh", "run.py", "requirements.txt", ".env.example", "README.md", "LICENSE",
                  "tools/launcher.py"]
@@ -59,7 +58,7 @@ def main() -> None:
                 data = data.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
             elif p.suffix == ".sh":                  # kabuk betiği LF olmalı
                 data = data.replace(b"\r\n", b"\n")
-            info = zipfile.ZipInfo(f"{TOP}/{rel}", date_time=time.localtime()[:6])
+            info = zipfile.ZipInfo(rel, date_time=time.localtime()[:6])   # dosyalar zip kökünde (iç içe klasör yok)
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = (0o755 if p.suffix == ".sh" else 0o644) << 16
             z.writestr(info, data)
