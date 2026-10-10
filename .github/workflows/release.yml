@@ -1,0 +1,37 @@
+# GitHub'da bir release yayımlanınca vulu-panel-v<sürüm>.zip paketini üretip o release'e ekler.
+# Actions sekmesinden elle de çalıştırılabilir ("Run workflow" → etiket, ör. v0.1.0).
+name: Release paketi
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release etiketi (ör. v0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  paket:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Paketi oluştur
+        run: python tools/build_release.py "$TAG"
+
+      - name: Release'e ekle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" dist/vulu-panel-*.zip --clobber
