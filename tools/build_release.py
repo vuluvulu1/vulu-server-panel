@@ -2,10 +2,17 @@
 
 dist/vulu-panel-v<sürüm>.zip dosyasını üretir. İçinde yalnızca kullanıcının ihtiyaç duyduğu dosyalar
 vardır (geliştirme dosyaları, data/, instances/, runtimes/, .env ve .venv asla girmez).
-Etiket verilirse app/__init__.py'deki sürümle aynı olmalıdır; GitHub Actions bunu her release'te çalıştırır.
+Etiket verilirse app/__init__.py'deki sürümle aynı olmalıdır.
+
+Yanına dist/panel-release.json (sürüm, zip adı, boyutu ve SHA-256'sı) yazılır. Panelin güncelleyicisi
+yalnızca vulu release anahtarıyla imzalanmış bu dosyaya güvenir; imza vulu-launcher'daki ReleaseSigner ile atılır:
+    ReleaseSigner sign dist/panel-release.json      → dist/panel-release.json.sig
+Release'e üç dosya da yüklenir: zip, panel-release.json ve panel-release.json.sig.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 import sys
 import time
@@ -62,7 +69,12 @@ def main() -> None:
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = (0o755 if p.suffix == ".sh" else 0o644) << 16
             z.writestr(info, data)
-    print(f"{target.relative_to(ROOT)}  ({target.stat().st_size / 1048576:.2f} MB)")
+    data = target.read_bytes()
+    manifest = {"version": ver, "zip": target.name, "size": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+    (dist / "panel-release.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    (dist / "panel-release.json.sig").unlink(missing_ok=True)        # eski imza yeni dosyaya ait değil
+    print(f"{target.relative_to(ROOT)}  ({len(data) / 1048576:.2f} MB)")
+    print("dist/panel-release.json - imzala: ReleaseSigner sign dist/panel-release.json")
 
 
 if __name__ == "__main__":

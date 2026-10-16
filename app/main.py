@@ -8,6 +8,7 @@ from .db import get_conn, init_db
 from .routers import auth as auth_router, panel as panel_router, backups, console, players, playit as playit_router, schedules, system, files, instances, java, loader, modpacks, mods, paper, profiles, settings
 from .routers import stats as stats_router
 from .services.container import jobs, launcher, playit, process_manager, scheduler, stats
+from .services.updater import updater
 from .auth import AuthMiddleware, ensure_setup_code
 from .i18n import LangMiddleware
 from .security import LocalGuardMiddleware
@@ -24,7 +25,9 @@ async def lifespan(app: FastAPI):
     stats.start()
     scheduler.start()
     await playit.autostart()
+    updater.start()
     yield
+    await updater.stop()
     await playit.stop_agent()
     await scheduler.stop()
     await stats.stop()

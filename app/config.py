@@ -54,6 +54,12 @@ MODRINTH_CDN_HOSTS = [h.strip().lower() for h in os.getenv("VULU_MODRINTH_CDN", 
 BACKUPS_DIR = DATA_DIR / "backups"
 
 PLAYIT_API = os.getenv("VULU_PLAYIT_API", "https://api.playit.gg")
+# Panel güncellemeleri: GitHub'daki son release (testlerde sahte sunucuya yönlendirilebilir)
+PANEL_RELEASES_API = os.getenv("VULU_PANEL_RELEASES_API", "https://api.github.com/repos/vuluvulu1/vulu-server-panel/releases/latest")
+# Güncelleme dosyaları yalnızca bu sunuculardan indirilir (GitHub release dosyaları bu adreslere yönlendirir)
+PANEL_UPDATE_HOSTS = {h.strip().lower() for h in os.getenv(
+    "VULU_PANEL_UPDATE_HOSTS", "github.com,objects.githubusercontent.com,release-assets.githubusercontent.com").split(",") if h.strip()}
+
 # "vulu Launcher'a özel" sunucular: oyuncular vulu hesabıyla doğrulanır, skinler vulu-api'den gelir
 VULU_API = os.getenv("VULU_API", "https://vulu-api.onrender.com").rstrip("/")
 AUTHLIB_LATEST_URL = os.getenv("VULU_AUTHLIB_LATEST", "https://authlib-injector.yushi.moe/artifact/latest.json")

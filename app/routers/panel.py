@@ -1,5 +1,4 @@
 """Panel ayarları (adres, port, iletişim, alan adları) ve panelin yeniden başlatılması."""
-import asyncio
 import os
 
 from fastapi import APIRouter, HTTPException, Request
@@ -7,11 +6,12 @@ from pydantic import BaseModel, Field
 
 from .. import auth, panel_settings as ps
 from ..config import ALLOWED_HOSTS_EXTRA, DATA_DIR, HOST, PANEL_CONTACT, PORT, SUPERVISED
-from ..services.container import playit, process_manager
+from ..services.container import process_manager
+from ..services.restart import request_restart
+from ..services.updater import UpdateError, updater
 from ..i18n import _t
 
 router = APIRouter()
-RESTART_FLAG = DATA_DIR / "restart.flag"
 BOOT_ID = os.urandom(6).hex()                       # her açılışta değişir (yeniden başlatma bitti mi?)
 
 
@@ -89,15 +89,36 @@ async def restart_panel():
     if not SUPERVISED:
         raise HTTPException(400, _t("Panel 'python run.py' ile başlatılmadığı için kendini yeniden başlatamıyor. "
                                  "Konsolda Ctrl+C ile kapatıp 'python run.py' ile yeniden aç."))
-
-    async def later():
-        await asyncio.sleep(0.5)                      # yanıt tarayıcıya ulaşsın
-        try:
-            await process_manager.stop_all()          # sunucular düzgünce kaydedip kapansın
-            await playit.stop_agent()
-        finally:
-            RESTART_FLAG.parent.mkdir(parents=True, exist_ok=True)
-            RESTART_FLAG.write_text(str(os.getpid()))
-    asyncio.get_running_loop().create_task(later())
+    request_restart()
     s = _saved()
     return {"message": _t("Panel yeniden başlatılıyor…"), "port": s["port"], "host_mode": s["host_mode"]}
+
+
+# ---------------- panel güncellemesi ----------------
+@router.get("/api/panel/update")
+async def update_state():
+    return {**updater.snapshot(), "running_servers": len(process_manager.running_ids())}
+
+
+@router.post("/api/panel/update/check")
+async def update_check():
+    return {**(await updater.check()), "running_servers": len(process_manager.running_ids())}
+
+
+@router.post("/api/panel/update/install")
+async def update_install():
+    try:
+        await updater.install()
+    except UpdateError as e:
+        raise HTTPException(400, str(e))
+    return {"message": updater.state["message"], "boot": BOOT_ID}
+
+
+class AutoBody(BaseModel):
+    enabled: bool
+
+
+@router.post("/api/panel/update/auto")
+async def update_auto(b: AutoBody):
+    updater.set_auto(b.enabled)
+    return {"ok": True, "auto": b.enabled}

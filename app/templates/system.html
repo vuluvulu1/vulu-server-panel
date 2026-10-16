@@ -63,6 +63,26 @@
     </div></div>
   </div>
 
+  <div class="card static mb-3" id="update-card">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <span class="fw-semibold"><i class="bi bi-arrow-up-circle"></i> {{ _("Güncelleme") }}</span>
+      <span class="small text-body-secondary">{{ _("Kurulu sürüm:") }} <strong>v{{ version }}</strong></span>
+    </div>
+    <div class="card-body small">
+      <div id="up-status" class="mb-2">{{ _("Denetleniyor…") }}</div>
+      <div id="up-notes" class="up-notes d-none"></div>
+      <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+        <button class="btn btn-sm btn-primary d-none" type="button" id="up-install"><i class="bi bi-download"></i> <span></span></button>
+        <button class="btn btn-sm btn-outline-secondary" type="button" id="up-check"><i class="bi bi-arrow-repeat"></i> {{ _("Şimdi denetle") }}</button>
+        <div class="form-check form-switch ms-sm-auto mb-0">
+          <input class="form-check-input" type="checkbox" role="switch" id="up-auto">
+          <label class="form-check-label" for="up-auto">{{ _("Otomatik güncelle") }}</label>
+        </div>
+      </div>
+      <div class="form-text">{{ _("Panel birkaç saatte bir GitHub'daki son sürümü denetler. Otomatik güncelleme açıksa yeni sürüm, çalışan sunucu yokken kendiliğinden kurulur ve panel yeniden başlar. Yalnızca vulu imzalı sürümler kurulur; sunucuların, dünyaların, yedeklerin ve ayarların etkilenmez.") }}</div>
+    </div>
+  </div>
+
   <div class="card static mb-3" id="appearance-card">
     <div class="card-header fw-semibold"><i class="bi bi-palette"></i> {{ _("Görünüm") }}</div>
     <div class="card-body">
@@ -152,4 +172,4 @@
 </div>
 {% endblock %}
 
-{% block scripts %}<script src="/static/js/system.js?v={{ asset_v() }}"></script><script src="/static/js/playit.js?v={{ asset_v() }}"></script><script src="/static/js/account.js?v={{ asset_v() }}"></script>{% endblock %}
+{% block scripts %}<script src="/static/js/system.js?v={{ asset_v() }}"></script><script src="/static/js/playit.js?v={{ asset_v() }}"></script><script src="/static/js/account.js?v={{ asset_v() }}"></script><script src="/static/js/update.js?v={{ asset_v() }}"></script>{% endblock %}

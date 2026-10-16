@@ -2,6 +2,7 @@ from fastapi.templating import Jinja2Templates
 
 from . import __version__, i18n, ui
 from .config import BASE_DIR
+from .services.updater import updater
 
 templates = Jinja2Templates(directory=BASE_DIR / "app" / "templates")
 _STATIC = BASE_DIR / "app" / "static"
@@ -24,6 +25,7 @@ templates.env.globals.update(
     default_theme=ui.DEFAULT_THEME,
     asset_v=asset_v,
     version=__version__,
+    panel_update=lambda: updater.state["latest"] if updater.state["available"] else None,
     source_url=ui.SOURCE_URL,
     _=i18n.gettext,
     lang=i18n.get_lang,
