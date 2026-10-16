@@ -6,7 +6,7 @@ Gösterim: `[x]` tamamlandı · `[~]` kısmen / gerçek ortamda daha fazla doğr
 
 ## 1. Genel durum
 
-Güncel sürüm: **v0.3.0**.
+Güncel sürüm: **v0.4.0**.
 
 | Alan | Durum |
 |---|---|

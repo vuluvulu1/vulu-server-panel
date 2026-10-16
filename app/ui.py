@@ -14,6 +14,7 @@ SOURCE_URL = "https://github.com/vuluvulu1/vulu-server-panel"   # AGPL-3.0: kayn
 # soon=True olanlar "yakında" diye pasif görünür (sayfa henüz yok)
 NAV_ITEMS = [
     {"label": "Sunucular", "href": "/", "icon": "bi-hdd-rack"},
+    {"label": "vulu Packs", "href": "/vulupacks", "icon": "bi-boxes"},
     {"label": "Yedekler", "href": "/backups", "icon": "bi-archive"},
     {"label": "Ayarlar", "href": "/settings", "icon": "bi-gear"},
 ]

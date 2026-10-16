@@ -60,6 +60,8 @@ CREATE TABLE IF NOT EXISTS instances (
     modpack_version TEXT,
     vulu_exclusive INTEGER NOT NULL DEFAULT 0,
     vulu_prev_props TEXT,
+    vulu_pack_id  TEXT,
+    vulu_pack_revision INTEGER,
     status        TEXT NOT NULL DEFAULT 'stopped',
     created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -108,6 +110,10 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE instances ADD COLUMN vulu_exclusive INTEGER NOT NULL DEFAULT 0")
     if "vulu_prev_props" not in cols:
         conn.execute("ALTER TABLE instances ADD COLUMN vulu_prev_props TEXT")
+    if "vulu_pack_id" not in cols:
+        conn.execute("ALTER TABLE instances ADD COLUMN vulu_pack_id TEXT")
+    if "vulu_pack_revision" not in cols:
+        conn.execute("ALTER TABLE instances ADD COLUMN vulu_pack_revision INTEGER")
 
 
 def init_db() -> None:
@@ -130,7 +136,7 @@ def used_ports() -> set[int]:
 
 
 def update_instance(instance_id: int, **fields) -> None:
-    allowed = {"rcon_port", "rcon_password", "launch_type", "jar_file", "args_file", "port", "ram_mb", "jvm_preset", "jvm_args", "java_path", "java_major", "backup_limit", "mc_version", "vulu_exclusive", "vulu_prev_props"}          # sütun adları beyaz listeden (SQL enjeksiyonu yok)
+    allowed = {"rcon_port", "rcon_password", "launch_type", "jar_file", "args_file", "port", "ram_mb", "jvm_preset", "jvm_args", "java_path", "java_major", "backup_limit", "mc_version", "vulu_exclusive", "vulu_prev_props", "vulu_pack_revision"}          # sütun adları beyaz listeden (SQL enjeksiyonu yok)
     bad = set(fields) - allowed
     if bad:
         raise ValueError(f"izin verilmeyen sütun: {bad}")

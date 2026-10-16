@@ -6,7 +6,8 @@
 {% if not embed %}{{ page_header("Yeni sunucu", "Yükleyiciyi ve sürümü seç, ardından sunucuyu adlandır") }}{% endif %}
 <div id="new-root">
 {% if embed %}
-  {% if values.modpack_slug %}{{ wizard_back("/modpacks", "Modpack seçimi") }}
+  {% if values.vulupack_id %}{{ wizard_back("/vulupacks", "Paket seçimi") }}
+  {% elif values.modpack_slug %}{{ wizard_back("/modpacks", "Modpack seçimi") }}
   {% elif profile %}{{ wizard_back("/profiles", "Profil seçimi") }}
   {% else %}{{ wizard_back("/instances/create", "Başlangıç seçimi") }}{% endif %}
 {% endif %}
@@ -18,13 +19,14 @@
   'forge': ('Forge', _("Klasik büyük modpack'ler (eski sürümler)."), 'bi-hammer'),
   'neoforge': ('NeoForge', _("Forge'un yeni nesli (1.20.2+)."), 'bi-gem'),
 } %}
-{% set fixed = values.modpack_slug %}
+{% set fixed = values.modpack_slug or values.vulupack_id %}
 {% set start_step = 2 if (errors or profile or fixed) else 1 %}
 <form id="instance-form" method="post" action="/instances{{ '?embed=1' if embed }}" class="nf" data-step="{{ start_step }}" data-fixed="{{ '1' if fixed else '' }}">
   {% if profile %}<input type="hidden" name="profile_id" value="{{ profile.id }}">{% endif %}
   {% if fixed %}
   <input type="hidden" name="modpack_slug" value="{{ values.modpack_slug }}">
   <input type="hidden" name="modpack_version" value="{{ values.modpack_version }}">
+  <input type="hidden" name="vulupack_id" value="{{ values.vulupack_id }}">
   {% endif %}
 
   {% if not fixed %}
@@ -77,7 +79,7 @@
       <i class="bi bi-box-seam"></i>
       <div class="flex-grow-1">
         {% if fixed %}<div class="fw-semibold">{{ values.modpack_label }}</div>
-        <div class="small text-body-secondary">Modrinth modpack · <span id="sum-loader">{{ LOADER_INFO.get(values.loader, (values.loader,))[0] }}</span> <span id="sum-version">{{ values.mc_version }}</span> · {{ _("sürüm, yükleyici ve modlar paketten gelir") }}</div>
+        <div class="small text-body-secondary">{{ "vulu Pack" if values.vulupack_id else "Modrinth modpack" }} · <span id="sum-loader">{{ LOADER_INFO.get(values.loader, (values.loader,))[0] }}</span> <span id="sum-version">{{ values.mc_version }}</span> · {{ _("sürüm, yükleyici ve modlar paketten gelir") }}</div>
         {% else %}<div class="fw-semibold"><span id="sum-loader">{{ LOADER_INFO.get(values.loader, (values.loader,))[0] }}</span> <span id="sum-version">{{ values.mc_version }}</span></div>
         <div class="small text-body-secondary">{% if profile %}{{ _("Profil") }}: {{ profile.name }}{% if profile.description %} · {{ profile.description }}{% endif %}{% else %}{{ _("Seçtiğin yükleyici ve Minecraft sürümü") }}{% endif %}</div>{% endif %}
       </div>
@@ -169,6 +171,14 @@
         </div>
       </div>
     </details>
+
+    {% if values.vulupack_id %}
+    <div class="form-check form-switch mt-3">
+      <input class="form-check-input" type="checkbox" role="switch" id="vulu_exclusive" name="vulu_exclusive" {{ 'checked' if values.vulu_exclusive else '' }}>
+      <label class="form-check-label" for="vulu_exclusive">{{ _("vulu Launcher'a özel") }}</label>
+      <div class="form-text mt-0">{{ _("Oyuncular vulu hesabıyla doğrulanır ve vulu skinleri görünür; yalnızca vulu Launcher'la girilebilir. Kapalıysa sunucu herkese açık çevrimdışı modda kurulur.") }}</div>
+    </div>
+    {% endif %}
 
     <div class="form-check mt-3">
       <input class="form-check-input" type="checkbox" id="accept_eula" name="accept_eula" checked>

@@ -399,3 +399,5 @@ body.embed #sched-root { max-width: 1000px; margin: 0 auto; }
 
 .up-notes { max-height: 220px; overflow: auto; white-space: pre-wrap; padding: .5rem .65rem; border: 1px solid var(--border);
   border-radius: var(--radius); color: var(--text-muted); font-size: .8rem; }
+.vp-card { overflow: hidden; }
+.vp-cover { width: 100%; aspect-ratio: 16 / 7; object-fit: cover; display: block; border-bottom: 1px solid var(--border); }

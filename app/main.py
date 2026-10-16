@@ -7,6 +7,7 @@ from .config import BASE_DIR, INSTANCES_DIR
 from .db import get_conn, init_db
 from .routers import auth as auth_router, panel as panel_router, backups, console, players, playit as playit_router, schedules, system, files, instances, java, loader, modpacks, mods, paper, profiles, settings
 from .routers import stats as stats_router
+from .routers import vulupacks as vulupacks_router
 from .services.container import jobs, launcher, playit, process_manager, scheduler, stats
 from .services.updater import updater
 from .auth import AuthMiddleware, ensure_setup_code
@@ -49,6 +50,7 @@ app.include_router(files.router)
 app.include_router(backups.router)
 app.include_router(schedules.router)
 app.include_router(players.router)
+app.include_router(vulupacks_router.router)
 app.include_router(playit_router.router)
 app.include_router(system.router)
 app.include_router(instances.router)

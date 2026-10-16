@@ -15,6 +15,7 @@ from .modrinth import LOADER_FILTER, ModrinthError, read_mods_info, target_dir
 from .paper import PaperError, read_jar_info
 from .process import ProcessBackend, ProcessError
 from .profiles import get_profile
+from .vulupacks import VuluPacks, read_installed
 from .properties import prepare_runtime, update_properties
 from ..i18n import _t
 
@@ -25,6 +26,7 @@ class InstanceLauncher:
     def __init__(self, pm: ProcessBackend, java: JavaManager, installers: dict, mods, modpacks, minecraft=None) -> None:
         self.pm, self.java, self.installers, self.mods, self.modpacks = pm, java, installers, mods, modpacks
         self.minecraft = minecraft
+        self.vulupacks = None                # container bağlar
         self._prep: dict[int, asyncio.Task] = {}
         self._notes: dict[int, str] = {}     # hazırlık başlarken konsola yazılacak panel notu
 
@@ -67,6 +69,13 @@ class InstanceLauncher:
             return False
         info = read_pack_info(Path(inst["path"]))
         return not (info and info.get("version_id") == inst.get("modpack_version"))
+
+    @staticmethod
+    def _needs_vulu(inst: dict) -> bool:
+        """vulu paketinden kurulan sunucuda istenen revizyon henüz kurulmamışsa."""
+        if not inst.get("vulu_pack_id"):
+            return False
+        return (read_installed(Path(inst["path"])) or {}).get("revision") != inst.get("vulu_pack_revision")
 
     def _needs_mods(self, inst: dict) -> bool:
         _, mods = self._profile_mods(inst)
@@ -127,7 +136,7 @@ class InstanceLauncher:
             raise ProcessError(_t("Mod kurulumu sürüyor, bitmesini bekle."))
         self._check_memory(inst)
         inst = await self._fix_java(inst)
-        if iid not in self._notes and not inst.get("vulu_exclusive") and not (self._needs_java(inst) or self._needs_loader(inst) or self._needs_mods(inst) or self._needs_modpack(inst)):
+        if iid not in self._notes and not inst.get("vulu_exclusive") and not (self._needs_java(inst) or self._needs_loader(inst) or self._needs_mods(inst) or self._needs_modpack(inst) or self._needs_vulu(inst)):
             await self._launch(inst)
             return {"preparing": False}
         self.pm.set_status(iid, "preparing")
@@ -217,7 +226,21 @@ class InstanceLauncher:
                 pm.log(iid, _t('[panel] Java {major} hazır.', major=major))
 
             pack, pin = None, None
-            if self._needs_modpack(inst):                      # 1) modpack paketini indir/oku → tam yükleyici sürümü
+            if self._needs_vulu(inst):                         # 1a) vulu paketi → sunucuya uygun .mrpack
+                pm.log(iid, _t("[panel] vulu paketi hazırlanıyor…"))
+                vj = self.vulupacks.ensure_build_job(iid, inst["vulu_pack_id"])
+                await self._follow(iid, vj)
+                if vj.status == "error":
+                    raise ProcessError(_t("vulu paketi alınamadı: {error}", error=vj.error))
+                pack = vj.result
+                if pack["loader"] != inst.get("loader") or pack["mc_version"] != inst.get("mc_version"):
+                    raise ProcessError(_t("Paket artık {loader} {mc} kullanıyor; bu sunucu {l2} {mc2}. Paketten yeni bir sunucu oluştur.",
+                                          loader=pack["loader"], mc=pack["mc_version"], l2=inst.get("loader"), mc2=inst.get("mc_version")))
+                pin = pack["loader_version"] or None
+                if pack["skipped_client"]:
+                    names = ", ".join(pack["skipped_client"][:8]) + ("…" if len(pack["skipped_client"]) > 8 else "")
+                    pm.log(iid, _t("[panel] Yalnızca oyuncuda çalışan {n} içerik sunucuya kurulmayacak: {names}", n=len(pack["skipped_client"]), names=names))
+            elif self._needs_modpack(inst):                    # 1b) modpack paketini indir/oku → tam yükleyici sürümü
                 try:
                     info = await self.modpacks.version_info(inst["modpack_slug"], inst["modpack_version"])
                 except ModrinthError as e:
@@ -266,6 +289,12 @@ class InstanceLauncher:
                 for w in r.get("warnings", []):
                     pm.log(iid, _t('[panel] Uyarı: {w}', w=w))
                 pm.log(iid, _t('[panel] {title} kuruldu: {files} dosya, {skipped} istemci dosyası atlandı, {overrides} ayar dosyası.', title=pack['title'], files=r['files'], skipped=r['skipped'], overrides=r['overrides']))
+                if pack.get("pack_id"):                        # vulu paketi: eski revizyonun kalan modları + kurulum bilgisi
+                    removed = await asyncio.to_thread(VuluPacks.finish, Path(inst["path"]), pack)
+                    if removed:
+                        pm.log(iid, _t("[panel] Pakette artık olmayan {n} mod kaldırıldı: {names}", n=len(removed), names=", ".join(removed[:8])))
+                    update_instance(iid, vulu_pack_revision=pack["revision"])
+                    inst = {**inst, "vulu_pack_revision": pack["revision"]}
 
             _, mod_list = self._profile_mods(inst)
             if mod_list and (force_mods or self._needs_mods(inst)):

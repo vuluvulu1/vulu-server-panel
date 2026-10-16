@@ -50,6 +50,17 @@
   </div>
   {% endif %}
 
+  {% if inst["vulu_pack_id"] %}
+  <div class="d-flex justify-content-between align-items-center mb-2 small" id="vulupack-row" data-instance-id="{{ inst['id'] }}">
+    <span class="text-body-secondary"><i class="bi bi-stars"></i> vulu Pack:
+      {% if vulu_pack %}{{ vulu_pack.name }} · rev {{ vulu_pack.revision }}{% if vulu_pack.skipped_client %} · {{ _("{n} istemci içeriği atlandı", n=vulu_pack.skipped_client|length) }}{% endif %}
+      {% else %}{{ _("henüz kurulmadı (ilk başlatmada kurulur)") }}{% endif %}
+      {% if vulu_pack and inst["vulu_pack_revision"] and inst["vulu_pack_revision"] != vulu_pack.revision %} · <span class="text-warning">{{ _("rev {r} başlatınca kurulacak", r=inst["vulu_pack_revision"]) }}</span>{% endif %}
+    </span>
+    <button id="vulupack-update-btn" class="btn btn-sm btn-outline-secondary" type="button"><i class="bi bi-arrow-repeat"></i> {{ _("Paketi güncelle") }}</button>
+  </div>
+  {% endif %}
+
   {{ progress_panel("prep") }}
 
   <div class="row g-2 mb-3">
@@ -80,7 +91,7 @@
 </form>
 {% endblock %}
 
-{% block scripts %}<script src="/static/js/vendor/chart.umd.js?v={{ asset_v() }}"></script>
+{% block scripts %}<script src="/static/js/vendor/chart.umd.js?v={{ asset_v() }}"></script><script src="/static/js/vulupack_server.js?v={{ asset_v() }}"></script>
 <script src="/static/js/stats.js?v={{ asset_v() }}"></script>
 <script src="/static/js/console.js?v={{ asset_v() }}"></script>
 <script src="/static/js/playit.js?v={{ asset_v() }}"></script>{% endblock %}

@@ -14,7 +14,9 @@ from ..db import get_conn, get_instance
 from ..services.container import launcher, minecraft
 from ..services.minecraft import LOADERS, McError
 from ..services.paper import PaperError, read_jar_info
-from ..services.container import installers, modpacks
+from ..services.container import installers, modpacks, vulupacks
+from ..services.vulupacks import VuluPackError, read_installed as read_vulu_installed
+import json
 from ..services.container import minecraft as mc_service
 from ..services.jvm import PRESETS, validate_args_file
 from ..services.modrinth import ModrinthError, read_mods_info
@@ -73,13 +75,14 @@ async def create_chooser(request: Request):
 
 
 @router.get("/instances/new")
-async def new_instance_form(request: Request, profile: str = "", modpack: str = ""):
+async def new_instance_form(request: Request, profile: str = "", modpack: str = "", vulupack: str = ""):
     values = {
         "name": "", "port": str(_next_free_port()), "ram_gb": "4",
         "jar_file": "server.jar", "java_path": "java", "jvm_args": "",
         "mc_version": "", "loader": "vanilla", "java_mode": "auto",
         "jvm_preset": "aikar", "launch_type": "auto", "args_file": "", "profile_id": "",
         "modpack_slug": "", "modpack_version": "", "modpack_label": "", "icon_data": "",
+        "vulupack_id": "", "vulu_exclusive": "1",
     }
     errs: list[str] = []
     if prof := get_profile(profile):                      # profil seçildiyse formu onunla doldur
@@ -100,7 +103,27 @@ async def new_instance_form(request: Request, profile: str = "", modpack: str = 
                           loader=pk["loader"], mc_version=pk["mc_version"], jvm_preset="aikar", ram_gb=str(min(6, _sys_ram_gb())))
         except ModrinthError as e:
             errs.append(str(e))
+    if vulupack:                                          # vulu Packs: sürüm ve yükleyici paketten
+        try:
+            vp = await vulupacks.get(vulupack)
+            values.update(vulupack_id=vp["id"], modpack_label=f"{vp['name']} · rev {vp.get('revision', 1)}", loader=vp["loader"],
+                          mc_version=vp["mcVersion"], jvm_preset="aikar", ram_gb=str(max(2, min(int(vp.get("recommendedRamGb") or 6), _sys_ram_gb() - 2, 8))),
+                          name=_pack_server_name(vp["name"]))
+        except VuluPackError as e:
+            errs.append(str(e))
     return templates.TemplateResponse(request, "instance_new.html", _ctx(values, errs))
+
+
+def _pack_server_name(name: str) -> str:
+    """Paket adından geçerli ve boşta bir sunucu adı (harf, rakam, - ve _)."""
+    tr = str.maketrans("çğıöşüÇĞİÖŞÜ ", "cgiosuCGIOSU-")
+    base = re.sub(r"[^A-Za-z0-9_-]", "", name.translate(tr))[:28].strip("-_") or "vulu-sunucu"
+    with get_conn() as conn:
+        taken = {r["name"].lower() for r in conn.execute("SELECT name FROM instances")}
+    cand, i = base, 2
+    while cand.lower() in taken:
+        cand, i = f"{base[:28]}-{i}", i + 1
+    return cand
 
 
 @router.post("/instances")
@@ -121,6 +144,8 @@ async def create_instance(
     profile_id: str = Form(""),
     modpack_slug: str = Form(""),
     modpack_version: str = Form(""),
+    vulupack_id: str = Form(""),
+    vulu_exclusive: str | None = Form(None),
     accept_eula: str | None = Form(None),
     icon_data: str = Form("", max_length=600_000),
 ):
@@ -130,6 +155,7 @@ async def create_instance(
         "mc_version": mc_version.strip(), "loader": loader.strip(), "java_mode": java_mode.strip(),
         "jvm_preset": jvm_preset.strip(), "launch_type": launch_type.strip(), "args_file": args_file.strip(),
         "profile_id": profile_id.strip(), "modpack_slug": modpack_slug.strip(), "modpack_version": modpack_version.strip(), "modpack_label": "",
+        "vulupack_id": vulupack_id.strip(), "vulu_exclusive": "1" if vulu_exclusive else "",
     }
     errors: list[str] = []
 
@@ -139,6 +165,14 @@ async def create_instance(
             pack = await modpacks.version_info(values["modpack_slug"], values["modpack_version"] or None)
             values.update(loader=pack["loader"], mc_version=pack["mc_version"], modpack_label=f"{pack['title']} {pack['version_number']}")
         except ModrinthError as e:
+            errors.append(str(e))
+
+    vpack = None
+    if values["vulupack_id"]:                                    # vulu paketi: sürüm ve yükleyici paketten, forma güvenilmez
+        try:
+            vpack = await vulupacks.get(values["vulupack_id"])
+            values.update(loader=vpack["loader"], mc_version=vpack["mcVersion"], modpack_label=f"{vpack['name']} · rev {vpack.get('revision', 1)}")
+        except VuluPackError as e:
             errors.append(str(e))
 
     if not NAME_RE.match(values["name"]):
@@ -242,6 +276,16 @@ async def create_instance(
             errors.append(_t('Profil ayarları yazılamadı: {e}', e=e))
             return templates.TemplateResponse(request, "instance_new.html", _ctx(values, errors), status_code=400)
 
+    exclusive = bool(vpack and values["vulu_exclusive"])
+    if vpack:
+        # vulu Launcher'a özel: doğrulama vulu hesabıyla, skinler açık. Değilse vulu oyuncuları (lisanssız) girebilsin diye çevrimdışı.
+        props = {"online-mode": "true", "enforce-secure-profile": "false"} if exclusive else {"online-mode": "false"}
+        try:
+            update_properties(folder / "server.properties", props)
+        except (OSError, ValueError) as e:
+            errors.append(_t('server.properties yazılamadı: {e}', e=e))
+            return templates.TemplateResponse(request, "instance_new.html", _ctx(values, errors), status_code=400)
+
     try:
         with get_conn() as conn:
             cur = conn.execute(
@@ -254,6 +298,11 @@ async def create_instance(
                  pack["slug"] if pack else None, pack["version_id"] if pack else None),
             )
             iid = cur.lastrowid
+            if vpack:
+                # Kapatılırsa çevrimdışı (lisanssız) oyunculara açık bir sunucuya döner
+                conn.execute("UPDATE instances SET vulu_pack_id = ?, vulu_pack_revision = ?, vulu_exclusive = ?, vulu_prev_props = ? WHERE id = ?",
+                             (vpack["id"], int(vpack.get("revision") or 1), 1 if exclusive else 0,
+                              json.dumps({"online-mode": "false", "enforce-secure-profile": "true"}) if exclusive else None, iid))
     except sqlite3.IntegrityError:
         errors.append(_t("Bu isimde bir sunucu zaten var."))
         return templates.TemplateResponse(
@@ -272,7 +321,7 @@ async def instance_detail(request: Request, iid: int):
         raise HTTPException(404, _t("Sunucu bulunamadı"))
     jar_info = read_jar_info(Path(inst["path"]))
     return templates.TemplateResponse(request, "instance_detail.html", {"inst": inst, "jar_info": jar_info, "profile": get_profile(inst.get("profile_id")),
-                         "mods_info": read_mods_info(Path(inst["path"]))})
+                         "mods_info": read_mods_info(Path(inst["path"])), "vulu_pack": read_vulu_installed(Path(inst["path"]))})
 
 
 @router.post("/instances/{iid}/delete")

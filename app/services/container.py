@@ -27,6 +27,10 @@ installers = {"vanilla": vanilla, "paper": paper, "fabric": fabric, "forge": for
 mods = ModManager(MODRINTH_API, MODRINTH_CDN_HOSTS, jobs)
 modpacks = ModpackManager(MODRINTH_API, MODRINTH_CDN_HOSTS, CACHE_DIR / "modpacks", jobs, mods)
 launcher = InstanceLauncher(process_manager, java, installers, mods, modpacks, minecraft)
+from .vulupacks import VuluPacks  # noqa: E402
+
+vulupacks = VuluPacks(jobs, mods)
+launcher.vulupacks = vulupacks
 stats = StatsService(process_manager)
 backups = BackupManager(BACKUPS_DIR, jobs, process_manager)
 from .scheduler import Scheduler  # noqa: E402

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "components/ui.html" import page_header, wizard_back %}
+{% block title %}{{ _("vulu Packs") }} · {{ brand.name }} {{ brand.accent_word }}{% endblock %}
+
+{% block content %}
+{% set embed = request.query_params.get("embed") == "1" %}
+{% if embed %}{{ wizard_back("/instances/create", "Başlangıç seçimi") }}<p class="wizard-lead">{{ _("Bir vulu paketi seç") }}</p>
+{% else %}{{ page_header("vulu Packs", "vulu Launcher'dan paylaşılan paketlerden tek tıkla sunucu kur") }}{% endif %}
+<div id="vp-root" data-embed="{{ '1' if embed else '' }}">
+  <div id="notes" class="mb-3"></div>
+
+  <div class="card static mb-3{{ ' d-none' if account else '' }}" id="vp-link-card" style="max-width: 560px">
+    <div class="card-body">
+      <h2 class="h6"><i class="bi bi-link-45deg"></i> {{ _("vulu hesabını bağla") }}</h2>
+      <p class="small text-body-secondary">{{ _("Paketleri görmek için panel bir kez vulu hesabına bağlanır. Şifren saklanmaz; panel yalnızca paketleri okuyabilen ayrı bir anahtar alır. Şifreni değiştirirsen bağlantı kendiliğinden kapanır.") }}</p>
+      <form id="vp-link-form" class="row g-2" onsubmit="return false">
+        <div class="col-sm-5"><input class="form-control form-control-sm" id="vp-user" placeholder="{{ _("Kullanıcı adı") }}" maxlength="16" autocomplete="username" required></div>
+        <div class="col-sm-4"><input class="form-control form-control-sm" id="vp-pass" type="password" placeholder="{{ _("Şifre") }}" maxlength="72" autocomplete="current-password" required></div>
+        <div class="col-sm-3"><button class="btn btn-sm btn-primary w-100" type="submit" id="vp-link-btn">{{ _("Bağla") }}</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3{{ '' if account else ' d-none' }}" id="vp-account-row">
+    <span class="small text-body-secondary"><i class="bi bi-person-check"></i> {{ _("Bağlı hesap:") }} <strong id="vp-account">{{ account or '' }}</strong></span>
+    <span class="d-flex gap-2">
+      <button class="btn btn-sm btn-outline-secondary" type="button" id="vp-refresh"><i class="bi bi-arrow-repeat"></i> {{ _("Yenile") }}</button>
+      <button class="btn btn-sm btn-outline-danger" type="button" id="vp-unlink">{{ _("Bağlantıyı kaldır") }}</button>
+    </span>
+  </div>
+
+  <p class="small text-body-secondary{{ '' if account else ' d-none' }}" id="vp-hint">{{ _("Paketten kurulan sunucuya sürüm, yükleyici, modlar ve ayar dosyaları (config, KubeJS…) gelir. Yalnızca oyuncuda çalışan modlar, kaynak paketleri ve shaderlar sunucuya kurulmaz.") }}</p>
+  <div id="vp-list" class="row g-3"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="/static/js/vulupacks.js?v={{ asset_v() }}"></script>{% endblock %}
