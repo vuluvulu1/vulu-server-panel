@@ -102,14 +102,17 @@ def build_command(inst: dict) -> list[str]:
         raise LaunchError(err)
     root = Path(inst["path"])
     flags = jvm_flags(inst)
+    # Panelin kendi eklediği authlib-injector ajanı (vulu Launcher'a özel sunucular). Kullanıcı argümanlarında
+    # -javaagent yasak olmaya devam eder; bu liste yalnızca launcher.py'den gelir.
+    agent = list(inst.get("agent_flags") or [])
     if inst.get("launch_type") == "args-file":
         rel = resolve_args_file(inst)
         try:
             (root / "user_jvm_args.txt").write_text("\n".join(flags) + "\n", encoding="utf-8")
         except OSError as e:
             raise LaunchError(_t('user_jvm_args.txt yazılamadı: {e}', e=e))
-        return [inst["java_path"], "@user_jvm_args.txt", f"@{rel}", "nogui"]
+        return [inst["java_path"], *agent, "@user_jvm_args.txt", f"@{rel}", "nogui"]
     jar = root / inst["jar_file"]
     if not jar.is_file():
         raise LaunchError(_t('Jar dosyası bulunamadı: {jar}', jar=jar))
-    return [inst["java_path"], *flags, "-jar", inst["jar_file"], "nogui"]
+    return [inst["java_path"], *agent, *flags, "-jar", inst["jar_file"], "nogui"]

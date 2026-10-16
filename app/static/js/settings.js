@@ -43,6 +43,17 @@
     finally { btn.disabled = false; btn.textContent = _t('Kaydet'); }
   });
 
+  const vulu = $('vulu-exclusive');
+  vulu.addEventListener('change', async () => {
+    const enabled = vulu.checked;
+    vulu.disabled = true;
+    try {
+      await post('vulu-exclusive', { enabled });
+      VuluModal.toast(enabled ? _t("vulu Launcher'a özel açıldı. Sunucuyu başlattığında geçerli olur.") : _t("vulu Launcher'a özel kapatıldı."), 'success');
+    } catch (e) { vulu.checked = !enabled; note('danger', String(e.message || e)); }
+    finally { vulu.disabled = false; }
+  });
+
   $('destroy-btn').addEventListener('click', async () => {
     const typed = prompt(_t(`Bu sunucu dünyası ve tüm dosyalarıyla KALICI olarak silinecek.\nOnaylamak için sunucu adını yaz: {name}`, {name}));
     if (typed === null) return;

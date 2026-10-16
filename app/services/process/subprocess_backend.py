@@ -143,7 +143,9 @@ class SubprocessBackend:
         if ch.status != "preparing":      # hazırlık (indirme) satırlarını koru, yoksa konsolu temizle
             ch.buffer.clear()
             ch.publish({"type": "clear"})
-        self._log(iid, _t("[panel] Başlatılıyor: ") + " ".join(cmd))
+        # authlib-injector'a önceden verilen API bilgisi uzun bir base64; konsolda kısaltılır
+        shown = [a.split("=", 1)[0] + "=…" if a.startswith("-Dauthlibinjector.yggdrasil.prefetched=") else a for a in cmd]
+        self._log(iid, _t("[panel] Başlatılıyor: ") + " ".join(shown))
 
         try:
             popen = subprocess.Popen(

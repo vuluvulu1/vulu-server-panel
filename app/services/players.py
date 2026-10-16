@@ -140,7 +140,8 @@ class PlayerManager:
     async def _uuid(self, inst: dict, name: str) -> tuple[str, str]:
         folder = Path(inst["path"])
         props = read_properties(folder / "server.properties") if (folder / "server.properties").is_file() else {}
-        if props.get("online-mode", "true") == "false":
+        # vulu hesaplarının kimliği çevrimdışı kimlikle aynıdır (vulu Launcher'a özel sunucular)
+        if props.get("online-mode", "true") == "false" or inst.get("vulu_exclusive"):
             return offline_uuid(name), name
         try:
             async with new_client() as c:

@@ -1000,5 +1000,17 @@
  "vulu panel çalışıyor": "vulu panel is running",
  "Kapatmak için bu pencerede Ctrl+C. Hatalar ve önemli olaylar burada görünür.": "Press Ctrl+C in this window to stop it. Errors and important events show up here.",
  "Panel kapatıldı.": "Panel stopped.",
- "İletişim (isteğe bağlı)": "Contact (optional)"
+ "İletişim (isteğe bağlı)": "Contact (optional)",
+ "vulu Launcher'a özel": "vulu Launcher only",
+ "Açıkken sunucuya yalnızca vulu Launcher'dan vulu hesabıyla girilebilir. Oyuncular vulu hesap sunucusundan doğrulandığı için kimse başkasının adıyla giremez ve herkesin vulu skini görünür. Resmi Minecraft launcher'ı ya da başka launcher'larla girilemez.": "When on, only players using vulu Launcher with a vulu account can join. Players are verified by the vulu account server, so nobody can join under someone else's name, and everyone's vulu skin shows. The official Minecraft launcher and other launchers cannot join.",
+ "Açılınca <code>online-mode</code> açılır ve <code>enforce-secure-profile</code> kapanır; kapatınca önceki değerlerine döner. Değişiklik sunucunun bir sonraki başlatılışında geçerli olur.": "Turning it on enables <code>online-mode</code> and disables <code>enforce-secure-profile</code>; turning it off restores their previous values. The change applies the next time the server starts.",
+ "vulu Launcher'a özel açıldı. Sunucuyu başlattığında geçerli olur.": "vulu Launcher only is on. It applies when you start the server.",
+ "vulu Launcher'a özel kapatıldı.": "vulu Launcher only is off.",
+ "server.properties güncellenemedi: {e}": "Could not update server.properties: {e}",
+ "[panel] authlib-injector {version} indiriliyor…": "[panel] Downloading authlib-injector {version}…",
+ "authlib-injector doğrulanamadı (sağlama toplamı uyuşmuyor).": "Could not verify authlib-injector (checksum mismatch).",
+ "[panel] authlib-injector indirilemedi: {e}": "[panel] Could not download authlib-injector: {e}",
+ "authlib-injector indirilemedi ve daha önce indirilmiş bir kopyası yok. İnternet bağlantını kontrol et.": "Could not download authlib-injector and there is no earlier copy. Check your internet connection.",
+ "[panel] Uyarı: vulu hesap sunucusuna şu an ulaşılamadı; oyuncular bağlanırken tekrar denenecek.": "[panel] Warning: the vulu account server cannot be reached right now; it will be retried when players connect.",
+ "[panel] vulu Launcher'a özel: oyuncular vulu hesabıyla doğrulanır, skinler etkin.": "[panel] vulu Launcher only: players are verified with their vulu account, skins are on."
 }

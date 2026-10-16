@@ -6,6 +6,7 @@ from pathlib import Path
 import psutil
 
 from ..db import update_instance
+from . import authlib
 from .java_manager import JavaManager
 from .jobs import Job
 from .modpack import read_pack_info
@@ -14,7 +15,7 @@ from .modrinth import LOADER_FILTER, ModrinthError, read_mods_info, target_dir
 from .paper import PaperError, read_jar_info
 from .process import ProcessBackend, ProcessError
 from .profiles import get_profile
-from .properties import prepare_runtime
+from .properties import prepare_runtime, update_properties
 from ..i18n import _t
 
 BUSY = ("preparing", "starting", "running", "stopping")
@@ -85,6 +86,8 @@ class InstanceLauncher:
             inst = prepare_runtime(inst)      # server-port + RCON'u server.properties'e yazar
         except (OSError, ValueError) as e:
             raise ProcessError(_t('server.properties hazırlanamadı: {e}', e=e))
+        if inst.get("vulu_exclusive"):
+            inst = await self._vulu(inst)
         warn: list[str] = []
         if inst.get("loader") in ("fabric", "quilt", "forge", "neoforge"):     # eksik bağımlılık / istemci modu uyarısı
             try:
@@ -95,6 +98,21 @@ class InstanceLauncher:
         await self.pm.start(self._with_java(inst))
         for line in warn:
             self.pm.log(inst["id"], line)
+
+    async def _vulu(self, inst: dict) -> dict:
+        """vulu Launcher'a özel sunucu: authlib-injector ajanı eklenir ve doğrulama açılır (properties
+        elle değiştirilmiş olsa bile her başlatmada yeniden yazılır)."""
+        iid = inst["id"]
+        try:
+            update_properties(Path(inst["path"]) / "server.properties", {"online-mode": "true", "enforce-secure-profile": "false"})
+        except (OSError, ValueError) as e:
+            raise ProcessError(_t('server.properties hazırlanamadı: {e}', e=e))
+        try:
+            flags = await authlib.agent_flags(lambda line: self.pm.log(iid, line))
+        except authlib.AuthlibError as e:
+            raise ProcessError(str(e))
+        self.pm.log(iid, _t("[panel] vulu Launcher'a özel: oyuncular vulu hesabıyla doğrulanır, skinler etkin."))
+        return {**inst, "agent_flags": flags}
 
     # ---------- başlat ----------
     async def start(self, inst: dict) -> dict:
@@ -109,7 +127,7 @@ class InstanceLauncher:
             raise ProcessError(_t("Mod kurulumu sürüyor, bitmesini bekle."))
         self._check_memory(inst)
         inst = await self._fix_java(inst)
-        if iid not in self._notes and not (self._needs_java(inst) or self._needs_loader(inst) or self._needs_mods(inst) or self._needs_modpack(inst)):
+        if iid not in self._notes and not inst.get("vulu_exclusive") and not (self._needs_java(inst) or self._needs_loader(inst) or self._needs_mods(inst) or self._needs_modpack(inst)):
             await self._launch(inst)
             return {"preparing": False}
         self.pm.set_status(iid, "preparing")

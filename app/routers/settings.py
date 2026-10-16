@@ -1,5 +1,6 @@
 import base64
 import binascii
+import json
 import os
 import shutil
 import stat
@@ -124,6 +125,45 @@ async def settings_save(iid: int, b: SettingsBody):
         upd["jar_file"] = b.jar_file.strip()
     update_instance(iid, **upd)
     return {"ok": True}
+
+
+# ---------------- vulu Launcher'a özel ----------------
+# Açıkken sunucu authlib-injector ile başlar ve online-mode=true olur: oyuncular Mojang yerine vulu-api'den
+# doğrulanır. Yalnızca vulu Launcher'dan vulu hesabıyla girenler katılabilir, skinleri de görünür.
+VULU_PROPS = {"online-mode": "true", "enforce-secure-profile": "false"}
+MC_DEFAULTS = {"online-mode": "true", "enforce-secure-profile": "true"}
+
+
+class VuluBody(BaseModel):
+    enabled: bool
+
+
+@router.post("/api/instances/{iid}/vulu-exclusive")
+async def vulu_exclusive(iid: int, b: VuluBody):
+    inst = _inst(iid)
+    _stopped(iid)
+    if b.enabled == bool(inst.get("vulu_exclusive")):
+        return {"ok": True, "enabled": b.enabled}
+    path = Path(inst["path"]) / "server.properties"
+    cur = read_properties(path)
+    try:
+        if b.enabled:
+            # Kapatınca geri dönmek için önceki değerler saklanır
+            prev = {k: cur.get(k, MC_DEFAULTS[k]) for k in VULU_PROPS}
+            update_properties(path, VULU_PROPS)
+            update_instance(iid, vulu_exclusive=1, vulu_prev_props=json.dumps(prev))
+        else:
+            try:
+                prev = json.loads(inst.get("vulu_prev_props") or "{}")
+            except ValueError:
+                prev = {}
+            restore = {k: v for k, v in prev.items() if k in VULU_PROPS and v in ("true", "false")}
+            if restore:
+                update_properties(path, restore)
+            update_instance(iid, vulu_exclusive=0, vulu_prev_props=None)
+    except (OSError, ValueError) as e:
+        raise HTTPException(500, _t("server.properties güncellenemedi: {e}", e=e))
+    return {"ok": True, "enabled": b.enabled}
 
 
 # ---------------- server.properties ----------------

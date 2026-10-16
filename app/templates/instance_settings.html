@@ -68,6 +68,17 @@
     </div>
   </form>
 
+  <div class="card static mt-4" style="max-width: 760px">
+    <div class="card-body">
+      <div class="form-check form-switch mb-1">
+        <input class="form-check-input" type="checkbox" role="switch" id="vulu-exclusive" {{ 'checked' if inst['vulu_exclusive'] else '' }} {{ '' if stopped else 'disabled' }}>
+        <label class="form-check-label h6 mb-0" for="vulu-exclusive">{{ _("vulu Launcher'a özel") }}</label>
+      </div>
+      <div class="form-text">{{ _("Açıkken sunucuya yalnızca vulu Launcher'dan vulu hesabıyla girilebilir. Oyuncular vulu hesap sunucusundan doğrulandığı için kimse başkasının adıyla giremez ve herkesin vulu skini görünür. Resmi Minecraft launcher'ı ya da başka launcher'larla girilemez.") }}</div>
+      <div class="form-text">{{ _("Açılınca <code>online-mode</code> açılır ve <code>enforce-secure-profile</code> kapanır; kapatınca önceki değerlerine döner. Değişiklik sunucunun bir sonraki başlatılışında geçerli olur.")|safe }}</div>
+    </div>
+  </div>
+
   <div class="card static mt-4" style="max-width: 760px" id="upgrade-card" data-loader="{{ inst['loader'] or 'vanilla' }}" data-current="{{ inst['mc_version'] or '' }}">
     <div class="card-body">
       <h2 class="h6">{{ _("Minecraft sürümü") }}</h2>
