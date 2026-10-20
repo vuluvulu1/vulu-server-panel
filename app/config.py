@@ -61,7 +61,7 @@ PANEL_UPDATE_HOSTS = {h.strip().lower() for h in os.getenv(
     "VULU_PANEL_UPDATE_HOSTS", "github.com,objects.githubusercontent.com,release-assets.githubusercontent.com").split(",") if h.strip()}
 
 # "vulu Launcher'a özel" sunucular: oyuncular vulu hesabıyla doğrulanır, skinler vulu-api'den gelir
-VULU_API = os.getenv("VULU_API", "https://vulu-api.onrender.com").rstrip("/")
+VULU_API = os.getenv("VULU_API", "https://vuluvulu.com.tr/api").rstrip("/")
 AUTHLIB_LATEST_URL = os.getenv("VULU_AUTHLIB_LATEST", "https://authlib-injector.yushi.moe/artifact/latest.json")
 MOJANG_PROFILE_API = os.getenv("VULU_MOJANG_PROFILE_API", "https://api.mojang.com/users/profiles/minecraft/")
 # Testler için ek Mojang indirme sunucuları (normalde boş)
