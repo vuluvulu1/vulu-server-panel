@@ -163,7 +163,10 @@ class InstanceLauncher:
     def _check_memory(inst: dict) -> None:
         """Java, -Xms = -Xmx ve AlwaysPreTouch ile belleğin tamamını başta ister; yetmezse hemen çöker.
         Başlatmadan önce boş belleği denetleyip anlaşılır bir mesaj veririz."""
-        need_mb = int(inst["ram_mb"]) + 512                     # yığın + Java'nın kendi payı (kaba alt sınır)
+        # Yığın + Java'nın kendi payı (sınıflar, derlenmiş kod, iş parçacıkları). Pay yığınla büyür: küçük sunucuda
+        # ~256 MB yeter (1 GB'lık VDS'te de açılsın), büyükte yığının %15'i kadar.
+        ram_mb = int(inst["ram_mb"])
+        need_mb = ram_mb + max(256, ram_mb * 15 // 100)
         free_mb = psutil.virtual_memory().available // (1024 * 1024)
         if free_mb < need_mb:
             raise ProcessError(
