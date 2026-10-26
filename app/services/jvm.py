@@ -33,8 +33,21 @@ _AIKAR_LARGE = ["-XX:G1NewSizePercent=40", "-XX:G1MaxNewSizePercent=50", "-XX:G1
                 "-XX:G1ReservePercent=15", "-XX:InitiatingHeapOccupancyPercent=20"]
 
 
+# 2 GB ve altı (küçük VPS): Aikar bayrakları büyük yığın için; küçükte zarar verir. AlwaysPreTouch belleğin tamamını
+# başta kapar, G1ReservePercent/NewSizePercent yığının önemli bir kısmını boşta tutar, MaxTenuringThreshold=1
+# nesneleri hemen eski kuşağa taşıyıp yığını çabuk doldurur. Bunun yerine sade G1 + yinelenen metinleri birleştirme
+# (modlu sunucuda bellek kazandırır).
+_SMALL_HEAP = [
+    "-XX:+UseG1GC", "-XX:MaxGCPauseMillis=130", "-XX:+ParallelRefProcEnabled", "-XX:+DisableExplicitGC",
+    "-XX:+UseStringDeduplication", "-XX:+PerfDisableSharedMem",
+]
+SMALL_HEAP_MB = 2048
+
+
 def preset_flags(preset: str, ram_mb: int) -> list[str]:
     if preset == "aikar":
+        if ram_mb <= SMALL_HEAP_MB:
+            return list(_SMALL_HEAP)
         # UnlockExperimentalVMOptions, G1NewSizePercent gibi deneysel bayraklardan ÖNCE gelmek zorunda
         sized = _AIKAR_SMALL if ram_mb <= 12288 else _AIKAR_LARGE
         return ["-XX:+UnlockExperimentalVMOptions"] + sized + _AIKAR_COMMON
@@ -47,6 +60,8 @@ def jvm_flags(inst: dict) -> list[str]:
     return [
         f"-Xms{ram}M", f"-Xmx{ram}M", "-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8",
         *preset_flags(inst.get("jvm_preset") or "none", ram),
+        # Bellek biterse Java yarı çalışır hâlde takılı kalmasın, kapansın: panel çökmüş sayıp yeniden başlatır
+        "-XX:+ExitOnOutOfMemoryError",
         *shlex.split(inst.get("jvm_args") or ""),
         # Her zaman en sonda: sunucudaki mod/paket kodu masaüstünde pencere açamasın, tarayıcı başlatamasın
         # (örn. "eksik modları indir" araçları). Kullanıcı argümanları bunu ezemez.

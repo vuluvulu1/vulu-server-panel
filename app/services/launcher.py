@@ -29,6 +29,9 @@ class InstanceLauncher:
         self.vulupacks = None                # container bağlar
         self._prep: dict[int, asyncio.Task] = {}
         self._notes: dict[int, str] = {}     # hazırlık başlarken konsola yazılacak panel notu
+        self._crashes: dict[int, list[float]] = {}   # sunucu → son çökme zamanları (yeniden başlatma sınırı için)
+        if hasattr(pm, "on_crash"):
+            pm.on_crash = self._on_crash
 
     # ---------- ne eksik? ----------
     def _needs_java(self, inst: dict) -> bool:
@@ -122,6 +125,37 @@ class InstanceLauncher:
             raise ProcessError(str(e))
         self.pm.log(iid, _t("[panel] vulu Launcher'a özel: oyuncular vulu hesabıyla doğrulanır, skinler etkin."))
         return {**inst, "agent_flags": flags}
+
+    # ---------- çökünce yeniden başlat ----------
+    RESTART_DELAY = 15
+    RESTART_LIMIT, RESTART_WINDOW = 3, 30 * 60
+
+    def _on_crash(self, iid: int, failed_start: bool) -> None:
+        """Çalışırken çöken sunucu 15 sn sonra yeniden başlatılır. Açılırken çöken (ayar hatası, eksik EULA) başlatılmaz;
+        30 dakikada 3'ten fazla çökerse de durulur ki bozuk bir kurulum sonsuz döngüye girmesin."""
+        if failed_start:
+            return
+        now = asyncio.get_running_loop().time()
+        recent = [t for t in self._crashes.get(iid, []) if now - t < self.RESTART_WINDOW] + [now]
+        self._crashes[iid] = recent
+        if len(recent) > self.RESTART_LIMIT:
+            self.pm.log(iid, _t("[panel] Sunucu 30 dakikada {n} kez çöktü; otomatik yeniden başlatma durduruldu. Konsoldaki hatayı inceleyip elle başlat.", n=len(recent)))
+            return
+        self.pm.log(iid, _t("[panel] Sunucu çöktü; {s} sn sonra yeniden başlatılacak ({n}/{limit}).", s=self.RESTART_DELAY, n=len(recent), limit=self.RESTART_LIMIT))
+        asyncio.get_running_loop().create_task(self._restart_after_crash(iid))
+
+    async def _restart_after_crash(self, iid: int) -> None:
+        await asyncio.sleep(self.RESTART_DELAY)
+        if self.pm.status(iid) != "crashed":
+            return                                   # bu arada elle başlatılmış ya da silinmiş
+        from ..db import get_instance
+        inst = get_instance(iid)
+        if not inst:
+            return
+        try:
+            await self.start(inst)
+        except Exception as e:
+            self.pm.log(iid, _t("[panel] Otomatik yeniden başlatma başarısız: {e}", e=e))
 
     # ---------- başlat ----------
     async def start(self, inst: dict) -> dict:

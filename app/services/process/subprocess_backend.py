@@ -67,6 +67,8 @@ class SubprocessBackend:
     def __init__(self) -> None:
         self._procs: dict[int, _Managed] = {}
         self._channels: dict[int, _Channel] = {}
+        # Sunucu çöktüğünde çağrılır (kimlik, açılırken mi çöktü); InstanceLauncher yeniden başlatmak için bağlanır
+        self.on_crash = None
 
     # ---------- yardımcılar ----------
     def _channel(self, iid: int) -> _Channel:
@@ -202,6 +204,11 @@ class SubprocessBackend:
         if status == "crashed":
             asyncio.get_running_loop().create_task(self._analyze_crash(iid, m))
         self.set_status(iid, status)
+        if status == "crashed" and self.on_crash:
+            try:
+                self.on_crash(iid, failed_start)
+            except Exception:
+                pass                                 # yeniden başlatma yardımcıdır; panelin işini bozmasın
 
     async def _analyze_crash(self, iid: int, m: _Managed) -> None:
         """Çökmeden sonra konsolu + crash raporunu inceler, nedeni konsola ve arayüze bildirir."""
