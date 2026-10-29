@@ -11,6 +11,7 @@ Seçenekler:
 log/dünya dosyası yazar. Tüm klasörü izlersek panel durmadan yeniden başlar.
 """
 import os
+import signal
 import socket
 import subprocess
 import sys
@@ -130,7 +131,18 @@ def _kill_tree(p: subprocess.Popen) -> None:
         p.kill()
 
 
+class _Terminate(Exception):
+    """systemd (ya da kill) kapatma sinyali gönderdi."""
+
+
+def _on_terminate(signum, frame) -> None:
+    raise _Terminate
+
+
 def supervise(dev: bool, open_browser: bool) -> None:
+    # Varsayılan davranışta gözetici sinyalle anında ölür, systemd de geride kalan paneli ve Minecraft sunucularını
+    # öldürür (dünya kaydedilmeden). Bunun yerine sinyal panele iletilir ve panelin sunucuları kapatması beklenir.
+    signal.signal(signal.SIGTERM, _on_terminate)
     env = {**os.environ, "VULU_SUPERVISED": "1"}
     args = [sys.executable, str(Path(__file__).resolve()), "--serve"] + (["--dev"] if dev else [])
     first = True
@@ -148,6 +160,13 @@ def supervise(dev: bool, open_browser: bool) -> None:
                     break
             else:
                 return                                # panel kendiliğinden kapandı
+        except _Terminate:
+            p.terminate()                             # panel düzgün kapanır: sunuculara "stop" yazılıp kaydettirilir
+            try:
+                p.wait(140)                           # systemd'nin TimeoutStopSec'inden (150) biraz az
+            except subprocess.TimeoutExpired:
+                _kill_tree(p)
+            return
         except KeyboardInterrupt:
             try:
                 p.wait(30)                            # Ctrl+C alt sürece de gider; düzgün kapanmasını bekle
