@@ -658,6 +658,8 @@
  "[panel] Sunucu çöktü; {s} sn sonra yeniden başlatılacak ({n}/{limit}).": "[panel] The server crashed; restarting in {s} s ({n}/{limit}).",
  "[panel] Sunucu 30 dakikada {n} kez çöktü; otomatik yeniden başlatma durduruldu. Konsoldaki hatayı inceleyip elle başlat.": "[panel] The server crashed {n} times in 30 minutes; automatic restart stopped. Check the error in the console and start it manually.",
  "[panel] Otomatik yeniden başlatma başarısız: {e}": "[panel] Automatic restart failed: {e}",
+ "[panel] Panel yeniden başladı; sunucu kapanmadan önce çalıştığı için yeniden açılıyor.": "[panel] The panel restarted; starting the server again because it was running before.",
+ "[panel] Sunucu yeniden açılamadı: {e}": "[panel] Could not start the server again: {e}",
  "Sunucu zaten çalışıyor.": "The server is already running.",
  "[panel] Başlatılıyor: ": "[panel] Starting: ",
  "Sunucu çalışmıyor.": "The server isn't running.",

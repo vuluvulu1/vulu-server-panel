@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 
 from .config import BASE_DIR, INSTANCES_DIR
+from .services import resume
 from .db import get_conn, init_db
 from .routers import auth as auth_router, panel as panel_router, backups, console, players, playit as playit_router, schedules, system, files, instances, java, loader, modpacks, mods, paper, profiles, settings
 from .routers import stats as stats_router
@@ -27,14 +28,16 @@ async def lifespan(app: FastAPI):
     scheduler.start()
     await playit.autostart()
     updater.start()
+    resume.start_saved(launcher)     # panel (ya da bilgisayar) yeniden başlamadan önce çalışan sunucular yeniden açılır
     yield
+    resume.save(process_manager.running_ids())
     await updater.stop()
     await playit.stop_agent()
     await scheduler.stop()
     await stats.stop()
     await launcher.shutdown()
     await jobs.shutdown()
-    await process_manager.stop_all()
+    await process_manager.stop_all(timeout=90)   # modlu sunucunun dünyayı kaydetmesi uzun sürebilir
 
 
 app = FastAPI(title="vulu Server Panel", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
