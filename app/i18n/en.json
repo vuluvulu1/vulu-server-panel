@@ -494,7 +494,7 @@
  "Geri yükleme sürüyor, bitmesini bekle.": "A restore is in progress, wait for it to finish.",
  "Sürüm değiştirme sürüyor, bitmesini bekle.": "A version change is in progress, wait for it to finish.",
  "Mod kurulumu sürüyor, bitmesini bekle.": "A mod installation is in progress, wait for it to finish.",
- "Bilgisayarda yeterli boş bellek yok: {v0:.1f} GB boş, bu sunucu en az {v1:.1f} GB istiyor (RAM ayarı {v2:.0f} GB + Java payı). Diğer programları kapat ya da sunucunun RAM ayarını düşür.": "Not enough free memory on the computer: {v0:.1f} GB free, this server needs at least {v1:.1f} GB (RAM setting {v2:.0f} GB + Java overhead). Close other programs or lower the server's RAM setting.",
+ "Bilgisayarda yeterli boş bellek yok: {v0:.1f} GB boş, bu sunucu en az {v1:.1f} GB istiyor (RAM ayarı {v2:g} GB + Java payı). Diğer programları kapat ya da sunucunun RAM ayarını düşür.": "Not enough free memory on the computer: {v0:.1f} GB free, this server needs at least {v1:.1f} GB (RAM setting {v2:g} GB + Java overhead). Close other programs or lower the server's RAM setting.",
  "Güncellemek için önce sunucuyu durdur.": "Stop the server before updating.",
  "Bu sunucunun jar'ı panel tarafından yönetilmiyor (yalnızca Paper ve Fabric).": "This server's jar isn't managed by the panel (Paper and Fabric only).",
  "Zaten güncel ({label}).": "Already up to date ({label}).",

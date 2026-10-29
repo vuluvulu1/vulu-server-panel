@@ -204,7 +204,7 @@ class InstanceLauncher:
         free_mb = psutil.virtual_memory().available // (1024 * 1024)
         if free_mb < need_mb:
             raise ProcessError(
-                _t('Bilgisayarda yeterli boş bellek yok: {v0:.1f} GB boş, bu sunucu en az {v1:.1f} GB istiyor (RAM ayarı {v2:.0f} GB + Java payı). Diğer programları kapat ya da sunucunun RAM ayarını düşür.', v0=free_mb / 1024, v1=need_mb / 1024, v2=int(inst['ram_mb']) / 1024)
+                _t('Bilgisayarda yeterli boş bellek yok: {v0:.1f} GB boş, bu sunucu en az {v1:.1f} GB istiyor (RAM ayarı {v2:g} GB + Java payı). Diğer programları kapat ya da sunucunun RAM ayarını düşür.', v0=free_mb / 1024, v1=need_mb / 1024, v2=int(inst['ram_mb']) / 1024)
             )
 
     async def update_jar(self, inst: dict) -> dict:

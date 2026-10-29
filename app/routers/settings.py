@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 
 from ..config import INSTANCES_DIR
 from ..db import get_conn, get_instance, update_instance
-from ..routers.instances import NAME_RE, JAR_RE, _sys_ram_gb
+from ..routers.instances import NAME_RE, JAR_RE, _sys_ram_gb, parse_ram_mb
 from ..security import validate_java_path, validate_jvm_args
 from ..services.container import jobs, launcher, minecraft, upgrader
 from ..services.jobs import JobError
@@ -82,12 +82,10 @@ async def settings_save(iid: int, b: SettingsBody):
     except ValueError:
         errors.append(_t("Port 1024-65535 arasında bir sayı olmalı."))
     try:
-        ram = int(b.ram_gb.strip())
-        if not 1 <= ram <= 128:
-            raise ValueError
-        if ram > _sys_ram_gb():
+        ram_mb = parse_ram_mb(b.ram_gb)
+        if ram_mb > _sys_ram_gb() * 1024:
             errors.append(_t('Bilgisayarında {v0} GB RAM var; bundan fazlasını veremezsin.', v0=_sys_ram_gb()))
-        upd["ram_mb"] = ram * 1024
+        upd["ram_mb"] = ram_mb
     except ValueError:
         errors.append(_t("RAM 1-128 GB arasında bir sayı olmalı."))
     if b.jvm_preset not in PRESETS:

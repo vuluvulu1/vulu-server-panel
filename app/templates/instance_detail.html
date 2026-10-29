@@ -30,7 +30,7 @@
   <div class="d-flex justify-content-between align-items-center mb-2">
     {{ status_badge(inst["status"], "instance-status") }}
     <span class="text-body-secondary small">
-      {% if profile %}{{ _("Profil") }} {{ profile.name }} · {% endif %}{% if inst["mc_version"] %}MC {{ inst["mc_version"] }} · {{ inst["loader"] }} · {% endif %}<span id="meta-java">{% if inst["java_major"] %}Java {{ inst["java_major"] }} · {% endif %}</span>Port {{ inst["port"] }} · {{ inst["ram_mb"] // 1024 }} GB · {{ _("argüman dosyası") if inst["launch_type"] == "args-file" else inst["jar_file"] }}
+      {% if profile %}{{ _("Profil") }} {{ profile.name }} · {% endif %}{% if inst["mc_version"] %}MC {{ inst["mc_version"] }} · {{ inst["loader"] }} · {% endif %}<span id="meta-java">{% if inst["java_major"] %}Java {{ inst["java_major"] }} · {% endif %}</span>Port {{ inst["port"] }} · {{ '%g' % (inst["ram_mb"] / 1024) }} GB · {{ _("argüman dosyası") if inst["launch_type"] == "args-file" else inst["jar_file"] }}
     </span>
   </div>
 

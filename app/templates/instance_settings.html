@@ -19,8 +19,8 @@
       </div>
       <div class="col-md-8">
         <label class="form-label" for="ram_gb">{{ _("RAM (GB)") }}</label>
-        <input class="form-range" type="range" id="ram_gb" min="1" max="{{ [[sys_ram_gb, 64]|min, 2]|max }}" step="1" value="{{ [inst['ram_mb'] // 1024, 1]|max }}" data-total="{{ sys_ram_gb }}">
-        <div class="form-text"><output id="ram_out">{{ inst['ram_mb'] // 1024 }}</output> GB · {{ _("toplam {n} GB", n=sys_ram_gb) }} <span id="ram_warn" class="text-warning"></span></div>
+        <input class="form-range" type="range" id="ram_gb" min="1" max="{{ [[sys_ram_gb, 64]|min, 2]|max }}" step="0.5" value="{{ '%g' % ([inst['ram_mb'], 1024]|max / 1024) }}" data-total="{{ sys_ram_gb }}">
+        <div class="form-text"><output id="ram_out">{{ '%g' % (inst['ram_mb'] / 1024) }}</output> GB · {{ _("toplam {n} GB", n=sys_ram_gb) }} <span id="ram_warn" class="text-warning"></span></div>
       </div>
       <div class="col-md-6">
         <label class="form-label" for="jvm_preset">{{ _("JVM ayarı") }}</label>

@@ -51,8 +51,18 @@ async def _safe(iid: int, coro) -> None:
         pm.notify_error(iid, str(e))
 
 
-def _sys_ram_gb() -> int:
-    return max(1, psutil.virtual_memory().total // 2**30)
+def _sys_ram_gb() -> float:
+    """Toplam RAM, yarım GB'a aşağı yuvarlanmış (ör. 3,8 GB → 3,5): RAM kaydırıcısı yarım GB adımlarla gider."""
+    gb = max(1, psutil.virtual_memory().total * 2 // 2**30 / 2)
+    return int(gb) if gb == int(gb) else gb
+
+
+def parse_ram_mb(text: str) -> int:
+    """Formdaki GB değerini ("2", "2.5", "2,5") MB'a çevirir; 1-128 arası, yarım GB'ın katı olmalı."""
+    gb = float(text.strip().replace(",", "."))
+    if not 1 <= gb <= 128 or gb * 2 != int(gb * 2):
+        raise ValueError
+    return int(gb * 1024)
 
 
 def _ctx(values: dict, errors: list[str]) -> dict:
@@ -232,7 +242,7 @@ async def create_instance(
     else:
         java_major = int(values["java_mode"])
 
-    port_i = ram_i = 0
+    port_i = ram_mb = 0
     try:
         port_i = int(values["port"])
         if not 1024 <= port_i <= 65535:
@@ -240,12 +250,10 @@ async def create_instance(
     except ValueError:
         errors.append(_t("Port 1024-65535 arasında bir sayı olmalı."))
     try:
-        ram_i = int(values["ram_gb"])
-        if not 1 <= ram_i <= 128:
-            raise ValueError
+        ram_mb = parse_ram_mb(values["ram_gb"])
     except ValueError:
         errors.append(_t("RAM 1-128 GB arasında bir sayı olmalı."))
-    if ram_i > _sys_ram_gb():
+    if ram_mb > _sys_ram_gb() * 1024:
         errors.append(_t('Bilgisayarında {v0} GB RAM var; bundan fazlasını veremezsin.', v0=_sys_ram_gb()))
 
     if not errors:
@@ -292,7 +300,7 @@ async def create_instance(
                 "INSERT INTO instances (name, path, port, java_path, jar_file, jvm_args, ram_mb, "
                 "mc_version, loader, java_major, launch_type, args_file, jvm_preset, profile_id, modpack_slug, modpack_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (values["name"], str(folder), port_i, values["java_path"] or "java",
-                 values["jar_file"], values["jvm_args"], ram_i * 1024,
+                 values["jar_file"], values["jvm_args"], ram_mb,
                  values["mc_version"] or None, values["loader"], java_major,
                  launch_type, values["args_file"] or None, values["jvm_preset"], values["profile_id"] or None,
                  pack["slug"] if pack else None, pack["version_id"] if pack else None),

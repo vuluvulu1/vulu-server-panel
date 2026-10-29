@@ -28,7 +28,7 @@
       </div>
       {{ status_badge(i["status"]) }}
     </div>
-    <p class="text-body-secondary small mb-0">{{ _("Port: {port} · RAM: {ram} GB", port=i["port"], ram=i["ram_mb"] // 1024) }}</p>
+    <p class="text-body-secondary small mb-0">{{ _("Port: {port} · RAM: {ram} GB", port=i["port"], ram='%g' % (i["ram_mb"] / 1024)) }}</p>
     <p class="small mb-0 mt-1" data-stats></p>
   </div>
 </div>
